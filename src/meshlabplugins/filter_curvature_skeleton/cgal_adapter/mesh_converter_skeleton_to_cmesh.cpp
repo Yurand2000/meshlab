@@ -21,22 +21,45 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_CGAL_MESH_CONVERTER
-#define FILTERCURVATURESKELETON_CGAL_MESH_CONVERTER
+#include "mesh_converter.h"
+#include <vcg/complex/algorithms/polygon_support.h>
 
-#include "typedefs.h"
-#include "../common/ml_document/mesh_document.h"
+#include <unordered_map>
 
 namespace CGalAdapter
 {
-	class MeshConverter
-	{
-	public:
-		static CGALMesh convertCMeshToCGALMesh(CMeshO const& mesh);
 
-		static CMeshO convertCGALMesoSkeletonToCMesh(CGALMesoSkeleton const& meso_skeleton);
-		static CMeshO convertCGALSkeletonToCMesh(CGALSkeleton const& skeleton);
-	};
+typedef vcg::tri::Allocator<CMeshO> Allocator;
+
+void addSkeletonVertices(CMeshO&, CGALSkeleton const&);
+void addSkeletonEdges(CMeshO&, CGALSkeleton const&);
+
+CMeshO MeshConverter::convertCGALSkeletonToCMesh(CGALSkeleton const& skeleton)
+{
+	CMeshO new_skeleton = {};
+	addSkeletonVertices(new_skeleton, skeleton);
+	addSkeletonEdges(new_skeleton, skeleton);
+
+	return new_skeleton;
 }
 
-#endif
+void addSkeletonVertices(CMeshO& mesh, CGALSkeleton const& skeleton)
+{
+	for (int i = 0; i < skeleton.m_vertices.size(); i++)
+	{
+		auto const& vertex = skeleton.m_vertices[i].m_property.point;
+
+		vcg::Point3d new_vertex = { vertex.x(), vertex.y(), vertex.z() };
+		Allocator::AddVertex(mesh, new_vertex);
+	}
+}
+
+void addSkeletonEdges(CMeshO& mesh, CGALSkeleton const& skeleton)
+{
+	for (auto const& edge : skeleton.m_edges)
+	{
+		Allocator::AddEdge(mesh, edge.m_source, edge.m_target);
+	}
+}
+
+}

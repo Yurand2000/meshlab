@@ -21,21 +21,46 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_CGAL_MESH_CONVERTER
-#define FILTERCURVATURESKELETON_CGAL_MESH_CONVERTER
+#ifndef FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
+#define FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
 
 #include "typedefs.h"
 #include "../common/ml_document/mesh_document.h"
 
 namespace CGalAdapter
 {
-	class MeshConverter
+	struct MeshSkeletonizerParameters;
+
+	class MeshSkeletonizer
 	{
 	public:
-		static CGALMesh convertCMeshToCGALMesh(CMeshO const& mesh);
+		MeshSkeletonizer(CMeshO const& input);
+		MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParameters const& params);
+		~MeshSkeletonizer();
 
-		static CMeshO convertCGALMesoSkeletonToCMesh(CGALMesoSkeleton const& meso_skeleton);
-		static CMeshO convertCGALSkeletonToCMesh(CGALSkeleton const& skeleton);
+		void   computeStep();
+		bool   hasConverged();
+		CMeshO getMesoSkeleton();
+		CMeshO getSkeleton();
+
+	private:
+		CGALSkeletonizer* skeletonizer;
+	};
+
+	struct MeshSkeletonizerParameters
+	{
+		double max_triangle_angle;
+		double min_edge_length;
+		double quality_speed_tradeoff;
+		double medially_centered_speed_tradeoff;
+
+		MeshSkeletonizerParameters();
+		MeshSkeletonizerParameters(
+			double max_triangle_angle,
+			double min_edge_length,
+			double quality_speed_tradeoff,
+			double medially_centered_speed_tradeoff
+		);
 	};
 }
 

@@ -21,22 +21,22 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_CGAL_MESH_CONVERTER
-#define FILTERCURVATURESKELETON_CGAL_MESH_CONVERTER
+#ifndef FILTERCURVATURESKELETON_CGAL_TYPEDEFS
+#define FILTERCURVATURESKELETON_CGAL_TYPEDEFS
 
-#include "typedefs.h"
-#include "../common/ml_document/mesh_document.h"
+#include <CGAL/Mean_curvature_flow_skeletonization.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
 
 namespace CGalAdapter
 {
-	class MeshConverter
-	{
-	public:
-		static CGALMesh convertCMeshToCGALMesh(CMeshO const& mesh);
-
-		static CMeshO convertCGALMesoSkeletonToCMesh(CGALMesoSkeleton const& meso_skeleton);
-		static CMeshO convertCGALSkeletonToCMesh(CGALSkeleton const& skeleton);
-	};
-}
+	typedef CGAL::Simple_cartesian<double>                      CGALKernel;
+	typedef CGALKernel::Point_3									CGALPoint;
+	typedef CGAL::Surface_mesh<CGALPoint>                       CGALMesh;
+	typedef CGAL::SM_Vertex_index							    CGALVertexIndex;
+	typedef CGAL::Mean_curvature_flow_skeletonization<CGALMesh> CGALSkeletonizer;
+	typedef CGALSkeletonizer::Skeleton                          CGALSkeleton;
+	typedef CGALSkeletonizer::Meso_skeleton                     CGALMesoSkeleton;
+	}
 
 #endif

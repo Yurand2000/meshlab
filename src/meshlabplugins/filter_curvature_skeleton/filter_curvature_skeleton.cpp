@@ -128,7 +128,6 @@ FilterCurvatureSkeleton::FilterClass FilterCurvatureSkeleton::getClass(const QAc
  */
 FilterPlugin::FilterArity FilterCurvatureSkeleton::filterArity(const QAction*) const
 {
-	//return NONE;
 	return SINGLE_MESH;
 }
 
@@ -147,7 +146,7 @@ int FilterCurvatureSkeleton::getPreConditions(const QAction*) const
  */
 int FilterCurvatureSkeleton::postCondition(const QAction*) const
 {
-	return MeshModel::MM_NONE;
+	return MeshModel::MM_VERTCOORD;
 }
 
 /**
@@ -176,7 +175,7 @@ RichParameterList FilterCurvatureSkeleton::initParameterList(const QAction *acti
 	return parlst;
 }
 
-std::map<std::string, QVariant> testApplyCurveSkeleton(MeshDocument& md);
+std::map<std::string, QVariant> applyCurveSkeleton(MeshDocument& md);
 
 /**
  * @brief The Real Core Function doing the actual mesh processing.
@@ -191,7 +190,7 @@ std::map<std::string, QVariant> FilterCurvatureSkeleton::applyFilter(const QActi
 	switch(ID(action)) {
 	case CURVATURE_SKELETON:
 		{
-			return testApplyCurveSkeleton( md );
+			return applyCurveSkeleton( md );
 		}
 	default :
 		wrongActionCalled(action);
@@ -201,38 +200,19 @@ std::map<std::string, QVariant> FilterCurvatureSkeleton::applyFilter(const QActi
 
 MESHLAB_PLUGIN_NAME_EXPORTER(FilterCurvatureSkeleton)
 
-#include <fstream>
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
-#include <CGAL/Mean_curvature_flow_skeletonization.h>
-#include "cgal_adapter/mesh_converter.h"
+#include "cgal_adapter/mesh_skeletonizer.h"
 
-typedef CGAL::Simple_cartesian<double>                           Kernel;
-typedef Kernel::Point_3                                          Point;
-typedef CGAL::Surface_mesh<Point>                                Triangle_mesh;
-typedef boost::graph_traits<Triangle_mesh>::vertex_descriptor    vertex_descriptor;
-typedef CGAL::Mean_curvature_flow_skeletonization<Triangle_mesh> Skeletonization;
-typedef Skeletonization::Skeleton                                Skeleton;
-typedef Skeleton::vertex_descriptor                              Skeleton_vertex;
-typedef Skeleton::edge_descriptor                                Skeleton_edge;
-
-std::map<std::string, QVariant> testApplyCurveSkeleton(MeshDocument& md)
+std::map<std::string, QVariant> applyCurveSkeleton(MeshDocument& md)
 {
-	/* std::ifstream input(model_file.toStdString());
-	Triangle_mesh tmesh;
-	input >> tmesh;*/
+	auto current_mesh = md.mm()->cm;
+	auto skeletonizer = CGalAdapter::MeshSkeletonizer(current_mesh);
 
-	auto tmesh = CGalAdapter::CGalMeshConverter::convertCMeshToCGALPolyhedron(md.mm()->cm);
+	skeletonizer.computeStep();
+	//auto skeleton = skeletonizer.getSkeleton();
+	auto mesoSkeleton = skeletonizer.getMesoSkeleton();
 
-	Skeleton        skeleton;
-	Skeletonization mcs(tmesh);
-
-	mcs.contract_until_convergence();
-	mcs.convert_to_skeleton(skeleton);
-
-	auto mesh = CGalAdapter::CGalMeshConverter::convertCGALSkeletontoCMesh(skeleton);
-
-	md.addNewMesh(mesh, "skeleton");
+	//md.addNewMesh(skeleton, "skeleton");
+	md.addNewMesh(mesoSkeleton, "mesoSkeleton");
 
 	return std::map<std::string, QVariant>();
 }

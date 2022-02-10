@@ -3,12 +3,17 @@ set(FILTER_NAME filter_curvature_skeleton)
 
 set(SOURCES
 	"filter_curvature_skeleton.cpp"
-	"cgal_adapter/mesh_converter.cpp"
+	"cgal_adapter/mesh_converter_cmesh_to_cgal.cpp"
+	"cgal_adapter/mesh_converter_skeleton_to_cmesh.cpp"
+	"cgal_adapter/mesh_converter_meso_skeleton_to_cmesh.cpp"
+	"cgal_adapter/mesh_skeletonizer.cpp"
 )
 
 set(HEADERS
 	"filter_curvature_skeleton.h"
+	"cgal_adapter/typedefs.h"
 	"cgal_adapter/mesh_converter.h"
+	"cgal_adapter/mesh_skeletonizer.h"
 )
 
 if(NOT TARGET external-boost)
