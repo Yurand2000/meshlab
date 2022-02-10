@@ -56,6 +56,12 @@ public:
 		MeshDocument &md,
 		unsigned int& postConditionMask,
 		vcg::CallBackPos * cb);
+
+private:
+	void checkParameters(RichParameterList const&, vcg::CallBackPos&);
+	void updateBorderFlags(CMeshO&, vcg::CallBackPos&);
+	void checkSelectedMesh(CMeshO const&, vcg::CallBackPos&);
+	std::map<std::string, QVariant> applyAlgorithm(CMeshO const&, MeshDocument&, RichParameterList const&, vcg::CallBackPos&);
 };
 
 #endif

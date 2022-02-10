@@ -45,6 +45,7 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 
 FilterCurvatureSkeleton::~FilterCurvatureSkeleton()
 {
+
 }
 
 QString FilterCurvatureSkeleton::pluginName() const
@@ -149,70 +150,3 @@ int FilterCurvatureSkeleton::postCondition(const QAction*) const
 	return MeshModel::MM_VERTCOORD;
 }
 
-/**
- * @brief This function define the needed parameters for each filter. Return true if the filter has some parameters
- * it is called every time, so you can set the default value of parameters according to the mesh
- * For each parameter you need to define,
- * - the name of the parameter,
- * - the default value
- * - the string shown in the dialog
- * - a possibly long string describing the meaning of that parameter (shown as a popup help in the dialog)
- * @param action
- * @param m
- * @param parlst
- */
-RichParameterList FilterCurvatureSkeleton::initParameterList(const QAction *action,const MeshModel &m)
-{
-	RichParameterList parlst;
-	switch(ID(action)) {
-	case CURVATURE_SKELETON :
-		//parlst.addParam(RichOpenFile("ModelFile", ".", {"*.obj"}, "Model file to skeletonize", "No Tooltip..."));
-		//parlst.addParam(RichString("ModelFile", "C:/Users/Yuri/Documents/gitDatabase/meshlab/src/meshlabplugins/filter_curvature_skeleton/example.off", "Model File", "No Tooltip..."));
-		break;
-	default :
-		assert(0);
-	}
-	return parlst;
-}
-
-std::map<std::string, QVariant> applyCurveSkeleton(MeshDocument& md);
-
-/**
- * @brief The Real Core Function doing the actual mesh processing.
- * @param action
- * @param md: an object containing all the meshes and rasters of MeshLab
- * @param par: the set of parameters of each filter
- * @param cb: callback object to tell MeshLab the percentage of execution of the filter
- * @return true if the filter has been applied correctly, false otherwise
- */
-std::map<std::string, QVariant> FilterCurvatureSkeleton::applyFilter(const QAction * action, const RichParameterList & parameters, MeshDocument &md, unsigned int&, vcg::CallBackPos *cb)
-{
-	switch(ID(action)) {
-	case CURVATURE_SKELETON:
-		{
-			return applyCurveSkeleton( md );
-		}
-	default :
-		wrongActionCalled(action);
-	}
-	return std::map<std::string, QVariant>();
-}
-
-MESHLAB_PLUGIN_NAME_EXPORTER(FilterCurvatureSkeleton)
-
-#include "cgal_adapter/mesh_skeletonizer.h"
-
-std::map<std::string, QVariant> applyCurveSkeleton(MeshDocument& md)
-{
-	auto current_mesh = md.mm()->cm;
-	auto skeletonizer = CGalAdapter::MeshSkeletonizer(current_mesh);
-
-	skeletonizer.computeStep();
-	//auto skeleton = skeletonizer.getSkeleton();
-	auto mesoSkeleton = skeletonizer.getMesoSkeleton();
-
-	//md.addNewMesh(skeleton, "skeleton");
-	md.addNewMesh(mesoSkeleton, "mesoSkeleton");
-
-	return std::map<std::string, QVariant>();
-}

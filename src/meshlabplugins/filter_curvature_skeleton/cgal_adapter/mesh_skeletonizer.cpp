@@ -23,43 +23,59 @@
 
 #include "mesh_skeletonizer.h"
 #include "mesh_converter.h"
+#include <common/mlexception.h> //temp
+
+#define DELTA_AREA_THRESHOLD 0.0001
 
 namespace CGalAdapter
 {
-
-void set_skeletonizer_parameters(CGALSkeletonizer&, MeshSkeletonizerParameters const&);
+void temporaryCgalMeshCheck(CGALMesh const&); // temp
 
 MeshSkeletonizer::MeshSkeletonizer(CMeshO const& input)
-	: skeletonizer(nullptr)
+	: skeletonizer(nullptr), delta_area_threshold(DELTA_AREA_THRESHOLD), original_area(0), last_area(0)
 {
 	auto cgal_mesh = MeshConverter::convertCMeshToCGALMesh(input);
+	temporaryCgalMeshCheck(cgal_mesh);
 	skeletonizer   = new CGALSkeletonizer(cgal_mesh);
+	original_area  = CGAL::Polygon_mesh_processing::area(skeletonizer->meso_skeleton());
+	last_area      = original_area;
+}
+
+void temporaryCgalMeshCheck(CGALMesh const& mesh) // temp
+{
+	if(!CGAL::is_closed(mesh))
+	{
+		throw MLException("Given mesh is not closed.");
+	}
 }
 
 MeshSkeletonizer::MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParameters const& params)
 	: MeshSkeletonizer(input)
 {
-	set_skeletonizer_parameters(*skeletonizer, params);
+	set_skeletonizer_parameters(params);
 }
 
-void set_skeletonizer_parameters(CGALSkeletonizer& skeletonizer, MeshSkeletonizerParameters const& params)
+void MeshSkeletonizer::set_skeletonizer_parameters(MeshSkeletonizerParameters const& params)
 {
 	if (params.max_triangle_angle > 0)
-		skeletonizer.set_max_triangle_angle(params.max_triangle_angle);
+		skeletonizer->set_max_triangle_angle(params.max_triangle_angle);
 	if (params.min_edge_length > 0)
-		skeletonizer.set_min_edge_length(params.min_edge_length);
+		skeletonizer->set_min_edge_length(params.min_edge_length);
 	if (params.quality_speed_tradeoff > 0)
-		skeletonizer.set_quality_speed_tradeoff(params.quality_speed_tradeoff);
+		skeletonizer->set_quality_speed_tradeoff(params.quality_speed_tradeoff);
 
 	if (params.medially_centered_speed_tradeoff > 0)
 	{
-		skeletonizer.set_is_medially_centered(true);
-		skeletonizer.set_medially_centered_speed_tradeoff(params.medially_centered_speed_tradeoff);
+		skeletonizer->set_is_medially_centered(true);
+		skeletonizer->set_medially_centered_speed_tradeoff(params.medially_centered_speed_tradeoff);
 	}
 	else
 	{
-		skeletonizer.set_is_medially_centered(false);
+		skeletonizer->set_is_medially_centered(false);
 	}
+
+	if (params.delta_area_threshold > 0)
+		delta_area_threshold = params.delta_area_threshold;
 }
 
 MeshSkeletonizer::~MeshSkeletonizer()
@@ -77,8 +93,10 @@ void MeshSkeletonizer::computeStep()
 
 bool MeshSkeletonizer::hasConverged()
 {
-	//TODO
-	return false;
+	double area       = CGAL::Polygon_mesh_processing::area( skeletonizer->meso_skeleton() );
+	double area_ratio = fabs(last_area - area) / original_area;
+	last_area         = area;
+	return area_ratio < delta_area_threshold;
 }
 
 CMeshO MeshSkeletonizer::getMesoSkeleton()
@@ -100,14 +118,17 @@ MeshSkeletonizerParameters::MeshSkeletonizerParameters() :
 	max_triangle_angle(-1),
 	min_edge_length(-1),
 	quality_speed_tradeoff(-1),
-	medially_centered_speed_tradeoff(-1)
+	medially_centered_speed_tradeoff(-1),
+	delta_area_threshold(-1)
 { }
 
 MeshSkeletonizerParameters::MeshSkeletonizerParameters(
-	double max_triangle_angle,   double min_edge_length,
-	double quality_speed_tradeoff, double medially_centered_speed_tradeoff)
+	double max_triangle_angle, double min_edge_length,
+	double quality_speed_tradeoff, double medially_centered_speed_tradeoff,
+	double zero_threshold)
 	  : max_triangle_angle(max_triangle_angle), min_edge_length(min_edge_length),
-	    quality_speed_tradeoff(quality_speed_tradeoff), medially_centered_speed_tradeoff(medially_centered_speed_tradeoff)
+	    quality_speed_tradeoff(quality_speed_tradeoff), medially_centered_speed_tradeoff(medially_centered_speed_tradeoff),
+		delta_area_threshold(delta_area_threshold)
 { }
 
 }

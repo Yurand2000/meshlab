@@ -3,6 +3,8 @@ set(FILTER_NAME filter_curvature_skeleton)
 
 set(SOURCES
 	"filter_curvature_skeleton.cpp"
+	"filter_curvature_skeleton_apply_filter.cpp"
+	"filter_curvature_skeleton_param_list.cpp"
 	"cgal_adapter/mesh_converter_cmesh_to_cgal.cpp"
 	"cgal_adapter/mesh_converter_skeleton_to_cmesh.cpp"
 	"cgal_adapter/mesh_converter_meso_skeleton_to_cmesh.cpp"
@@ -11,6 +13,7 @@ set(SOURCES
 
 set(HEADERS
 	"filter_curvature_skeleton.h"
+	"filter_curvature_skeleton_param_names.h"
 	"cgal_adapter/typedefs.h"
 	"cgal_adapter/mesh_converter.h"
 	"cgal_adapter/mesh_skeletonizer.h"

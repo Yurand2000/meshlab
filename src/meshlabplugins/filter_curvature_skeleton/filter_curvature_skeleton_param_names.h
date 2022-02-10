@@ -21,55 +21,23 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
-#define FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
+#ifndef FILTERCURVATURESKELETON_PARAMETER_NAMES
+#define FILTERCURVATURESKELETON_PARAMETER_NAMES
 
-#include "typedefs.h"
-#include "../common/ml_document/mesh_document.h"
-
-namespace CGalAdapter
-{
-	struct MeshSkeletonizerParameters;
-
-	class MeshSkeletonizer
-	{
-	public:
-		MeshSkeletonizer(CMeshO const& input);
-		MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParameters const& params);
-		~MeshSkeletonizer();
-
-		void   computeStep();
-		bool   hasConverged();
-		CMeshO getMesoSkeleton();
-		CMeshO getSkeleton();
-
-	private:
-		CGALSkeletonizer* skeletonizer;
-		double            delta_area_threshold;
-
-		double            original_area;
-		double            last_area;
-
-		void set_skeletonizer_parameters(MeshSkeletonizerParameters const& params);
-	};
-
-	struct MeshSkeletonizerParameters
-	{
-		double max_triangle_angle;
-		double min_edge_length;
-		double quality_speed_tradeoff;
-		double medially_centered_speed_tradeoff;
-		double delta_area_threshold;
-
-		MeshSkeletonizerParameters();
-		MeshSkeletonizerParameters(
-			double max_triangle_angle,
-			double min_edge_length,
-			double quality_speed_tradeoff,
-			double medially_centered_speed_tradeoff,
-			double delta_area_threshold
-		);
-	};
-}
+// parameter names
+#define PARAM_MAX_ITERATIONS "max_iterations"
+#define PARAM_SINGLE_ITERATION "single_iteration"
+#define PARAM_USE_DELTA_AREA_TERMINATION "use_delta_area_convergence"
+#define PARAM_DELTA_AREA_TERMINATION "delta_area_convergence"
+#define PARAM_GENERATE_INTERMEDIATE_MESHES "generate_intermediate_meshes"
+#define PARAM_USE_MAX_ANGLE "use_max_triangle_angle"
+#define PARAM_MAX_ANGLE "max_triangle_angle"
+#define PARAM_USE_MIN_EDGE_LENGTH "use_min_edge_length"
+#define PARAM_MIN_EDGE_LENGTH "min_edge_length"
+#define PARAM_USE_QUALITY_TRADEOFF "use_quality_tradeoff"
+#define PARAM_QUALITY_TRADEOFF "quality_tradeoff"
+#define PARAM_ENABLE_MEDIALLY_CENTERING "enable_medially_centering"
+#define PARAM_USE_MEDIALLY_CENTERING_TRADEOFF "use_medially_centering_tradeoff"
+#define PARAM_MEDIALLY_CENTERING_TRADEOFF "medially_centering_tradeoff"
 
 #endif
