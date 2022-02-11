@@ -23,130 +23,106 @@
 
 #include "filter_curvature_skeleton.h"
 
-#define FILTER_NAME "FilterCurvatureSkeleton"
-#define FILTER_DISPLAYNAME "Curvature Skeleton"
-#define FILTER_DISPLAYDESCRIPTION "No Description..."
-#define FILTER_CLASS FilterPlugin::Other
-#define FILTER_PYTHON_NAME "apply_curvature_skeleton"
+#define PLUGIN_NAME "FilterCurvatureSkeleton"
+#define F_SKELETONIZE_MANUAL_DISPLAYNAME "Skeletonize Mesh"
+#define F_SKELETONIZE_MANUAL_DESCRIPTION "Manual Skeletonization of the selected mesh."
+#define F_SKELETONIZE_MANUAL_CLASS		 FilterPlugin::Other
+#define F_SKELETONIZE_MANUAL_PYTHON_NAME "skeletonizer_mesh"
 
-/**
- * @brief Constructor usually performs only two simple tasks of filling the two lists
- *  - typeList: with all the possible id of the filtering actions
- *  - actionList with the corresponding actions. If you want to add icons to
- *  your filtering actions you can do here by construction the QActions accordingly
- */
 FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 { 
-	typeList = {CURVATURE_SKELETON};
+	typeList = { CURVATURE_SKELETON };
 
 	for(ActionIDType tt : types())
-		actionList.push_back(new QAction(filterName(tt), this));
+		actionList.push_back( new QAction(filterName(tt), this) );
 }
 
-FilterCurvatureSkeleton::~FilterCurvatureSkeleton()
-{
-
-}
+FilterCurvatureSkeleton::~FilterCurvatureSkeleton() { }
 
 QString FilterCurvatureSkeleton::pluginName() const
 {
-	return FILTER_NAME;
+	return PLUGIN_NAME;
 }
 
-/**
- * @brief ST() must return the very short string describing each filtering action
- * (this string is used also to define the menu entry)
- * @param filterId: the id of the filter
- * @return the name of the filter
- */
 QString FilterCurvatureSkeleton::filterName(ActionIDType filterId) const
 {
-	switch(filterId) {
+	switch(filterId)
+	{
 	case CURVATURE_SKELETON :
-		return FILTER_DISPLAYNAME;
+		return F_SKELETONIZE_MANUAL_DISPLAYNAME;
 	default :
 		assert(0);
 		return QString();
 	}
 }
 
-/**
- * @brief FilterCurvatureSkeleton::pythonFilterName if you want that your filter should have a different
- * name on pymeshlab, use this function to return its python name.
- * @param f
- * @return
- */
 QString FilterCurvatureSkeleton::pythonFilterName(ActionIDType f) const
 {
-	switch(f) {
+	switch(f)
+	{
 	case CURVATURE_SKELETON :
-		return FILTER_PYTHON_NAME;
+		return F_SKELETONIZE_MANUAL_PYTHON_NAME;
 	default :
 		assert(0);
 		return QString();
 	}
 }
 
-
-/**
- * @brief // Info() must return the longer string describing each filtering action
- * (this string is used in the About plugin dialog)
- * @param filterId: the id of the filter
- * @return an info string of the filter
- */
  QString FilterCurvatureSkeleton::filterInfo(ActionIDType filterId) const
 {
 	switch(filterId) {
 	case CURVATURE_SKELETON :
-		return FILTER_DISPLAYDESCRIPTION;
+		return F_SKELETONIZE_MANUAL_DESCRIPTION;
 	default :
 		assert(0);
 		return "Unknown Filter";
 	}
 }
 
- /**
- * @brief The FilterClass describes in which generic class of filters it fits.
- * This choice affect the submenu in which each filter will be placed
- * More than a single class can be chosen.
- * @param a: the action of the filter
- * @return the class od the filter
- */
 FilterCurvatureSkeleton::FilterClass FilterCurvatureSkeleton::getClass(const QAction *a) const
 {
 	switch(ID(a)) {
 	case CURVATURE_SKELETON :
-		return FILTER_CLASS;
+		return F_SKELETONIZE_MANUAL_CLASS;
 	default :
 		assert(0);
 		return FilterPlugin::Generic;
 	}
 }
 
-/**
- * @brief FilterCurvatureSkeleton::filterArity
- * @return
- */
-FilterPlugin::FilterArity FilterCurvatureSkeleton::filterArity(const QAction*) const
+FilterPlugin::FilterArity FilterCurvatureSkeleton::filterArity(const QAction* a) const
 {
-	return SINGLE_MESH;
+	switch (ID(a))
+	{
+	case CURVATURE_SKELETON :
+		return SINGLE_MESH;
+	default :
+		assert(0);
+		return NONE;
+	}
 }
 
-/**
- * @brief FilterCurvatureSkeleton::getPreConditions
- * @return
- */
-int FilterCurvatureSkeleton::getPreConditions(const QAction*) const
+int FilterCurvatureSkeleton::getPreConditions(const QAction* a) const
 {
-	return MeshModel::MM_NONE;
+	switch (ID(a))
+	{
+	case CURVATURE_SKELETON :
+		return MeshModel::MM_VERTCOORD | MeshModel::MM_FACEVERT;
+	default :
+		assert(0);
+		return MeshModel::MM_NONE;
+	}
 }
 
-/**
- * @brief FilterCurvatureSkeleton::postCondition
- * @return
- */
-int FilterCurvatureSkeleton::postCondition(const QAction*) const
+int FilterCurvatureSkeleton::postCondition(const QAction* a) const
 {
-	return MeshModel::MM_VERTCOORD;
+	switch (ID(a))
+	{
+	case CURVATURE_SKELETON :
+		return MeshModel::MM_NONE;
+	default :
+		assert(0);
+		return MeshModel::MM_NONE;
+	}
 }
 

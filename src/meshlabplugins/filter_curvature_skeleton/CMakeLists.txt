@@ -9,6 +9,7 @@ set(SOURCES
 	"cgal_adapter/mesh_converter_skeleton_to_cmesh.cpp"
 	"cgal_adapter/mesh_converter_meso_skeleton_to_cmesh.cpp"
 	"cgal_adapter/mesh_skeletonizer.cpp"
+	"algo_skeletonize/skeletonize.cpp"
 )
 
 set(HEADERS
@@ -17,6 +18,7 @@ set(HEADERS
 	"cgal_adapter/typedefs.h"
 	"cgal_adapter/mesh_converter.h"
 	"cgal_adapter/mesh_skeletonizer.h"
+	"algo_skeletonize/skeletonize.h"
 )
 
 if(NOT TARGET external-boost)

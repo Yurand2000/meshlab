@@ -21,58 +21,48 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
-#define FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
+#ifndef FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
+#define FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
 
-#include "typedefs.h"
-#include "../common/ml_document/mesh_document.h"
+#include <common/plugins/interfaces/filter_plugin.h>
+#include "../cgal_adapter/mesh_skeletonizer.h"
 
-namespace CGalAdapter
+class algorithmSkeletonize
 {
-	struct MeshSkeletonizerParameters;
+	typedef CGalAdapter::MeshSkeletonizer           Skeletonizer;
+	typedef CGalAdapter::MeshSkeletonizerParameters SkelParams;
+	typedef std::vector<std::pair<CMeshO, QString>> NewMeshVector;
 
-	class MeshSkeletonizer
-	{
-	public:
-		MeshSkeletonizer(CMeshO const& input);
-		MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParameters const& params);
-		~MeshSkeletonizer();
+public:
+	algorithmSkeletonize(
+		MeshDocument&              document,
+		RichParameterList const&   parameters,
+		vcg::CallBackPos&		   callback_pos,
+		MeshLabPluginLogger const& logger);
+	~algorithmSkeletonize();
 
-		MeshSkeletonizer(MeshSkeletonizer& copy) = delete;
-		MeshSkeletonizer& operator=(MeshSkeletonizer& copy) = delete;
+	std::map<std::string, QVariant> apply();
 
-		void   computeStep();
-		bool   hasConverged();
-		CMeshO getMesoSkeleton();
-		CMeshO getSkeleton();
+private:
+	SkelParams algorithmSkeletonize::getSkeletonizerParameters();
+	int		   getIterationCount();
+	bool       getGenerateIntermediateMeshes();
 
-	private:
-		CGALSkeletonizer* skeletonizer;
-		double            delta_area_threshold;
+	int        skeletonize(int max_iterations, bool generate_intermediate_meshes);
+	bool	   computeIteration();
+	void       generateIntermediateMesh(int current_iteration);
+	void       generateSkeleton();
 
-		double            original_area;
-		double            last_area;
+private:
+	MeshDocument& document;
+	RichParameterList const& parameters;
+	vcg::CallBackPos& callback_pos;
+	MeshLabPluginLogger const& logger;
+	CMeshO& mesh;
 
-		void set_skeletonizer_parameters(MeshSkeletonizerParameters const& params);
-	};
-
-	struct MeshSkeletonizerParameters
-	{
-		double max_triangle_angle;
-		double min_edge_length;
-		double quality_speed_tradeoff;
-		double medially_centered_speed_tradeoff;
-		double delta_area_threshold;
-
-		MeshSkeletonizerParameters();
-		MeshSkeletonizerParameters(
-			double max_triangle_angle,
-			double min_edge_length,
-			double quality_speed_tradeoff,
-			double medially_centered_speed_tradeoff,
-			double delta_area_threshold
-		);
-	};
-}
+	QString       mesh_name;
+	Skeletonizer  skeletonizer;
+	NewMeshVector new_meshes;
+};
 
 #endif

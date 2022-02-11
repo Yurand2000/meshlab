@@ -33,6 +33,7 @@ class FilterCurvatureSkeleton : public QObject, public FilterPlugin
 	Q_INTERFACES(FilterPlugin)
 
 public:
+	//possible filters
 	enum {
 		CURVATURE_SKELETON
 	};
@@ -40,28 +41,28 @@ public:
 	FilterCurvatureSkeleton();
 	virtual ~FilterCurvatureSkeleton();
 
-	QString pluginName() const;
+	QString pluginName() const override;
 
-	QString filterName(ActionIDType filter) const;
-	QString pythonFilterName(ActionIDType f) const;
-	QString filterInfo(ActionIDType filter) const;
-	FilterClass getClass(const QAction* a) const;
-	FilterArity filterArity(const QAction*) const;
-	int getPreConditions(const QAction *) const;
-	int postCondition(const QAction* ) const;
-	RichParameterList initParameterList(const QAction*, const MeshModel &);
+	QString filterName(ActionIDType filter) const override;
+	QString pythonFilterName(ActionIDType f) const override;
+	QString filterInfo(ActionIDType filter) const override;
+	FilterClass getClass(QAction const* a) const override;
+	FilterArity filterArity(QAction const* a) const override;
+	int getPreConditions(QAction const* a) const override;
+	int postCondition(QAction const* a) const override;
+	RichParameterList initParameterList(QAction const*, MeshModel const&) override;
 	std::map<std::string, QVariant> applyFilter(
-		const QAction* action,
-		const RichParameterList & parameters,
-		MeshDocument &md,
-		unsigned int& postConditionMask,
-		vcg::CallBackPos * cb);
+		QAction const*,
+		RichParameterList const&,
+		MeshDocument&,
+		unsigned int&,
+		vcg::CallBackPos*
+	) override;
 
 private:
 	void checkParameters(RichParameterList const&, vcg::CallBackPos&);
 	void updateBorderFlags(CMeshO&, vcg::CallBackPos&);
 	void checkSelectedMesh(CMeshO const&, vcg::CallBackPos&);
-	std::map<std::string, QVariant> applyAlgorithm(CMeshO const&, MeshDocument&, RichParameterList const&, vcg::CallBackPos&);
 };
 
 #endif
