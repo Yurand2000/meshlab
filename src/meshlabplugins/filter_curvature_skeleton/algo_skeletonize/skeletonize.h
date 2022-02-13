@@ -44,7 +44,7 @@ public:
 	std::map<std::string, QVariant> apply();
 
 private:
-	SkelParams algorithmSkeletonize::getSkeletonizerParameters();
+	SkelParams getSkeletonizerParameters();
 	int		   getIterationCount();
 	bool       getGenerateIntermediateMeshes();
 
