@@ -54,4 +54,5 @@ ${MACDEPLOYQT_EXE} $INSTALL_PATH/$APPNAME \
     -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_mesh_booleans.so \
     -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_screened_poisson.so \
     -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_sketchfab.so \
-     -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libio_e57.so
+    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libio_e57.so \
+    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_curvature_skeleton.so
