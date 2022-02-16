@@ -21,8 +21,8 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "skeletonize.h"
-#include "../filter_curvature_skeleton_param_names.h"
+#include "algorithm_skeletonize.h"
+#include "skeletonize_manual.h"
 
 algorithmSkeletonize::algorithmSkeletonize(
 	MeshDocument&              document,

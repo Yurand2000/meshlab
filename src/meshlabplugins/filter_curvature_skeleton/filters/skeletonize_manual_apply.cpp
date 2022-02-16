@@ -23,7 +23,7 @@
 
 #include "skeletonize_manual.h"
 #include "cgal_adapter/mesh_skeletonizer.h"
-#include "algo_skeletonize/skeletonize.h"
+#include "algorithm_skeletonize.h"
 
 #include <string>
 
