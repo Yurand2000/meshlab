@@ -3,22 +3,29 @@ set(FILTER_NAME filter_curvature_skeleton)
 
 set(SOURCES
 	"filter_curvature_skeleton.cpp"
-	"filter_curvature_skeleton_apply_filter.cpp"
-	"filter_curvature_skeleton_param_list.cpp"
 	"cgal_adapter/mesh_converter_cmesh_to_cgal.cpp"
 	"cgal_adapter/mesh_converter_skeleton_to_cmesh.cpp"
 	"cgal_adapter/mesh_converter_meso_skeleton_to_cmesh.cpp"
 	"cgal_adapter/mesh_skeletonizer.cpp"
 	"algo_skeletonize/skeletonize.cpp"
+	"filters/filter_template.cpp"
+	"filters/skeletonize_default.cpp"
+	"filters/skeletonize_fast.cpp"
+	"filters/skeletonize_manual.cpp"
+	"filters/skeletonize_manual_apply.cpp"
+	"filters/skeletonize_manual_param_list.cpp"
 )
 
 set(HEADERS
 	"filter_curvature_skeleton.h"
-	"filter_curvature_skeleton_param_names.h"
 	"cgal_adapter/typedefs.h"
 	"cgal_adapter/mesh_converter.h"
 	"cgal_adapter/mesh_skeletonizer.h"
 	"algo_skeletonize/skeletonize.h"
+	"filters/filter_template.h"
+	"filters/skeletonize_default.h"
+	"filters/skeletonize_fast.h"
+	"filters/skeletonize_manual.h"
 )
 
 if(NOT TARGET external-boost)

@@ -21,23 +21,20 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_PARAMETER_NAMES
-#define FILTERCURVATURESKELETON_PARAMETER_NAMES
+#include "skeletonize_manual.h"
 
-// parameter names
-#define PARAM_MAX_ITERATIONS "max_iterations"
-#define PARAM_SINGLE_ITERATION "single_iteration"
-#define PARAM_USE_DELTA_AREA_TERMINATION "use_delta_area_convergence"
-#define PARAM_DELTA_AREA_TERMINATION "delta_area_convergence"
-#define PARAM_GENERATE_INTERMEDIATE_MESHES "generate_intermediate_meshes"
-#define PARAM_USE_MAX_ANGLE "use_max_triangle_angle"
-#define PARAM_MAX_ANGLE "max_triangle_angle"
-#define PARAM_USE_MIN_EDGE_LENGTH "use_min_edge_length"
-#define PARAM_MIN_EDGE_LENGTH "min_edge_length"
-#define PARAM_USE_QUALITY_TRADEOFF "use_quality_tradeoff"
-#define PARAM_QUALITY_TRADEOFF "quality_tradeoff"
-#define PARAM_ENABLE_MEDIALLY_CENTERING "enable_medially_centering"
-#define PARAM_USE_MEDIALLY_CENTERING_TRADEOFF "use_medially_centering_tradeoff"
-#define PARAM_MEDIALLY_CENTERING_TRADEOFF "medially_centering_tradeoff"
+#define F_FILTERID	  FilterCurvatureSkeleton::SKELETONIZE_MANUAL
+#define F_DISPLAYNAME "Manual Skeletonization"
+#define F_DESCRIPTION "*ADVANCED* Manual Skeletonization of the selected mesh."
+#define F_CATEGORY    FilterPlugin::Other
+#define F_PYTHON_NAME "skeletonizer_mesh_manual"
+#define F_ARITY       FilterPlugin::FilterArity::SINGLE_MESH
+#define F_PRECONDS    MeshModel::MM_NONE
+#define F_POSTCONDS   MeshModel::MM_NONE
 
-#endif
+filterSkeletonizeManual::filterSkeletonizeManual() :
+	templateFilter(
+		F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
+		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
+
+filterSkeletonizeManual::~filterSkeletonizeManual() { }

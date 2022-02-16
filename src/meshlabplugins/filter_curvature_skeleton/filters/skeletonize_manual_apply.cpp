@@ -21,48 +21,40 @@
 *                                                                           *
 ****************************************************************************/
 
-#include "filter_curvature_skeleton.h"
-#include "filter_curvature_skeleton_param_names.h"
+#include "skeletonize_manual.h"
 #include "cgal_adapter/mesh_skeletonizer.h"
 #include "algo_skeletonize/skeletonize.h"
 
 #include <string>
 
-std::map<std::string, QVariant> FilterCurvatureSkeleton::applyFilter(const QAction* action, const RichParameterList& parameters, MeshDocument& document, unsigned int&, vcg::CallBackPos* cb)
+std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
+	FilterPlugin const&      plugin,
+	RichParameterList const& params,
+	MeshDocument&            document,
+	unsigned int&,
+	vcg::CallBackPos* callback)
 {
-	switch (ID(action))
-	{
-	case CURVATURE_SKELETON:
-	{
-		try
-		{
-			auto& selected_mesh = document.mm()->cm;
+	try {
+		auto& selected_mesh = document.mm()->cm;
 
-			cb(100, "Setup - Starting...");
-			checkParameters(parameters, *cb);
-			updateBorderFlags(selected_mesh, *cb);
-			checkSelectedMesh(selected_mesh, *cb);
-			cb(100, "Setup - Done.");
+		callback(100, "Setup - Starting...");
+		checkParameters(params, *callback);
+		updateBorderFlags(selected_mesh, *callback);
+		checkSelectedMesh(selected_mesh, *callback);
+		callback(100, "Setup - Done.");
 
-			return algorithmSkeletonize(document, parameters, *cb, *this).apply();
-		}
-		catch (MLException e)
-		{
-			throw e;
-		}
-		catch(std::exception e)
-		{
-			throw MLException( QString("Unhandled exception: ") + QString(e.what()) );
-		}
+		return algorithmSkeletonize(document, params, *callback, plugin).apply();
 	}
-	default:
-		wrongActionCalled(action);
+	catch (MLException e) {
+		throw e;
 	}
-	return std::map<std::string, QVariant>();
+	catch (std::exception e) {
+		throw MLException(QString("Unhandled exception: ") + QString(e.what()));
+	}
 }
 
 
-void FilterCurvatureSkeleton::checkParameters(RichParameterList const& params, vcg::CallBackPos& callback)
+void filterSkeletonizeManual::checkParameters(RichParameterList const& params, vcg::CallBackPos& callback)
 {
 	callback(0, "Setup - Checking Parameters...");
 	if (params.getInt(PARAM_MAX_ITERATIONS) < 1)
@@ -101,13 +93,13 @@ void FilterCurvatureSkeleton::checkParameters(RichParameterList const& params, v
 	}
 }
 
-void FilterCurvatureSkeleton::updateBorderFlags(CMeshO& mesh, vcg::CallBackPos& callback)
+void filterSkeletonizeManual::updateBorderFlags(CMeshO& mesh, vcg::CallBackPos& callback)
 {
 	callback(33, "Setup - Updating border flags of selected mesh...");
 	vcg::tri::UpdateFlags<CMeshO>::VertexBorderFromNone(mesh);
 }
 
-void FilterCurvatureSkeleton::checkSelectedMesh(CMeshO const& mesh, vcg::CallBackPos& callback)
+void filterSkeletonizeManual::checkSelectedMesh(CMeshO const& mesh, vcg::CallBackPos& callback)
 {
 	callback(66, "Setup - Checking mesh is closed...");
 	for (auto& vert : mesh.vert)
@@ -118,5 +110,3 @@ void FilterCurvatureSkeleton::checkSelectedMesh(CMeshO const& mesh, vcg::CallBac
 		}
 	}
 }
-
-MESHLAB_PLUGIN_NAME_EXPORTER(FilterCurvatureSkeleton)

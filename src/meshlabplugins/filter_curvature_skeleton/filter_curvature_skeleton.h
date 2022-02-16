@@ -25,6 +25,7 @@
 #define FILTERCURVATURESKELETON_PLUGIN
 
 #include <common/plugins/interfaces/filter_plugin.h>
+#include "filters/filter_template.h"
 
 class FilterCurvatureSkeleton : public QObject, public FilterPlugin
 {
@@ -35,7 +36,9 @@ class FilterCurvatureSkeleton : public QObject, public FilterPlugin
 public:
 	//possible filters
 	enum {
-		CURVATURE_SKELETON
+		SKELETONIZE_DEFAULT,
+		SKELETONIZE_FAST,
+		SKELETONIZE_MANUAL
 	};
 
 	FilterCurvatureSkeleton();
@@ -60,9 +63,36 @@ public:
 	) override;
 
 private:
-	void checkParameters(RichParameterList const&, vcg::CallBackPos&);
-	void updateBorderFlags(CMeshO&, vcg::CallBackPos&);
-	void checkSelectedMesh(CMeshO const&, vcg::CallBackPos&);
+	template<class T>
+	T findFilterAndExecute(ActionIDType filter_id, std::function<T(templateFilter&)> func, std::function<T()> def)
+	{
+		for (auto filter : filters) {
+			if (filter->isValidFilter(filter_id))
+				return func(*filter);
+		}
+		return def();
+	}
+
+	template<class T>
+	T findFilterAndExecute(ActionIDType filter_id, std::function<T(templateFilter const&)> func, std::function<T()> def) const
+	{
+		for (auto filter : filters) {
+			if (filter->isValidFilter(filter_id))
+				return func(*filter);
+		}
+		return def();
+	}
+
+	template<class T>
+	T findFilterAndExecute(QAction const* a, std::function<T(templateFilter&)> func, std::function<T()> def)
+	{ return findFilterAndExecute<T>(ID(a), func, def); }
+
+	template<class T>
+	T findFilterAndExecute(QAction const* a, std::function<T(templateFilter const&)> func, std::function<T()> def) const
+	{ return findFilterAndExecute<T>(ID(a), func, def); }
+
+private:
+	std::vector<templateFilter*> filters;
 };
 
 #endif
