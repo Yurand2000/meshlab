@@ -44,22 +44,15 @@ algorithmSkeletonize::SkelParams algorithmSkeletonize::getSkeletonizerParameters
 {
 	SkelParams skel_params = {};
 
-	if (parameters.getBool(PARAM_USE_MAX_ANGLE))
-		skel_params.max_triangle_angle = parameters.getFloat(PARAM_MAX_ANGLE);
+	skel_params.delta_area_threshold   = parameters.getFloat(PARAM_DELTA_AREA_TERMINATION);
+	skel_params.max_triangle_angle = parameters.getFloat(PARAM_MAX_ANGLE);
+	skel_params.min_edge_length = parameters.getFloat(PARAM_MIN_EDGE_LENGTH);
+	skel_params.quality_speed_tradeoff = parameters.getFloat(PARAM_QUALITY_TRADEOFF);
 
-	if (parameters.getBool(PARAM_USE_MIN_EDGE_LENGTH))
-		skel_params.min_edge_length = parameters.getFloat(PARAM_MIN_EDGE_LENGTH);
-
-	if (parameters.getBool(PARAM_USE_QUALITY_TRADEOFF))
-		skel_params.quality_speed_tradeoff = parameters.getFloat(PARAM_QUALITY_TRADEOFF);
-
-	if (parameters.getBool(PARAM_ENABLE_MEDIALLY_CENTERING) &&
-		parameters.getBool(PARAM_USE_MEDIALLY_CENTERING_TRADEOFF))
+	if (parameters.getBool(PARAM_ENABLE_MEDIALLY_CENTERING))
 		skel_params.medially_centered_speed_tradeoff =
 			parameters.getFloat(PARAM_MEDIALLY_CENTERING_TRADEOFF);
 
-	if (parameters.getBool(PARAM_USE_DELTA_AREA_TERMINATION))
-		skel_params.delta_area_threshold = parameters.getFloat(PARAM_DELTA_AREA_TERMINATION);
 	return skel_params;
 }
 
@@ -88,10 +81,7 @@ std::map<std::string, QVariant> algorithmSkeletonize::apply()
 
 int algorithmSkeletonize::getIterationCount()
 {
-	if (parameters.getBool(PARAM_SINGLE_ITERATION))
-		return 1;
-	else
-		return parameters.getInt(PARAM_MAX_ITERATIONS);
+	return parameters.getInt(PARAM_MAX_ITERATIONS);
 }
 
 bool algorithmSkeletonize::getGenerateIntermediateMeshes()

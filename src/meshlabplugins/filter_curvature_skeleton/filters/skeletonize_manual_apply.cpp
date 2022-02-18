@@ -25,6 +25,8 @@
 #include "cgal_adapter/mesh_skeletonizer.h"
 #include "algorithm_skeletonize.h"
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <string>
 
 std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
@@ -62,31 +64,26 @@ void filterSkeletonizeManual::checkParameters(RichParameterList const& params, v
 		throw MLException("Number of iterations cannot be negative.");
 	}
 
-	if (params.getBool(PARAM_USE_DELTA_AREA_TERMINATION) &&
-		params.getFloat(PARAM_DELTA_AREA_TERMINATION) <= 0) {
+	if (params.getFloat(PARAM_DELTA_AREA_TERMINATION) <= 0) {
 		throw MLException("Delta area convergence cannot be zero or negative.");
 	}
 
-	if (params.getBool(PARAM_USE_MAX_ANGLE) &&
-		params.getFloat(PARAM_MAX_ANGLE) <= 0)
+	if (params.getFloat(PARAM_MAX_ANGLE) <= (M_PI/2))
 	{
-		throw MLException("Max triangle angle cannot be zero or negative.");
+		throw MLException("Max triangle angle cannot be less than PI/2.");
 	}
 
-	if (params.getBool(PARAM_USE_MIN_EDGE_LENGTH) &&
-		params.getFloat(PARAM_MIN_EDGE_LENGTH) <= 0)
+	if (params.getFloat(PARAM_MIN_EDGE_LENGTH) <= 0)
 	{
 		throw MLException("Min edge length cannot be zero or negative.");
 	}
 
-	if (params.getBool(PARAM_USE_QUALITY_TRADEOFF) &&
-		params.getFloat(PARAM_QUALITY_TRADEOFF) <= 0)
+	if (params.getFloat(PARAM_QUALITY_TRADEOFF) <= 0)
 	{
 		throw MLException("Quality tradeoff cannot be zero or negative.");
 	}
 
 	if (params.getBool(PARAM_ENABLE_MEDIALLY_CENTERING) &&
-		params.getBool(PARAM_USE_MEDIALLY_CENTERING_TRADEOFF) &&
 		params.getFloat(PARAM_MEDIALLY_CENTERING_TRADEOFF) <= 0)
 	{
 		throw MLException("Medially centering tradeoff cannot be zero or negative.");
