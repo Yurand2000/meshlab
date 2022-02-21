@@ -29,33 +29,37 @@
 
 class algorithmSkeletonize
 {
+public:
 	typedef CGalAdapter::MeshSkeletonizer           Skeletonizer;
-	typedef CGalAdapter::MeshSkeletonizerParameters SkelParams;
+	typedef CGalAdapter::MeshSkeletonizerParameters Parameters;
+
+private:
 	typedef std::vector<std::pair<CMeshO, QString>> NewMeshVector;
 
 public:
 	algorithmSkeletonize(
 		MeshDocument&              document,
-		RichParameterList const&   parameters,
+		Parameters&				   parameters,
 		vcg::CallBackPos&		   callback_pos,
 		MeshLabPluginLogger const& logger);
 	~algorithmSkeletonize();
 
-	std::map<std::string, QVariant> apply();
+	std::map<std::string, QVariant> apply(int max_iterations, bool generate_intermediate_meshes);
 
 private:
-	SkelParams getSkeletonizerParameters();
-	int		   getIterationCount();
-	bool       getGenerateIntermediateMeshes();
+	void checkApplicability();
+	int  skeletonize(int max_iterations, bool generate_intermediate_meshes);
+	void generateSkeleton();
+	void addNewMeshes();
 
-	int        skeletonize(int max_iterations, bool generate_intermediate_meshes);
-	bool	   computeIteration();
-	void       generateIntermediateMesh(int current_iteration);
-	void       generateSkeleton();
+	bool computeIteration();
+	void generateIntermediateMesh(int current_iteration);
+
+	void updateBorderFlags();
+	void checkSelectedMesh() const;
 
 private:
 	MeshDocument& document;
-	RichParameterList const& parameters;
 	vcg::CallBackPos& callback_pos;
 	MeshLabPluginLogger const& logger;
 	CMeshO& mesh;

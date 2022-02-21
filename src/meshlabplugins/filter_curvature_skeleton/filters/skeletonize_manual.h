@@ -26,7 +26,7 @@
 
 #include "filter_template.h"
 
-#include "../filter_curvature_skeleton.h"
+#include <common/plugins/interfaces/filter_plugin.h>
 
 //parameter names
 #define PARAM_MAX_ITERATIONS "max_iterations"
@@ -54,8 +54,6 @@ public:
 
 private:
 	void checkParameters(RichParameterList const&, vcg::CallBackPos&);
-	void updateBorderFlags(CMeshO&, vcg::CallBackPos&);
-	void checkSelectedMesh(CMeshO const&, vcg::CallBackPos&);
 };
 
 #endif

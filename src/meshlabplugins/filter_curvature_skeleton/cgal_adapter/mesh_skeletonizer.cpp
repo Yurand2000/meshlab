@@ -25,14 +25,21 @@
 #include "mesh_converter.h"
 #include <common/mlexception.h> //temp
 
-#define DELTA_AREA_THRESHOLD 0.0001
+#define _USE_MATH_DEFINES
+#include <cmath>
+
+// default values
+#define DELTA_AREA_DEFAULT 0.0001
+#define MAX_TRIANGLE_ANGLE_DEFAULT (110 * (M_PI / 180.0))
+#define QUALITY_TRADEOFF_DEFAULT 0.1
+#define MEDIALLY_CENTERING_TRADEOFF_DEFAULT 0.2
 
 namespace CGalAdapter
 {
 void temporaryCgalMeshCheck(CGALMesh const&); // temp
 
 MeshSkeletonizer::MeshSkeletonizer(CMeshO const& input)
-	: skeletonizer(nullptr), delta_area_threshold(DELTA_AREA_THRESHOLD), original_area(0), last_area(0)
+	: skeletonizer(nullptr), delta_area_threshold(DELTA_AREA_DEFAULT), original_area(0), last_area(0)
 {
 	auto cgal_mesh = MeshConverter::convertCMeshToCGALMesh(input);
 	temporaryCgalMeshCheck(cgal_mesh);
@@ -64,10 +71,10 @@ void MeshSkeletonizer::set_skeletonizer_parameters(MeshSkeletonizerParameters co
 	if (params.quality_speed_tradeoff > 0)
 		skeletonizer->set_quality_speed_tradeoff(params.quality_speed_tradeoff);
 
-	if (params.medially_centered_speed_tradeoff > 0)
+	if (params.medially_centering_speed_tradeoff > 0)
 	{
 		skeletonizer->set_is_medially_centered(true);
-		skeletonizer->set_medially_centered_speed_tradeoff(params.medially_centered_speed_tradeoff);
+		skeletonizer->set_medially_centered_speed_tradeoff(params.medially_centering_speed_tradeoff);
 	}
 	else
 	{
@@ -118,17 +125,24 @@ MeshSkeletonizerParameters::MeshSkeletonizerParameters() :
 	max_triangle_angle(-1),
 	min_edge_length(-1),
 	quality_speed_tradeoff(-1),
-	medially_centered_speed_tradeoff(-1),
+	medially_centering_speed_tradeoff(-1),
 	delta_area_threshold(-1)
 { }
 
-MeshSkeletonizerParameters::MeshSkeletonizerParameters(
-	double max_triangle_angle, double min_edge_length,
-	double quality_speed_tradeoff, double medially_centered_speed_tradeoff,
-	double zero_threshold)
-	  : max_triangle_angle(max_triangle_angle), min_edge_length(min_edge_length),
-	    quality_speed_tradeoff(quality_speed_tradeoff), medially_centered_speed_tradeoff(medially_centered_speed_tradeoff),
-		delta_area_threshold(delta_area_threshold)
+double calculateMinEdgeLength(CMeshO const&);
+
+MeshSkeletonizerParameters::MeshSkeletonizerParameters(CMeshO const& mesh) :
+	max_triangle_angle(MAX_TRIANGLE_ANGLE_DEFAULT),
+		min_edge_length(calculateMinEdgeLength(mesh)),
+	quality_speed_tradeoff(QUALITY_TRADEOFF_DEFAULT),
+	medially_centering_speed_tradeoff(MEDIALLY_CENTERING_TRADEOFF_DEFAULT),
+	delta_area_threshold(DELTA_AREA_DEFAULT)
 { }
+
+double calculateMinEdgeLength(CMeshO const& mesh)
+{
+	auto boundingBox = mesh.trBB();
+	return 0.002 * boundingBox.Diag();
+}
 
 }

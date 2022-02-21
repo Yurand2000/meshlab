@@ -22,6 +22,7 @@
  ****************************************************************************/
 
 #include "skeletonize_manual.h"
+#include "../filter_curvature_skeleton.h"
 
 #define F_FILTERID	  FilterCurvatureSkeleton::SKELETONIZE_MANUAL
 #define F_DISPLAYNAME "Manual Skeletonization"

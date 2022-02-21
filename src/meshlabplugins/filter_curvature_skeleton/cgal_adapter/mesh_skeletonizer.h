@@ -61,17 +61,11 @@ namespace CGalAdapter
 		double max_triangle_angle;
 		double min_edge_length;
 		double quality_speed_tradeoff;
-		double medially_centered_speed_tradeoff;
+		double medially_centering_speed_tradeoff;
 		double delta_area_threshold;
 
 		MeshSkeletonizerParameters();
-		MeshSkeletonizerParameters(
-			double max_triangle_angle,
-			double min_edge_length,
-			double quality_speed_tradeoff,
-			double medially_centered_speed_tradeoff,
-			double delta_area_threshold
-		);
+		MeshSkeletonizerParameters(CMeshO const&);
 	};
 }
 

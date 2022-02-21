@@ -22,6 +22,8 @@
  ****************************************************************************/
 
 #include "skeletonize_default.h"
+#include "algorithm_skeletonize.h"
+#include "../filter_curvature_skeleton.h"
 
 #define F_FILTERID	  FilterCurvatureSkeleton::SKELETONIZE_DEFAULT
 #define F_DISPLAYNAME "Skeletonize Mesh (Dafault settings)"
@@ -44,6 +46,9 @@ RichParameterList filterSkeletonizeDefault::initParameterList(FilterPlugin const
 	return RichParameterList();
 }
 
+#define F_DEFAULT_ITERATIONS 200
+#define F_DEFAULT_GENERATE_MESO_SKELETONS false
+
 std::map<std::string, QVariant> filterSkeletonizeDefault::applyFilter(
 	FilterPlugin const& plugin,
 	RichParameterList const& params,
@@ -51,6 +56,7 @@ std::map<std::string, QVariant> filterSkeletonizeDefault::applyFilter(
 	unsigned int&,
 	vcg::CallBackPos* callback)
 {
-	plugin.log("filter applied");
-	return std::map<std::string, QVariant>();
+	auto skel_params = algorithmSkeletonize::Parameters(document.mm()->cm);
+	return algorithmSkeletonize(document, skel_params, *callback, plugin)
+		.apply(F_DEFAULT_ITERATIONS, F_DEFAULT_GENERATE_MESO_SKELETONS);
 }

@@ -26,7 +26,7 @@
 
 #include "filter_template.h"
 
-#include "../filter_curvature_skeleton.h"
+#include <common/plugins/interfaces/filter_plugin.h>
 
 class filterSkeletonizeDefault : public templateFilter
 {

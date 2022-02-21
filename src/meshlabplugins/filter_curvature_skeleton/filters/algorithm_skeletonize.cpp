@@ -26,69 +26,67 @@
 
 algorithmSkeletonize::algorithmSkeletonize(
 	MeshDocument&              document,
-	RichParameterList const&   parameters,
+	Parameters&                parameters,
 	vcg::CallBackPos&          callback_pos,
 	MeshLabPluginLogger const& logger) :
 		document(document),
-		parameters(parameters),
 	    callback_pos(callback_pos),
 		mesh(document.mm()->cm),
-		skeletonizer(mesh, getSkeletonizerParameters()),
+		skeletonizer(mesh, parameters),
 		logger(logger)
 {
 	mesh_name    = QFileInfo(document.mm()->fullName()).baseName();
 	new_meshes   = NewMeshVector();
 }
 
-algorithmSkeletonize::SkelParams algorithmSkeletonize::getSkeletonizerParameters()
-{
-	SkelParams skel_params = {};
-
-	skel_params.delta_area_threshold   = parameters.getFloat(PARAM_DELTA_AREA_TERMINATION);
-	skel_params.max_triangle_angle = parameters.getFloat(PARAM_MAX_ANGLE);
-	skel_params.min_edge_length = parameters.getFloat(PARAM_MIN_EDGE_LENGTH);
-	skel_params.quality_speed_tradeoff = parameters.getFloat(PARAM_QUALITY_TRADEOFF);
-
-	if (parameters.getBool(PARAM_ENABLE_MEDIALLY_CENTERING))
-		skel_params.medially_centered_speed_tradeoff =
-			parameters.getFloat(PARAM_MEDIALLY_CENTERING_TRADEOFF);
-
-	return skel_params;
-}
-
 algorithmSkeletonize::~algorithmSkeletonize() { }
 
 
 
-std::map<std::string, QVariant> algorithmSkeletonize::apply()
+std::map<std::string, QVariant> algorithmSkeletonize::apply(int max_iterations, bool generate_intermediate_meshes)
 {
-	int  max_iterations               = getIterationCount();
-	bool generate_intermediate_meshes = getGenerateIntermediateMeshes();
-
+	checkApplicability();
 	int total_iterations = skeletonize(max_iterations, generate_intermediate_meshes);
 	generateSkeleton();
-
-	callback_pos(99, "Adding new meshes...");
-	for (auto pair : new_meshes) {
-		document.addNewMesh(pair.first, pair.second);
-	}
+	addNewMeshes();
+	
 
 	logger.log("Algorithm terminated after " + std::to_string(total_iterations) + " iterations.");
-
 	callback_pos(100, "Done!");
 	return std::map<std::string, QVariant>();
 }
 
-int algorithmSkeletonize::getIterationCount()
+void algorithmSkeletonize::checkApplicability()
 {
-	return parameters.getInt(PARAM_MAX_ITERATIONS);
+	updateBorderFlags();
+	checkSelectedMesh();
 }
 
-bool algorithmSkeletonize::getGenerateIntermediateMeshes()
+void algorithmSkeletonize::updateBorderFlags()
 {
-	return parameters.getBool(PARAM_GENERATE_INTERMEDIATE_MESHES);
+	callback_pos(0, "Updating border flags of selected mesh...");
+	vcg::tri::UpdateFlags<CMeshO>::VertexBorderFromNone(mesh);
 }
 
+void algorithmSkeletonize::checkSelectedMesh() const
+{
+	callback_pos(0, "Checking mesh is closed...");
+	int old_percent = 0;
+	for (int i = 0; i < mesh.vert.size(); i++)
+	{
+		auto& vert = mesh.vert[i];
+
+		int percent = (10.0 * (i+1)) / mesh.vert.size();
+		if (old_percent != percent) {
+			old_percent = percent;
+			callback_pos(10 * percent, "Checking mesh is closed...");
+		}
+
+		if (vert.IsB()) {
+			throw MLException("Given model is not closed.");
+		}
+	}
+}
 
 
 int algorithmSkeletonize::skeletonize(int max_iters, bool gen_intermediate_meshes)
@@ -98,7 +96,7 @@ int algorithmSkeletonize::skeletonize(int max_iters, bool gen_intermediate_meshe
 	for (i = 0; i < max_iters && !converged; i++)
 	{
 		callback_pos(
-			((double(i)) / max_iters),
+			((100.0 * (i+1)) / max_iters),
 			("Computing iteration " + std::to_string(i + 1) + " of " + std::to_string(max_iters)).c_str()
 		);
 
@@ -126,12 +124,18 @@ void algorithmSkeletonize::generateIntermediateMesh(int iteration_num)
 	));
 }
 
-
-
 void algorithmSkeletonize::generateSkeleton()
 {
 	callback_pos(98, "Generating skeleton...");
 
 	auto skeleton = skeletonizer.getSkeleton();
 	new_meshes.push_back(std::make_pair(skeleton, mesh_name + "-skeleton"));
+}
+
+void algorithmSkeletonize::addNewMeshes()
+{
+	callback_pos(99, "Adding new meshes...");
+	for (auto pair : new_meshes) {
+		document.addNewMesh(pair.first, pair.second, false);
+	}
 }

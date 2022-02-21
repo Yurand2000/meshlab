@@ -29,6 +29,10 @@
 #include <cmath>
 #include <string>
 
+algorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList const& params);
+int getIterationCount(RichParameterList const& params);
+bool getGenerateIntermediateMeshes(RichParameterList const& params);
+
 std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
 	FilterPlugin const&      plugin,
 	RichParameterList const& params,
@@ -38,14 +42,13 @@ std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
 {
 	try {
 		auto& selected_mesh = document.mm()->cm;
-
-		callback(100, "Setup - Starting...");
 		checkParameters(params, *callback);
-		updateBorderFlags(selected_mesh, *callback);
-		checkSelectedMesh(selected_mesh, *callback);
-		callback(100, "Setup - Done.");
 
-		return algorithmSkeletonize(document, params, *callback, plugin).apply();
+		auto skel_params = getSkeletonizerParameters(params);
+		int  iterations  = getIterationCount(params);
+		bool gen_meshes  = getGenerateIntermediateMeshes(params);
+		return algorithmSkeletonize(document, skel_params, *callback, plugin)
+			.apply(iterations, gen_meshes);
 	}
 	catch (MLException e) {
 		throw e;
@@ -58,7 +61,7 @@ std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
 
 void filterSkeletonizeManual::checkParameters(RichParameterList const& params, vcg::CallBackPos& callback)
 {
-	callback(0, "Setup - Checking Parameters...");
+	callback(0, "Setup: Checking Parameters...");
 	if (params.getInt(PARAM_MAX_ITERATIONS) < 1)
 	{
 		throw MLException("Number of iterations cannot be negative.");
@@ -90,20 +93,28 @@ void filterSkeletonizeManual::checkParameters(RichParameterList const& params, v
 	}
 }
 
-void filterSkeletonizeManual::updateBorderFlags(CMeshO& mesh, vcg::CallBackPos& callback)
+algorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList const& params)
 {
-	callback(33, "Setup - Updating border flags of selected mesh...");
-	vcg::tri::UpdateFlags<CMeshO>::VertexBorderFromNone(mesh);
+	algorithmSkeletonize::Parameters skel_params = {};
+
+	skel_params.delta_area_threshold   = params.getFloat(PARAM_DELTA_AREA_TERMINATION);
+	skel_params.max_triangle_angle     = params.getFloat(PARAM_MAX_ANGLE);
+	skel_params.min_edge_length        = params.getFloat(PARAM_MIN_EDGE_LENGTH);
+	skel_params.quality_speed_tradeoff = params.getFloat(PARAM_QUALITY_TRADEOFF);
+
+	if (params.getBool(PARAM_ENABLE_MEDIALLY_CENTERING))
+		skel_params.medially_centering_speed_tradeoff =
+			params.getFloat(PARAM_MEDIALLY_CENTERING_TRADEOFF);
+
+	return skel_params;
 }
 
-void filterSkeletonizeManual::checkSelectedMesh(CMeshO const& mesh, vcg::CallBackPos& callback)
+int getIterationCount(RichParameterList const& params)
 {
-	callback(66, "Setup - Checking mesh is closed...");
-	for (auto& vert : mesh.vert)
-	{
-		if ( vert.IsB() )
-		{
-			throw MLException("Given model is not closed.");
-		}
-	}
+	return params.getInt(PARAM_MAX_ITERATIONS);
+}
+
+bool getGenerateIntermediateMeshes(RichParameterList const& params)
+{
+	return params.getBool(PARAM_GENERATE_INTERMEDIATE_MESHES);
 }

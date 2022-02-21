@@ -37,7 +37,6 @@ public:
 	//possible filters
 	enum {
 		SKELETONIZE_DEFAULT,
-		SKELETONIZE_FAST,
 		SKELETONIZE_MANUAL
 	};
 
