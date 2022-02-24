@@ -30,7 +30,7 @@
 
 // default values
 #define DELTA_AREA_DEFAULT 0.0001
-#define MAX_TRIANGLE_ANGLE_DEFAULT (110 * (M_PI / 180.0))
+#define MAX_TRIANGLE_ANGLE_DEFAULT 110
 #define QUALITY_TRADEOFF_DEFAULT 0.1
 #define MEDIALLY_CENTERING_TRADEOFF_DEFAULT 0.2
 
@@ -65,7 +65,7 @@ MeshSkeletonizer::MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParamete
 void MeshSkeletonizer::set_skeletonizer_parameters(MeshSkeletonizerParameters const& params)
 {
 	if (params.max_triangle_angle > 0)
-		skeletonizer->set_max_triangle_angle(params.max_triangle_angle);
+		skeletonizer->set_max_triangle_angle((params.max_triangle_angle * M_PI) / 180.0);
 	if (params.min_edge_length > 0)
 		skeletonizer->set_min_edge_length(params.min_edge_length);
 	if (params.quality_speed_tradeoff > 0)

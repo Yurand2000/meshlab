@@ -44,9 +44,9 @@
 
 #define LOCAL_REMESHING_CATEGORY "Local Remeshing"
 #define MAX_ANGLE_DISPLAYNAME "Max angle"
-#define MAX_ANGLE_DESCRIPTION "During remeshing steps, a triangle will be split if it has an angle larger than the given angle. Angle in radians. Must be bigger than PI/2 (~1.57)."
+#define MAX_ANGLE_DESCRIPTION "During remeshing steps, a triangle will be split if it has an angle larger than the given angle. The default angle mentioned in the algorithm paper is 110 degrees. Angle in degrees, must be bigger than 90 degrees."
 #define MIN_EDGE_LENGTH_DISPLAYNAME "Min length"
-#define MIN_EDGE_LENGTH_DESCRIPTION "During remeshing steps, an edge will be collapse if it is length is less than the given value. Length in application units. Must be positive."
+#define MIN_EDGE_LENGTH_DESCRIPTION "During remeshing steps, an edge will be collapse if its length is less than the given value. The default length mentioned in the algorithm paper is 0.002 times the diagional of the bounding box of the mesh (the default value supplied here). Length in application units (Example: if the mesh unit is meters, this value will be considered in meters too), must be positive."
 
 #define VERTEX_MOTION_OPTIONS_CATEGORY "Vertex Motion Options"
 #define QUALITY_SPEED_TRADEOFF_DISPLAYNAME "Quality-Speed Tradeoff value"
