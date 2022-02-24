@@ -48,6 +48,7 @@ RichParameterList filterSkeletonizeDefault::initParameterList(FilterPlugin const
 
 #define F_DEFAULT_ITERATIONS 200
 #define F_DEFAULT_GENERATE_MESO_SKELETONS false
+#define F_DEFAULT_SAVE_DISTANCE_FROM_SKELETON false
 
 std::map<std::string, QVariant> filterSkeletonizeDefault::applyFilter(
 	FilterPlugin const& plugin,
@@ -57,6 +58,9 @@ std::map<std::string, QVariant> filterSkeletonizeDefault::applyFilter(
 	vcg::CallBackPos* callback)
 {
 	auto skel_params = algorithmSkeletonize::Parameters(document.mm()->cm);
-	return algorithmSkeletonize(document, skel_params, *callback, plugin)
-		.apply(F_DEFAULT_ITERATIONS, F_DEFAULT_GENERATE_MESO_SKELETONS);
+	return algorithmSkeletonize(document, skel_params, *callback, plugin).apply(
+			F_DEFAULT_ITERATIONS,
+			F_DEFAULT_GENERATE_MESO_SKELETONS,
+			F_DEFAULT_SAVE_DISTANCE_FROM_SKELETON
+		);
 }

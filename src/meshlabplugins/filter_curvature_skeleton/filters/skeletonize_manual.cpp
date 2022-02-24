@@ -31,7 +31,7 @@
 #define F_PYTHON_NAME "skeletonizer_mesh_manual"
 #define F_ARITY       FilterPlugin::FilterArity::SINGLE_MESH
 #define F_PRECONDS    MeshModel::MM_NONE
-#define F_POSTCONDS   MeshModel::MM_NONE
+#define F_POSTCONDS   MeshModel::MM_VERTQUALITY
 
 filterSkeletonizeManual::filterSkeletonizeManual() :
 	templateFilter(

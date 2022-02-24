@@ -27,12 +27,17 @@
 #include "typedefs.h"
 #include "../common/ml_document/mesh_document.h"
 
+#include <unordered_map>
+
 namespace CGalAdapter
 {
 	struct MeshSkeletonizerParameters;
 
 	class MeshSkeletonizer
 	{
+	public:
+		typedef std::unordered_map<uint, uint> MeshToSkeletonVertices;
+
 	public:
 		MeshSkeletonizer(CMeshO const& input);
 		MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParameters const& params);
@@ -45,6 +50,7 @@ namespace CGalAdapter
 		bool   hasConverged();
 		CMeshO getMesoSkeleton();
 		CMeshO getSkeleton();
+		MeshToSkeletonVertices getSkeletonVertexAssociations();
 
 	private:
 		CGALSkeletonizer* skeletonizer;
@@ -53,7 +59,10 @@ namespace CGalAdapter
 		double            original_area;
 		double            last_area;
 
+		CGALSkeleton	  skeleton;
+
 		void set_skeletonizer_parameters(MeshSkeletonizerParameters const& params);
+		void generateSkeleton();
 	};
 
 	struct MeshSkeletonizerParameters

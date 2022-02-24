@@ -44,12 +44,15 @@ public:
 		MeshLabPluginLogger const& logger);
 	~algorithmSkeletonize();
 
-	std::map<std::string, QVariant> apply(int max_iterations, bool generate_intermediate_meshes);
+	std::map<std::string, QVariant> apply(
+		int  max_iterations,
+		bool generate_intermediate_meshes,
+		bool skeleton_distance_in_mesh_quality);
 
 private:
 	void checkApplicability();
 	int  skeletonize(int max_iterations, bool generate_intermediate_meshes);
-	void generateSkeleton();
+	void generateSkeleton(bool skeleton_distance_in_mesh_quality);
 	void addNewMeshes();
 
 	bool computeIteration();

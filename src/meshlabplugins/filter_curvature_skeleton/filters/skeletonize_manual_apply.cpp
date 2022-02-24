@@ -32,6 +32,7 @@
 algorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList const& params);
 int getIterationCount(RichParameterList const& params);
 bool getGenerateIntermediateMeshes(RichParameterList const& params);
+bool getSaveSkeletonDistance(RichParameterList const& params);
 
 std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
 	FilterPlugin const&      plugin,
@@ -44,11 +45,12 @@ std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
 		auto& selected_mesh = document.mm()->cm;
 		checkParameters(params, *callback);
 
-		auto skel_params = getSkeletonizerParameters(params);
-		int  iterations  = getIterationCount(params);
-		bool gen_meshes  = getGenerateIntermediateMeshes(params);
+		auto skel_params   = getSkeletonizerParameters(params);
+		int  iterations    = getIterationCount(params);
+		bool gen_meshes    = getGenerateIntermediateMeshes(params);
+		bool skel_distance = getSaveSkeletonDistance(params);
 		return algorithmSkeletonize(document, skel_params, *callback, plugin)
-			.apply(iterations, gen_meshes);
+			.apply(iterations, gen_meshes, skel_distance);
 	}
 	catch (MLException e) {
 		throw e;
@@ -117,4 +119,9 @@ int getIterationCount(RichParameterList const& params)
 bool getGenerateIntermediateMeshes(RichParameterList const& params)
 {
 	return params.getBool(PARAM_GENERATE_INTERMEDIATE_MESHES);
+}
+
+bool getSaveSkeletonDistance(RichParameterList const& params)
+{
+	return params.getBool(PARAM_SAVE_SKELETAL_DISTANCE_TO_MESH_QUALITY);
 }

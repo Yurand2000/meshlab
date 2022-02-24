@@ -43,11 +43,14 @@ algorithmSkeletonize::~algorithmSkeletonize() { }
 
 
 
-std::map<std::string, QVariant> algorithmSkeletonize::apply(int max_iterations, bool generate_intermediate_meshes)
+std::map<std::string, QVariant> algorithmSkeletonize::apply(
+	int  max_iterations,
+	bool generate_intermediate_meshes,
+	bool skeleton_distance_in_mesh_quality)
 {
 	checkApplicability();
 	int total_iterations = skeletonize(max_iterations, generate_intermediate_meshes);
-	generateSkeleton();
+	generateSkeleton(skeleton_distance_in_mesh_quality);
 	addNewMeshes();
 	
 
@@ -124,12 +127,26 @@ void algorithmSkeletonize::generateIntermediateMesh(int iteration_num)
 	));
 }
 
-void algorithmSkeletonize::generateSkeleton()
+void algorithmSkeletonize::generateSkeleton(bool skeleton_distance_in_mesh_quality)
 {
 	callback_pos(98, "Generating skeleton...");
 
 	auto skeleton = skeletonizer.getSkeleton();
 	new_meshes.push_back(std::make_pair(skeleton, mesh_name + "-skeleton"));
+
+	if (skeleton_distance_in_mesh_quality)
+	{
+		auto mesh_to_skeleton = skeletonizer.getSkeletonVertexAssociations();
+
+		document.mm()->updateDataMask(MeshModel::MM_VERTQUALITY);
+		for (uint i = 0; i < mesh.vert.size(); i++)
+		{
+			auto& vertex = mesh.vert[i];
+
+			auto& skel_vertex = skeleton.vert[mesh_to_skeleton.at(i)];
+			vertex.Q() = (vertex.cP() - skel_vertex.cP()).Norm();
+		}
+	}
 }
 
 void algorithmSkeletonize::addNewMeshes()

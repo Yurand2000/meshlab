@@ -32,6 +32,7 @@
 #define PARAM_MAX_ITERATIONS "max_iterations"
 #define PARAM_DELTA_AREA_TERMINATION "delta_area_convergence"
 #define PARAM_GENERATE_INTERMEDIATE_MESHES "generate_intermediate_meshes"
+#define PARAM_SAVE_SKELETAL_DISTANCE_TO_MESH_QUALITY "save_skeletal_distance_in_quality"
 #define PARAM_MAX_ANGLE "max_triangle_angle"
 #define PARAM_MIN_EDGE_LENGTH "min_edge_length"
 #define PARAM_QUALITY_TRADEOFF "quality_tradeoff"

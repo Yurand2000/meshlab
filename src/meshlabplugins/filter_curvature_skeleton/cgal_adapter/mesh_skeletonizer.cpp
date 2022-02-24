@@ -39,7 +39,7 @@ namespace CGalAdapter
 void temporaryCgalMeshCheck(CGALMesh const&); // temp
 
 MeshSkeletonizer::MeshSkeletonizer(CMeshO const& input)
-	: skeletonizer(nullptr), delta_area_threshold(DELTA_AREA_DEFAULT), original_area(0), last_area(0)
+	: skeletonizer(nullptr), delta_area_threshold(DELTA_AREA_DEFAULT), original_area(0), last_area(0), skeleton()
 {
 	auto cgal_mesh = MeshConverter::convertCMeshToCGALMesh(input);
 	temporaryCgalMeshCheck(cgal_mesh);
@@ -114,9 +114,32 @@ CMeshO MeshSkeletonizer::getMesoSkeleton()
 
 CMeshO MeshSkeletonizer::getSkeleton()
 {
-	CGALSkeleton skeleton = {};
-	skeletonizer->convert_to_skeleton(skeleton);
+	generateSkeleton();
 	return MeshConverter::convertCGALSkeletonToCMesh(skeleton);
+}
+
+MeshSkeletonizer::MeshToSkeletonVertices MeshSkeletonizer::getSkeletonVertexAssociations()
+{
+	generateSkeleton();
+	MeshToSkeletonVertices mesh_to_skeleton = {};
+	for (uint i = 0; i < skeleton.m_vertices.size(); i++)
+	{
+		for(auto orig_vertex : skeleton.m_vertices[i].m_property.vertices)
+		{
+			mesh_to_skeleton.insert(
+				std::make_pair(
+					static_cast<uint>(orig_vertex.idx()), i
+			));
+		}
+	}
+	return mesh_to_skeleton;
+}
+
+void MeshSkeletonizer::generateSkeleton()
+{
+	if (skeleton.m_vertices.empty()) {
+		skeletonizer->convert_to_skeleton(skeleton);
+	}
 }
 
 
