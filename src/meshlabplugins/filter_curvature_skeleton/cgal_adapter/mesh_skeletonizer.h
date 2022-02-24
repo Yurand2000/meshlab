@@ -61,7 +61,7 @@ namespace CGalAdapter
 
 		CGALSkeleton	  skeleton;
 
-		void set_skeletonizer_parameters(MeshSkeletonizerParameters const& params);
+		void setSkeletonizerParameters(MeshSkeletonizerParameters const& params);
 		void generateSkeleton();
 	};
 

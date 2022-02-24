@@ -44,13 +44,16 @@ public:
 		MeshLabPluginLogger const& logger);
 	~algorithmSkeletonize();
 
+	algorithmSkeletonize(algorithmSkeletonize& copy) = delete;
+	algorithmSkeletonize& operator=(algorithmSkeletonize& copy) = delete;
+
 	std::map<std::string, QVariant> apply(
 		int  max_iterations,
 		bool generate_intermediate_meshes,
 		bool skeleton_distance_in_mesh_quality);
 
 private:
-	void checkApplicability();
+	void checkSelectedMesh() const;
 	int  skeletonize(int max_iterations, bool generate_intermediate_meshes);
 	void generateSkeleton(bool skeleton_distance_in_mesh_quality);
 	void addNewMeshes();
@@ -58,17 +61,16 @@ private:
 	bool computeIteration();
 	void generateIntermediateMesh(int current_iteration);
 
-	void updateBorderFlags();
-	void checkSelectedMesh() const;
 
 private:
 	MeshDocument& document;
 	vcg::CallBackPos& callback_pos;
 	MeshLabPluginLogger const& logger;
+	Parameters& parameters;
 	CMeshO& mesh;
 
 	QString       mesh_name;
-	Skeletonizer  skeletonizer;
+	Skeletonizer* skeletonizer;
 	NewMeshVector new_meshes;
 };
 

@@ -31,50 +31,40 @@
 // default values
 #define DELTA_AREA_DEFAULT 0.0001
 #define MAX_TRIANGLE_ANGLE_DEFAULT 110
-#define QUALITY_TRADEOFF_DEFAULT 0.1
-#define MEDIALLY_CENTERING_TRADEOFF_DEFAULT 0.2
+#define QUALITY_TRADEOFF_DEFAULT 20
+#define MEDIALLY_CENTERING_TRADEOFF_DEFAULT 40
 
 namespace CGalAdapter
 {
-void temporaryCgalMeshCheck(CGALMesh const&); // temp
 
 MeshSkeletonizer::MeshSkeletonizer(CMeshO const& input)
 	: skeletonizer(nullptr), delta_area_threshold(DELTA_AREA_DEFAULT), original_area(0), last_area(0), skeleton()
 {
 	auto cgal_mesh = MeshConverter::convertCMeshToCGALMesh(input);
-	temporaryCgalMeshCheck(cgal_mesh);
 	skeletonizer   = new CGALSkeletonizer(cgal_mesh);
 	original_area  = CGAL::Polygon_mesh_processing::area(skeletonizer->meso_skeleton());
 	last_area      = original_area;
 }
 
-void temporaryCgalMeshCheck(CGALMesh const& mesh) // temp
-{
-	if(!CGAL::is_closed(mesh))
-	{
-		throw MLException("Given mesh is not closed.");
-	}
-}
-
 MeshSkeletonizer::MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParameters const& params)
 	: MeshSkeletonizer(input)
 {
-	set_skeletonizer_parameters(params);
+	setSkeletonizerParameters(params);
 }
 
-void MeshSkeletonizer::set_skeletonizer_parameters(MeshSkeletonizerParameters const& params)
+void MeshSkeletonizer::setSkeletonizerParameters(MeshSkeletonizerParameters const& params)
 {
 	if (params.max_triangle_angle > 0)
-		skeletonizer->set_max_triangle_angle((params.max_triangle_angle * M_PI) / 180.0);
+		skeletonizer->set_max_triangle_angle((params.max_triangle_angle * Scalarm(M_PI)) / Scalarm(180.0));
 	if (params.min_edge_length > 0)
 		skeletonizer->set_min_edge_length(params.min_edge_length);
 	if (params.quality_speed_tradeoff > 0)
-		skeletonizer->set_quality_speed_tradeoff(params.quality_speed_tradeoff);
+		skeletonizer->set_quality_speed_tradeoff(Scalarm(2.0) / params.quality_speed_tradeoff);
 
 	if (params.medially_centering_speed_tradeoff > 0)
 	{
 		skeletonizer->set_is_medially_centered(true);
-		skeletonizer->set_medially_centered_speed_tradeoff(params.medially_centering_speed_tradeoff);
+		skeletonizer->set_medially_centered_speed_tradeoff(Scalarm(2.0) / params.medially_centering_speed_tradeoff);
 	}
 	else
 	{
@@ -141,7 +131,6 @@ void MeshSkeletonizer::generateSkeleton()
 		skeletonizer->convert_to_skeleton(skeleton);
 	}
 }
-
 
 
 MeshSkeletonizerParameters::MeshSkeletonizerParameters() :

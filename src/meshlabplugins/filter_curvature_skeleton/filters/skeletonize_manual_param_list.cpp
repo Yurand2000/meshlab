@@ -33,28 +33,28 @@
 
 // displayed strings
 #define GENERIC_CATEGORY "Algorithm Termination Options"
-#define MAX_ITERATIONS_DISPLAYNAME   "Max Iterations"
-#define MAX_ITERATIONS_DESCRIPTION   "Upper limit on the iterations of the algorithm. The algorithm will stop if no more skeletoning can be achived anyways."
+#define MAX_ITERATIONS_DISPLAYNAME "Max Iterations"
+#define MAX_ITERATIONS_DESCRIPTION "Upper limit on the iterations of the algorithm. The algorithm will stop if no more skeletoning can be achived anyways."
 #define DELTA_AREA_TERMINATION_DISPLAYNAME "Area Variation Factor"
-#define DELTA_AREA_TERMINATION_DESCRIPTION "The convergence is considered to be reached if the variation of the area of the meso-skeleton after one iteration is smaller than the area variation factor times the original area of the mesh. Must be positive."
-#define GENERATE_INTERMEDIATE_MESHES_DISPLAYNAME "Generate Intermediate Meshes"
-#define GENERATE_INTERMEDIATE_MESHES_DESCRIPTION "Generate the intermediate meshes of the algorithm."
+#define DELTA_AREA_TERMINATION_DESCRIPTION "The convergence is considered to be reached if the variation of the area of the meso-skeleton after one iteration is smaller than the area variation factor times the original area of the mesh. It must be positive and its unit is in squared application units (Example: if the mesh unit is meters, this value will be in square meters)."
+#define GENERATE_INTERMEDIATE_MESHES_DISPLAYNAME "Generate Intermediate Meso-Skeletons"
+#define GENERATE_INTERMEDIATE_MESHES_DESCRIPTION "Generate the intermediate meso-skeletons produced by algorithm."
 #define SKELETAL_DISTANCE_TO_MESH_QUALITY_DISPLAYNAME "Save Distance from Skeleton in Mesh Quality"
-#define SKELETAL_DISTANCE_TO_MESH_QUALITY_DESCRIPTION "If ticked, the algorithm will alter the quality values of the vertices of selected mesh by setting it to the Euclidean distance between the vertex and the point it has collapsed of the skeleton."
+#define SKELETAL_DISTANCE_TO_MESH_QUALITY_DESCRIPTION "If ticked, the algorithm will alter the quality values of the vertices of the selected mesh by setting it to the Euclidean distance between the vertex and the point it has collapsed on the skeleton."
 
 #define LOCAL_REMESHING_CATEGORY "Local Remeshing"
-#define MAX_ANGLE_DISPLAYNAME "Max angle"
-#define MAX_ANGLE_DESCRIPTION "During remeshing steps, a triangle will be split if it has an angle larger than the given angle. The default angle mentioned in the algorithm paper is 110 degrees. Angle in degrees, must be bigger than 90 degrees."
-#define MIN_EDGE_LENGTH_DISPLAYNAME "Min length"
-#define MIN_EDGE_LENGTH_DESCRIPTION "During remeshing steps, an edge will be collapse if its length is less than the given value. The default length mentioned in the algorithm paper is 0.002 times the diagional of the bounding box of the mesh (the default value supplied here). Length in application units (Example: if the mesh unit is meters, this value will be considered in meters too), must be positive."
+#define MAX_ANGLE_DISPLAYNAME "Max Triangle Angle"
+#define MAX_ANGLE_DESCRIPTION "*EXTRA* During remeshing steps, a edge will be split if its opposite vertex (on the incident triangle) has angle greater than the given value. The default angle mentioned in the paper is 110 degrees. It is not really considered as a parameter in the paper itself, so most users might leave it as is. Angle in degrees, must be bigger than 90 degrees and less then 180 degrees."
+#define MIN_EDGE_LENGTH_DISPLAYNAME "Min Edge Length"
+#define MIN_EDGE_LENGTH_DESCRIPTION "During remeshing steps, an edge will be collapsed if its length is less than the given value. It is used to control the resulting skeleton resolution. The default length mentioned in the paper is 0.002 times the diagional of the mesh's bounding box (this value supplied here as default). This length must be positive and its unit is in application units (Example: if the mesh unit is meters, this value will be in meters too)."
 
 #define VERTEX_MOTION_OPTIONS_CATEGORY "Vertex Motion Options"
-#define QUALITY_SPEED_TRADEOFF_DISPLAYNAME "Quality-Speed Tradeoff value"
-#define QUALITY_SPEED_TRADEOFF_DESCRIPTION "*ADVANCED* Controls the velocity of movement and approximation quality: decreasing this value makes the mean curvature flow based contraction converge faster, but results in a skeleton of lower quality. Must be positive."
+#define QUALITY_SPEED_TRADEOFF_DISPLAYNAME "Quality-Speed Tradeoff (Omega_H)"
+#define QUALITY_SPEED_TRADEOFF_DESCRIPTION "Controls the velocity of movement and approximation quality with which the algorithm resolves motion. The default value used in the paper is 20. Increasing this value makes the mean curvature flow based contraction converge faster, but results in a skeleton of lower quality. Must be positive."
 #define USE_MEDIALLY_CENTERING_DISPLAYNAME "Enable Medially Centering"
-#define USE_MEDIALLY_CENTERING_DESCRIPTION "If true, the meso-skeleton placement will be attracted by an approximation of the medial axis of the mesh during the contraction steps, so will be the result skeleton."
-#define MEDIALLY_CENTERING_VALUE_DISPLAYNAME "Medially Centering Tradeoff value"
-#define MEDIALLY_CENTERING_VALUE_DESCRIPTION "*ADVANCED* Controls the smoothness of the medial approximation: increasing this value results in a (less smooth) skeleton closer to the medial axis, as well as a lower convergence speed. Must be positive."
+#define USE_MEDIALLY_CENTERING_DESCRIPTION "If true, the meso-skeleton placement will be attracted by an approximation of the medial axis of the mesh during the contraction steps, and so will be the result skeleton."
+#define MEDIALLY_CENTERING_VALUE_DISPLAYNAME "Medially Centering Tradeoff (Omega_M)"
+#define MEDIALLY_CENTERING_VALUE_DESCRIPTION "Controls the degree to which the surface is attracted to the medial axis and the smoothness of the medial approximation. The default value used in the paper is 40. Decreasing this value results in a (less smooth) skeleton closer to the medial axis, as well as a lower convergence speed. Must be positive."
 
 RichParameterList filterSkeletonizeManual::initParameterList(FilterPlugin const&, MeshModel const& m)
 {

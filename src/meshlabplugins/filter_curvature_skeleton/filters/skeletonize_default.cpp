@@ -26,8 +26,8 @@
 #include "../filter_curvature_skeleton.h"
 
 #define F_FILTERID	  FilterCurvatureSkeleton::SKELETONIZE_DEFAULT
-#define F_DISPLAYNAME "Skeletonize Mesh (Dafault settings)"
-#define F_DESCRIPTION "Generate the skeleton of the selected mesh, using default settings. For more settings use the filter \"Manual Skeletonization\"."
+#define F_DISPLAYNAME "Skeletonize Mesh (Default settings)"
+#define F_DESCRIPTION "Generate the skeleton of the selected mesh, using default settings. The given mesh must be watertight for it to be applied. For more settings and info use the filter <b>Skeletonize Manual</b>."
 #define F_CATEGORY    FilterPlugin::Other
 #define F_PYTHON_NAME "skeletonizer_mesh_default"
 #define F_ARITY       FilterPlugin::FilterArity::SINGLE_MESH
@@ -46,7 +46,7 @@ RichParameterList filterSkeletonizeDefault::initParameterList(FilterPlugin const
 	return RichParameterList();
 }
 
-#define F_DEFAULT_ITERATIONS 200
+#define F_DEFAULT_ITERATIONS 500
 #define F_DEFAULT_GENERATE_MESO_SKELETONS false
 #define F_DEFAULT_SAVE_DISTANCE_FROM_SKELETON false
 

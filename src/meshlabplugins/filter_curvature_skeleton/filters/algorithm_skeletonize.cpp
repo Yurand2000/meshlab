@@ -30,16 +30,22 @@ algorithmSkeletonize::algorithmSkeletonize(
 	vcg::CallBackPos&          callback_pos,
 	MeshLabPluginLogger const& logger) :
 		document(document),
-	    callback_pos(callback_pos),
+		callback_pos(callback_pos),
 		mesh(document.mm()->cm),
-		skeletonizer(mesh, parameters),
+		parameters(parameters),
+		skeletonizer(),
 		logger(logger)
 {
 	mesh_name    = QFileInfo(document.mm()->fullName()).baseName();
 	new_meshes   = NewMeshVector();
 }
 
-algorithmSkeletonize::~algorithmSkeletonize() { }
+algorithmSkeletonize::~algorithmSkeletonize()
+{
+	if (skeletonizer != nullptr) {
+		delete skeletonizer;
+	}
+}
 
 
 
@@ -48,7 +54,8 @@ std::map<std::string, QVariant> algorithmSkeletonize::apply(
 	bool generate_intermediate_meshes,
 	bool skeleton_distance_in_mesh_quality)
 {
-	checkApplicability();
+	checkSelectedMesh();
+	skeletonizer = new Skeletonizer(mesh, parameters);
 	int total_iterations = skeletonize(max_iterations, generate_intermediate_meshes);
 	generateSkeleton(skeleton_distance_in_mesh_quality);
 	addNewMeshes();
@@ -59,35 +66,11 @@ std::map<std::string, QVariant> algorithmSkeletonize::apply(
 	return std::map<std::string, QVariant>();
 }
 
-void algorithmSkeletonize::checkApplicability()
-{
-	updateBorderFlags();
-	checkSelectedMesh();
-}
-
-void algorithmSkeletonize::updateBorderFlags()
-{
-	callback_pos(0, "Updating border flags of selected mesh...");
-	vcg::tri::UpdateFlags<CMeshO>::VertexBorderFromNone(mesh);
-}
-
 void algorithmSkeletonize::checkSelectedMesh() const
 {
-	callback_pos(0, "Checking mesh is closed...");
-	int old_percent = 0;
-	for (int i = 0; i < mesh.vert.size(); i++)
-	{
-		auto& vert = mesh.vert[i];
-
-		int percent = (10.0 * (i+1)) / mesh.vert.size();
-		if (old_percent != percent) {
-			old_percent = percent;
-			callback_pos(10 * percent, "Checking mesh is closed...");
-		}
-
-		if (vert.IsB()) {
-			throw MLException("Given model is not closed.");
-		}
+	callback_pos(0, "Checking mesh is watertight...");
+	if (!vcg::tri::Clean<CMeshO>::IsWaterTight(mesh)) {
+		throw MLException("Given mesh is not watertight.");
 	}
 }
 
@@ -113,13 +96,13 @@ int algorithmSkeletonize::skeletonize(int max_iters, bool gen_intermediate_meshe
 
 bool algorithmSkeletonize::computeIteration()
 {
-	skeletonizer.computeStep();
-	return skeletonizer.hasConverged();
+	skeletonizer->computeStep();
+	return skeletonizer->hasConverged();
 }
 
 void algorithmSkeletonize::generateIntermediateMesh(int iteration_num)
 {
-	auto mesoSkeleton = skeletonizer.getMesoSkeleton();
+	auto mesoSkeleton = skeletonizer->getMesoSkeleton();
 	new_meshes.push_back(
 		std::make_pair(
 			mesoSkeleton,
@@ -131,12 +114,12 @@ void algorithmSkeletonize::generateSkeleton(bool skeleton_distance_in_mesh_quali
 {
 	callback_pos(98, "Generating skeleton...");
 
-	auto skeleton = skeletonizer.getSkeleton();
+	auto skeleton = skeletonizer->getSkeleton();
 	new_meshes.push_back(std::make_pair(skeleton, mesh_name + "-skeleton"));
 
 	if (skeleton_distance_in_mesh_quality)
 	{
-		auto mesh_to_skeleton = skeletonizer.getSkeletonVertexAssociations();
+		auto mesh_to_skeleton = skeletonizer->getSkeletonVertexAssociations();
 
 		document.mm()->updateDataMask(MeshModel::MM_VERTQUALITY);
 		document.mm()->setMeshModified(true);

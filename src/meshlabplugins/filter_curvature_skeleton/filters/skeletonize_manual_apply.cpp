@@ -66,16 +66,18 @@ void filterSkeletonizeManual::checkParameters(RichParameterList const& params, v
 	callback(0, "Setup: Checking Parameters...");
 	if (params.getInt(PARAM_MAX_ITERATIONS) < 1)
 	{
-		throw MLException("Number of iterations cannot be negative.");
+		throw MLException("Number of iterations cannot be less than 1.");
 	}
 
 	if (params.getFloat(PARAM_DELTA_AREA_TERMINATION) <= 0) {
 		throw MLException("Delta area convergence cannot be zero or negative.");
 	}
 
-	if (params.getFloat(PARAM_MAX_ANGLE) <= (M_PI/2))
-	{
-		throw MLException("Max triangle angle cannot be less than PI/2.");
+	if (params.getFloat(PARAM_MAX_ANGLE) < (90)) {
+		throw MLException("Max triangle angle cannot be less than 90 degrees.");
+	}
+	if (params.getFloat(PARAM_MAX_ANGLE) >= (180)) {
+		throw MLException("Max triangle angle cannot be greater than 180 degrees.");
 	}
 
 	if (params.getFloat(PARAM_MIN_EDGE_LENGTH) <= 0)
