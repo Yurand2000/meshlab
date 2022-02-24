@@ -128,7 +128,7 @@ MeshSkeletonizer::MeshToSkeletonVertices MeshSkeletonizer::getSkeletonVertexAsso
 		{
 			mesh_to_skeleton.insert(
 				std::make_pair(
-					static_cast<uint>(orig_vertex.idx()), i
+					static_cast<uint>(orig_vertex), i
 			));
 		}
 	}

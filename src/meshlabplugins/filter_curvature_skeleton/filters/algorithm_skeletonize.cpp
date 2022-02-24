@@ -139,6 +139,7 @@ void algorithmSkeletonize::generateSkeleton(bool skeleton_distance_in_mesh_quali
 		auto mesh_to_skeleton = skeletonizer.getSkeletonVertexAssociations();
 
 		document.mm()->updateDataMask(MeshModel::MM_VERTQUALITY);
+		document.mm()->setMeshModified(true);
 		for (uint i = 0; i < mesh.vert.size(); i++)
 		{
 			auto& vertex = mesh.vert[i];
