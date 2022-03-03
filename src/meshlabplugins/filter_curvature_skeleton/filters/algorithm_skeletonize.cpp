@@ -23,6 +23,9 @@
 
 #include "algorithm_skeletonize.h"
 #include "skeletonize_manual.h"
+#include "vcg/complex/allocate.h"
+
+#define SKELETON_ATTRIBUTE_NAME "collapsed_skeleton_index"
 
 algorithmSkeletonize::algorithmSkeletonize(
 	MeshDocument&              document,
@@ -52,12 +55,13 @@ algorithmSkeletonize::~algorithmSkeletonize()
 std::map<std::string, QVariant> algorithmSkeletonize::apply(
 	int  max_iterations,
 	bool generate_intermediate_meshes,
-	bool skeleton_distance_in_mesh_quality)
+	bool skeleton_distance_in_mesh_quality,
+	bool skeleton_index_to_mesh_attributes)
 {
 	checkSelectedMesh();
 	skeletonizer = new Skeletonizer(mesh, parameters);
 	int total_iterations = skeletonize(max_iterations, generate_intermediate_meshes);
-	generateSkeleton(skeleton_distance_in_mesh_quality);
+	generateSkeleton(skeleton_distance_in_mesh_quality, skeleton_index_to_mesh_attributes);
 	addNewMeshes();
 	
 
@@ -110,33 +114,52 @@ void algorithmSkeletonize::generateIntermediateMesh(int iteration_num)
 	));
 }
 
-void algorithmSkeletonize::generateSkeleton(bool skeleton_distance_in_mesh_quality)
+void algorithmSkeletonize::generateSkeleton(
+	bool skeleton_distance_in_mesh_quality,
+	bool skeleton_index_to_mesh_attributes)
 {
 	callback_pos(98, "Generating skeleton...");
 
 	auto skeleton = skeletonizer->getSkeleton();
 	new_meshes.push_back(std::make_pair(skeleton, mesh_name + "-skeleton"));
 
-	if (skeleton_distance_in_mesh_quality)
+	if (skeleton_distance_in_mesh_quality || skeleton_index_to_mesh_attributes)
 	{
 		auto mesh_to_skeleton = skeletonizer->getSkeletonVertexAssociations();
 
-		document.mm()->updateDataMask(MeshModel::MM_VERTQUALITY);
-		document.mm()->setMeshModified(true);
-		for (uint i = 0; i < mesh.vert.size(); i++)
+		if (skeleton_distance_in_mesh_quality)
 		{
-			auto& vertex = mesh.vert[i];
+			document.mm()->updateDataMask(MeshModel::MM_VERTQUALITY);
+			document.mm()->setMeshModified(true);
+			for (uint i = 0; i < mesh.vert.size(); i++) {
+				auto& vertex = mesh.vert[i];
 
-			auto& skel_vertex = skeleton.vert[mesh_to_skeleton.at(i)];
-			vertex.Q() = (vertex.cP() - skel_vertex.cP()).Norm();
+				auto& skel_vertex = skeleton.vert[mesh_to_skeleton.at(i)];
+				vertex.Q()        = (vertex.cP() - skel_vertex.cP()).Norm();
+			}
+		}
+
+		if (skeleton_index_to_mesh_attributes)
+		{
+			auto iterator = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<uint>(mesh, SKELETON_ATTRIBUTE_NAME);
+
+			for (uint i = 0; i < mesh.vert.size(); i++)
+			{
+				uint skel_index = mesh_to_skeleton.at(i);
+				iterator[i] = skel_index;
+			}
 		}
 	}
+
+	
 }
 
 void algorithmSkeletonize::addNewMeshes()
 {
 	callback_pos(99, "Adding new meshes...");
-	for (auto pair : new_meshes) {
-		document.addNewMesh(pair.first, pair.second, false);
+	for (auto pair : new_meshes)
+	{
+		auto mesh = document.addNewMesh(pair.first, pair.second, false);
+		mesh->clearDataMask(MeshModel::MM_VERTQUALITY);
 	}
 }

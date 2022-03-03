@@ -8,7 +8,6 @@ set(SOURCES
 	"cgal_adapter/mesh_converter_meso_skeleton_to_cmesh.cpp"
 	"cgal_adapter/mesh_skeletonizer.cpp"
 	"filters/filter_template.cpp"
-	"filters/skeletonize_default.cpp"
 	"filters/skeletonize_manual.cpp"
 	"filters/skeletonize_manual_apply.cpp"
 	"filters/skeletonize_manual_param_list.cpp"
@@ -21,7 +20,6 @@ set(HEADERS
 	"cgal_adapter/mesh_converter.h"
 	"cgal_adapter/mesh_skeletonizer.h"
 	"filters/filter_template.h"
-	"filters/skeletonize_default.h"
 	"filters/skeletonize_manual.h"
 	"filters/algorithm_skeletonize.h"
 )

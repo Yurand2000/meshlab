@@ -23,7 +23,6 @@
 
 #include "filter_curvature_skeleton.h"
 
-#include "filters/skeletonize_default.h"
 #include "filters/skeletonize_manual.h"
 
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
@@ -31,10 +30,9 @@
 FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 {
 	filters = {};
-	filters.push_back(new filterSkeletonizeDefault());
 	filters.push_back(new filterSkeletonizeManual());
 
-	typeList = { SKELETONIZE_DEFAULT, SKELETONIZE_MANUAL };
+	typeList = { SKELETONIZE_MANUAL };
 
 	for(ActionIDType tt : types())
 		actionList.push_back( new QAction(filterName(tt), this) );

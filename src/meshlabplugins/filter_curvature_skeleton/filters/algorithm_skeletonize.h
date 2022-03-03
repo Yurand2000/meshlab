@@ -50,12 +50,13 @@ public:
 	std::map<std::string, QVariant> apply(
 		int  max_iterations,
 		bool generate_intermediate_meshes,
-		bool skeleton_distance_in_mesh_quality);
+		bool skeleton_distance_in_mesh_quality,
+		bool skeleton_index_to_mesh_attributes);
 
 private:
 	void checkSelectedMesh() const;
 	int  skeletonize(int max_iterations, bool generate_intermediate_meshes);
-	void generateSkeleton(bool skeleton_distance_in_mesh_quality);
+	void generateSkeleton(bool skeleton_distance_in_mesh_quality, bool skeleton_index_to_mesh_attributes);
 	void addNewMeshes();
 
 	bool computeIteration();

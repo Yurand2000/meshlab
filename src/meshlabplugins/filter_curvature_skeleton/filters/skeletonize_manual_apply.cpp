@@ -33,6 +33,7 @@ algorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList con
 int getIterationCount(RichParameterList const& params);
 bool getGenerateIntermediateMeshes(RichParameterList const& params);
 bool getSaveSkeletonDistance(RichParameterList const& params);
+bool getSaveSkeletonIndex(RichParameterList const& params);
 
 std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
 	FilterPlugin const&      plugin,
@@ -49,8 +50,9 @@ std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
 		int  iterations    = getIterationCount(params);
 		bool gen_meshes    = getGenerateIntermediateMeshes(params);
 		bool skel_distance = getSaveSkeletonDistance(params);
+		bool skel_index    = getSaveSkeletonIndex(params);
 		return algorithmSkeletonize(document, skel_params, *callback, plugin)
-			.apply(iterations, gen_meshes, skel_distance);
+			.apply(iterations, gen_meshes, skel_distance, skel_index);
 	}
 	catch (MLException e) {
 		throw e;
@@ -80,7 +82,7 @@ void filterSkeletonizeManual::checkParameters(RichParameterList const& params, v
 		throw MLException("Max triangle angle cannot be greater than 180 degrees.");
 	}
 
-	if (params.getFloat(PARAM_MIN_EDGE_LENGTH) <= 0)
+	if (params.getAbsPerc(PARAM_MIN_EDGE_LENGTH) <= 0)
 	{
 		throw MLException("Min edge length cannot be zero or negative.");
 	}
@@ -103,7 +105,7 @@ algorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList con
 
 	skel_params.delta_area_threshold   = params.getFloat(PARAM_DELTA_AREA_TERMINATION);
 	skel_params.max_triangle_angle     = params.getFloat(PARAM_MAX_ANGLE);
-	skel_params.min_edge_length        = params.getFloat(PARAM_MIN_EDGE_LENGTH);
+	skel_params.min_edge_length        = params.getAbsPerc(PARAM_MIN_EDGE_LENGTH);
 	skel_params.quality_speed_tradeoff = params.getFloat(PARAM_QUALITY_TRADEOFF);
 
 	if (params.getBool(PARAM_ENABLE_MEDIALLY_CENTERING))
@@ -126,4 +128,9 @@ bool getGenerateIntermediateMeshes(RichParameterList const& params)
 bool getSaveSkeletonDistance(RichParameterList const& params)
 {
 	return params.getBool(PARAM_SAVE_SKELETAL_DISTANCE_TO_MESH_QUALITY);
+}
+
+bool getSaveSkeletonIndex(RichParameterList const& params)
+{
+	return params.getBool(PARAM_SAVE_SKELETON_INDEX_TO_MESH_ATTRIBUTES);
 }
