@@ -52,13 +52,13 @@ public:
 	int getPreConditions() const;
 	int postCondition() const;
 
-	virtual RichParameterList initParameterList(FilterPlugin const&, MeshModel const&) = 0;
+	virtual RichParameterList initParameterList(FilterPlugin const&, MeshModel const&);
 	virtual std::map<std::string, QVariant> applyFilter(
 		FilterPlugin const&,
 		RichParameterList const&,
 		MeshDocument&,
 		unsigned int&,
-		vcg::CallBackPos*) = 0;
+		vcg::CallBackPos*);
 
 private:
 	MeshLabPlugin::ActionIDType filter_id;

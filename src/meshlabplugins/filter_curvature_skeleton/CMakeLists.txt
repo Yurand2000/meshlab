@@ -8,6 +8,8 @@ set(SOURCES
 	"cgal_adapter/mesh_converter_meso_skeleton_to_cmesh.cpp"
 	"cgal_adapter/mesh_skeletonizer.cpp"
 	"filters/filter_template.cpp"
+	"filters/skeleton_distance_to_quality.cpp"
+	"filters/skeleton_index_to_quality.cpp"
 	"filters/skeletonize_manual.cpp"
 	"filters/skeletonize_manual_apply.cpp"
 	"filters/skeletonize_manual_param_list.cpp"
@@ -21,7 +23,10 @@ set(HEADERS
 	"cgal_adapter/mesh_skeletonizer.h"
 	"filters/filter_template.h"
 	"filters/skeletonize_manual.h"
+	"filters/skeleton_distance_to_quality.h"
+	"filters/skeleton_index_to_quality.h"
 	"filters/algorithm_skeletonize.h"
+	"filters/additional_attribute_names.h"
 )
 
 if(NOT TARGET external-boost)

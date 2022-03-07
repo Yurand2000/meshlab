@@ -36,7 +36,9 @@ class FilterCurvatureSkeleton : public QObject, public FilterPlugin
 public:
 	//possible filters
 	enum {
-		SKELETONIZE_MANUAL
+		SKELETONIZE_MANUAL,
+		SKELETON_INDEX_TO_MESH_QUALITY,
+		SKELETON_DISTANCE_TO_MESH_QUALITY
 	};
 
 	FilterCurvatureSkeleton();

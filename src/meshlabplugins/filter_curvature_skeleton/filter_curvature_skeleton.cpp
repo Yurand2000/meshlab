@@ -24,6 +24,8 @@
 #include "filter_curvature_skeleton.h"
 
 #include "filters/skeletonize_manual.h"
+#include "filters/skeleton_index_to_quality.h"
+#include "filters/skeleton_distance_to_quality.h"
 
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
 
@@ -31,8 +33,10 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 {
 	filters = {};
 	filters.push_back(new filterSkeletonizeManual());
+	filters.push_back(new filterSkeletonIndexToMeshQuality());
+	filters.push_back(new filterSkeletonDistanceToMeshQuality());
 
-	typeList = { SKELETONIZE_MANUAL };
+	typeList = { SKELETONIZE_MANUAL, SKELETON_INDEX_TO_MESH_QUALITY, SKELETON_DISTANCE_TO_MESH_QUALITY };
 
 	for(ActionIDType tt : types())
 		actionList.push_back( new QAction(filterName(tt), this) );

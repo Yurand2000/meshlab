@@ -21,61 +21,23 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
-#define FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
+#ifndef FILTERCURVATURESKELETON_FILTER_SKELETON_DISTANCE_TO_MESH_QUALITY
+#define FILTERCURVATURESKELETON_FILTER_SKELETON_DISTANCE_TO_MESH_QUALITY
 
-#include <common/plugins/interfaces/filter_plugin.h>
-#include "../cgal_adapter/mesh_skeletonizer.h"
+#include "filter_template.h"
 
-class algorithmSkeletonize
+class filterSkeletonDistanceToMeshQuality : public templateFilter
 {
 public:
-	typedef CGalAdapter::MeshSkeletonizer           Skeletonizer;
-	typedef CGalAdapter::MeshSkeletonizerParameters Parameters;
+	filterSkeletonDistanceToMeshQuality();
+	~filterSkeletonDistanceToMeshQuality() {}
 
-private:
-	typedef std::vector<std::pair<CMeshO, QString>> NewMeshVector;
-
-public:
-	algorithmSkeletonize(
-		MeshDocument&              document,
-		Parameters&				   parameters,
-		vcg::CallBackPos&		   callback_pos,
-		MeshLabPluginLogger const& logger);
-	~algorithmSkeletonize();
-
-	algorithmSkeletonize(algorithmSkeletonize& copy) = delete;
-	algorithmSkeletonize& operator=(algorithmSkeletonize& copy) = delete;
-
-	std::map<std::string, QVariant> apply(
-		int  max_iterations,
-		bool generate_intermediate_meshes,
-		bool skeleton_distance_in_mesh_quality);
-
-private:
-	void checkSelectedMesh() const;
-	int  skeletonize(int max_iterations, bool generate_intermediate_meshes);
-	void generateSkeleton(bool skeleton_distance_in_mesh_quality);
-	void addNewMeshes();
-
-	bool computeIteration();
-	void generateIntermediateMesh(int current_iteration);
-
-	void saveMeshToSkeletonIndex(Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton);
-	void saveMeshToSkeletonDistance(
-		bool skeleton_distance_in_mesh_quality, CMeshO const& skeleton,
-		Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton);
-
-private:
-	MeshDocument& document;
-	vcg::CallBackPos& callback_pos;
-	MeshLabPluginLogger const& logger;
-	Parameters& parameters;
-	CMeshO& mesh;
-
-	QString       mesh_name;
-	Skeletonizer* skeletonizer;
-	NewMeshVector new_meshes;
+	virtual std::map<std::string, QVariant> applyFilter(
+		FilterPlugin const&,
+		RichParameterList const&,
+		MeshDocument&,
+		unsigned int&,
+		vcg::CallBackPos*) override;
 };
 
 #endif
