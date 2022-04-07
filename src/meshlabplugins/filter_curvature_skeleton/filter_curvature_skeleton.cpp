@@ -38,7 +38,7 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	filters.push_back( std::make_unique<SkeletonIndexToMeshQualityFilter>()) ;
 	filters.push_back( std::make_unique<SkeletonDistanceToMeshQualityFilter>() );
 
-	typeList = { SKELETONIZE_MANUAL, SKELETON_INDEX_TO_MESH_QUALITY, SKELETON_DISTANCE_TO_MESH_QUALITY };
+	typeList = { SKELETONIZE, SKELETON_INDEX_TO_MESH_QUALITY, SKELETON_DISTANCE_TO_MESH_QUALITY };
 
 	for(ActionIDType tt : types())
 		actionList.push_back( new QAction(filterName(tt), this) );
