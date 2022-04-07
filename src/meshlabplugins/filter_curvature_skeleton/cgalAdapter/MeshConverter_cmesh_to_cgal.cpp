@@ -21,20 +21,20 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "mesh_converter.h"
+#include "MeshConverter.h"
 
 #include <unordered_map>
 
-namespace CGalAdapter
+namespace curvatureSkeleton { namespace CGalAdapter
 {
 
 typedef std::unordered_map<CVertexO const*, CGALVertexIndex> CMeshVertexIndices;
 
-void addVertices(CGALMesh&, CMeshVertexIndices&, CMeshO const&);
-void addEdges(CGALMesh&, CMeshVertexIndices const&, CMeshO const&);
-void addFaces(CGALMesh&, CMeshVertexIndices const&, CMeshO const&);
+static void addVertices(CGALMesh&, CMeshVertexIndices&, CMeshO const&);
+static void addEdges(CGALMesh&, CMeshVertexIndices const&, CMeshO const&);
+static void addFaces(CGALMesh&, CMeshVertexIndices const&, CMeshO const&);
 
-CGALMesh MeshConverter::convertCMeshToCGALMesh(CMeshO const& mesh)
+CGALMesh convertCMeshToCGALMesh(CMeshO const& mesh)
 {
 	CGALMesh           new_mesh       = {};
 	CMeshVertexIndices vertex_indices = {};
@@ -80,4 +80,4 @@ void addFaces(CGALMesh& new_mesh, CMeshVertexIndices const& vertex_indices, CMes
 	}
 }
 
-}
+} }

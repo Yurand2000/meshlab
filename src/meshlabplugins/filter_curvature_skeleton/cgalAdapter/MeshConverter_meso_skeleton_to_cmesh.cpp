@@ -21,22 +21,22 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "mesh_converter.h"
+#include "MeshConverter.h"
 #include <vcg/complex/algorithms/polygon_support.h>
 
 #include <unordered_map>
 
-namespace CGalAdapter
+namespace curvatureSkeleton { namespace CGalAdapter
 {
 
 typedef vcg::tri::Allocator<CMeshO>        Allocator;
 typedef std::unordered_map<size_t, size_t> VertexIndices;
 
-void addVertices(CMeshO&, VertexIndices&, CGALMesoSkeleton const&);
-void addEdges(CMeshO&, VertexIndices const&, CGALMesoSkeleton const&);
-void addFaces(CMeshO&, VertexIndices const&, CGALMesoSkeleton const&);
+static void addVertices(CMeshO&, VertexIndices&, CGALMesoSkeleton const&);
+static void addEdges(CMeshO&, VertexIndices const&, CGALMesoSkeleton const&);
+static void addFaces(CMeshO&, VertexIndices const&, CGALMesoSkeleton const&);
 
-CMeshO MeshConverter::convertCGALMesoSkeletonToCMesh(CGALMesoSkeleton const& meso_skeleton)
+CMeshO convertCGALMesoSkeletonToCMesh(CGALMesoSkeleton const& meso_skeleton)
 {
 	CMeshO new_mesh = {};
 	VertexIndices indices = {};
@@ -93,4 +93,4 @@ void addFaces(CMeshO& new_mesh, VertexIndices const& indices, CGALMesoSkeleton c
 	}
 }
 
-}
+} }

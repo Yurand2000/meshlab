@@ -21,22 +21,27 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_CGAL_MESH_CONVERTER
-#define FILTERCURVATURESKELETON_CGAL_MESH_CONVERTER
+#ifndef FILTERCURVATURESKELETON_FILTER_SKELETON_INDEX_TO_MESH_QUALITY
+#define FILTERCURVATURESKELETON_FILTER_SKELETON_INDEX_TO_MESH_QUALITY
 
-#include "typedefs.h"
-#include "../common/ml_document/mesh_document.h"
+#include "common/TemplateFilter.h"
 
-namespace CGalAdapter
+namespace curvatureSkeleton
 {
-	class MeshConverter
-	{
-	public:
-		static CGALMesh convertCMeshToCGALMesh(CMeshO const& mesh);
 
-		static CMeshO convertCGALMesoSkeletonToCMesh(CGALMesoSkeleton const& meso_skeleton);
-		static CMeshO convertCGALSkeletonToCMesh(CGALSkeleton const& skeleton);
-	};
+class SkeletonIndexToMeshQualityFilter : public TemplateFilter
+{
+public:
+	SkeletonIndexToMeshQualityFilter();
+
+	virtual std::map<std::string, QVariant> applyFilter(
+		FilterPlugin const&,
+		RichParameterList const&,
+		MeshDocument&,
+		unsigned int&,
+		vcg::CallBackPos*) override;
+};
+
 }
 
-#endif
+#endif //FILTERCURVATURESKELETON_FILTER_SKELETON_INDEX_TO_MESH_QUALITY

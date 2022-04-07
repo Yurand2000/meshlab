@@ -21,61 +21,63 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
-#define FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
+#ifndef FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
+#define FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
 
-#include "typedefs.h"
-#include "../common/ml_document/mesh_document.h"
+#include <memory>
+#include <common/plugins/interfaces/filter_plugin.h>
+#include "cgalAdapter/MeshSkeletonizer.h"
 
-#include <unordered_map>
-
-namespace CGalAdapter
+namespace curvatureSkeleton
 {
-	struct MeshSkeletonizerParameters;
 
-	class MeshSkeletonizer
-	{
-	public:
-		typedef std::unordered_map<uint, uint> MeshToSkeletonVertices;
+class AlgorithmSkeletonize
+{
+public:
+	typedef CGalAdapter::MeshSkeletonizer           Skeletonizer;
+	typedef CGalAdapter::MeshSkeletonizerParameters Parameters;
 
-	public:
-		MeshSkeletonizer(CMeshO const& input);
-		MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParameters const& params);
-		~MeshSkeletonizer();
+private:
+	typedef std::vector<std::pair<CMeshO, QString>> NewMeshVector;
 
-		MeshSkeletonizer(MeshSkeletonizer& copy) = delete;
-		MeshSkeletonizer& operator=(MeshSkeletonizer& copy) = delete;
+public:
+	AlgorithmSkeletonize(
+		MeshDocument&              document,
+		Parameters&				   parameters,
+		vcg::CallBackPos&		   callback_pos,
+		MeshLabPluginLogger const& logger);
 
-		void   computeStep();
-		bool   hasConverged();
-		CMeshO getMesoSkeleton();
-		CMeshO getSkeleton();
-		MeshToSkeletonVertices getSkeletonVertexAssociations();
+	std::map<std::string, QVariant> apply(
+		int  max_iterations,
+		bool generate_intermediate_meshes,
+		bool skeleton_distance_in_mesh_quality);
 
-	private:
-		CGALSkeletonizer* skeletonizer;
-		double            delta_area_threshold;
+private:
+	void checkSelectedMesh() const;
+	int  skeletonize(int max_iterations, bool generate_intermediate_meshes);
+	void generateSkeleton(bool skeleton_distance_in_mesh_quality);
+	void addNewMeshes();
 
-		double            original_area;
-		double            last_area;
+	bool computeIteration();
+	void generateIntermediateMesh(int current_iteration);
 
-		CGALSkeleton	  skeleton;
+	void saveMeshToSkeletonIndex(Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton);
+	void saveMeshToSkeletonDistance(
+		bool skeleton_distance_in_mesh_quality, CMeshO const& skeleton,
+		Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton);
 
-		void setSkeletonizerParameters(MeshSkeletonizerParameters const& params);
-		void generateSkeleton();
-	};
+private:
+	MeshDocument& document;
+	vcg::CallBackPos& callback_pos;
+	MeshLabPluginLogger const& logger;
+	Parameters& parameters;
+	CMeshO& mesh;
 
-	struct MeshSkeletonizerParameters
-	{
-		double max_triangle_angle;
-		double min_edge_length;
-		double quality_speed_tradeoff;
-		double medially_centering_speed_tradeoff;
-		double delta_area_threshold;
+	QString       mesh_name;
+	std::unique_ptr<Skeletonizer> skeletonizer;
+	NewMeshVector new_meshes;
+};
 
-		MeshSkeletonizerParameters();
-		MeshSkeletonizerParameters(CMeshO const&);
-	};
 }
 
-#endif
+#endif //FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE

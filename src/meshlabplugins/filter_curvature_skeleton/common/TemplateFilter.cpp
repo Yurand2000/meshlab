@@ -21,53 +21,38 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "skeleton_index_to_quality.h"
+#include "TemplateFilter.h"
 
-#include "vcg/complex/allocate.h"
-#include "../filter_curvature_skeleton.h"
-#include "additional_attribute_names.h"
+TemplateFilter::TemplateFilter(MeshLabPlugin::ActionIDType id, const char* dn, const char* dd,
+	FilterPlugin::FilterClass cat, const char* pn, FilterPlugin::FilterArity ar, int pre, int post)
+		: filter_id(id), display_name(dn), description(dd), category(cat),
+		  python_name(pn), filter_arity(ar), preconditions(pre), postconditions(post)
+{ }
 
-#define F_FILTERID	  FilterCurvatureSkeleton::SKELETON_INDEX_TO_MESH_QUALITY
-#define F_DISPLAYNAME "Skeleton Index to Quality"
-#define F_DESCRIPTION "After skeletonizing any mesh, you can set the values of the vertex quality with the index the vertex has collapsed onto the skeleton."
-#define F_CATEGORY    FilterPlugin::Other
-#define F_PYTHON_NAME "skeleton_index_to_mesh_quality"
-#define F_ARITY       FilterPlugin::FilterArity::SINGLE_MESH
-#define F_PRECONDS    MeshModel::MM_NONE
-#define F_POSTCONDS   MeshModel::MM_VERTQUALITY
+bool TemplateFilter::isValidFilter(MeshLabPlugin::ActionIDType filter) const { return filter == filter_id; }
 
-filterSkeletonIndexToMeshQuality::filterSkeletonIndexToMeshQuality() :
-	templateFilter(F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
-		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
+QString TemplateFilter::filterName() const { return display_name; }
+QString TemplateFilter::pythonFilterName() const { return python_name; }
+QString TemplateFilter::filterInfo() const { return description; }
 
-std::map<std::string, QVariant> filterSkeletonIndexToMeshQuality::applyFilter(
-	FilterPlugin const& plugin,
-	RichParameterList const&,
-	MeshDocument& document,
-	unsigned int&,
-	vcg::CallBackPos* callback)
+FilterPlugin::FilterClass TemplateFilter::getClass() const { return category; }
+FilterPlugin::FilterArity TemplateFilter::filterArity() const { return filter_arity; }
+
+int TemplateFilter::getPreConditions() const { return preconditions; }
+int TemplateFilter::postCondition() const { return postconditions; }
+
+RichParameterList TemplateFilter::initParameterList(FilterPlugin const&, MeshModel const&)
 {
-	auto    meshModel = document.mm();
-	CMeshO& mesh      = meshModel->cm;
+	return RichParameterList();
+}
 
-	auto iterator = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<uint>(
-		mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
+RichParameterList TemplateFilter::initParameterList(FilterPlugin const& plugin, MeshDocument const& doc)
+{
+	return initParameterList(plugin, *(doc.mm()));
+}
 
-	if(vcg::tri::Allocator<CMeshO>::IsValidHandle(mesh, iterator))
-	{
-		meshModel->setMeshModified(true);
-		meshModel->updateDataMask(MeshModel::MM_VERTQUALITY);
-		for (uint i = 0; i < mesh.vert.size(); i++)
-		{
-			auto& vert = mesh.vert[i];
-			vert.Q()   = iterator[i];
-		}
-	}	
-	else
-	{
-		throw MLException("The selected mesh has no attribute by name \"" ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME "\"."\
-			" Have you skeletonized the mesh first?");
-	}
-
+std::map<std::string, QVariant> TemplateFilter::applyFilter(
+	FilterPlugin const&, RichParameterList const&, MeshDocument&, unsigned int&, vcg::CallBackPos*)
+{
 	return std::map<std::string, QVariant>();
 }

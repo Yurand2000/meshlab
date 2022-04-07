@@ -21,54 +21,44 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_FILTER_TEMPLATE
-#define FILTERCURVATURESKELETON_FILTER_TEMPLATE
+#ifndef FILTERCURVATURESKELETON_FILTER_SKELETONIZE
+#define FILTERCURVATURESKELETON_FILTER_SKELETONIZE
+
+#include "common/TemplateFilter.h"
 
 #include <common/plugins/interfaces/filter_plugin.h>
 
-class templateFilter
+// parameter names
+#define PARAM_MAX_ITERATIONS "max_iterations"
+#define PARAM_DELTA_AREA_TERMINATION "delta_area_convergence"
+#define PARAM_GENERATE_INTERMEDIATE_MESHES "generate_intermediate_meshes"
+#define PARAM_SAVE_SKELETAL_DISTANCE_TO_MESH_QUALITY "save_skeletal_distance_in_quality"
+#define PARAM_MAX_ANGLE "max_triangle_angle"
+#define PARAM_MIN_EDGE_LENGTH "min_edge_length"
+#define PARAM_QUALITY_TRADEOFF "quality_tradeoff"
+#define PARAM_ENABLE_MEDIALLY_CENTERING "enable_medially_centering"
+#define PARAM_MEDIALLY_CENTERING_TRADEOFF "medially_centering_tradeoff"
+
+namespace curvatureSkeleton
+{
+
+class SkeletonizeFilter : public TemplateFilter
 {
 public:
-	templateFilter(
-		MeshLabPlugin::ActionIDType filter_id,
-		const char*                 display_name,
-		const char*                 description,
-		FilterPlugin::FilterClass   category,
-		const char*                 python_name,
-		FilterPlugin::FilterArity   filter_arity,
-		int                         preconditions,
-		int                         postconditions);
-	virtual ~templateFilter();
+	SkeletonizeFilter();
 
-	bool isValidFilter(MeshLabPlugin::ActionIDType filter) const;
-
-	QString filterName() const;
-	QString pythonFilterName() const;
-	QString filterInfo() const;
-
-	FilterPlugin::FilterClass getClass() const;
-	FilterPlugin::FilterArity filterArity() const;
-
-	int getPreConditions() const;
-	int postCondition() const;
-
-	virtual RichParameterList initParameterList(FilterPlugin const&, MeshModel const&);
+	virtual RichParameterList initParameterList(FilterPlugin const&, MeshModel const&) override;
 	virtual std::map<std::string, QVariant> applyFilter(
 		FilterPlugin const&,
 		RichParameterList const&,
 		MeshDocument&,
 		unsigned int&,
-		vcg::CallBackPos*);
+		vcg::CallBackPos*) override;
 
 private:
-	MeshLabPlugin::ActionIDType filter_id;
-	QString                     display_name;
-	QString                     description;
-	FilterPlugin::FilterClass   category;
-	QString                     python_name;
-	FilterPlugin::FilterArity   filter_arity;
-	int                         preconditions;
-	int                         postconditions;
+	void checkParameters(RichParameterList const&, vcg::CallBackPos&);
 };
 
-#endif
+}
+
+#endif //FILTERCURVATURESKELETON_FILTER_SKELETONIZE

@@ -21,8 +21,8 @@
 *                                                                           *
 ****************************************************************************/
 
-#include "skeletonize_manual.h"
-#include "../cgal_adapter/mesh_skeletonizer.h"
+#include "SkeletonizeFilter.h"
+#include "cgalAdapter/MeshSkeletonizer.h"
 
 // default values
 #define MAX_ITERATIONS_DEFAULT 100
@@ -57,9 +57,12 @@
 #define MEDIALLY_CENTERING_VALUE_DISPLAYNAME "Medially Centering Tradeoff (Omega_M)"
 #define MEDIALLY_CENTERING_VALUE_DESCRIPTION "Controls the degree to which the surface is attracted to the medial axis and the smoothness of the medial approximation. The default value used in the paper is 40. Decreasing this value results in a (less smooth) skeleton closer to the medial axis, as well as a lower convergence speed. Must be positive."
 
-Scalarm getMinEdgeLength_DefaultMaxValue(MeshModel const&);
+namespace curvatureSkeleton
+{
 
-RichParameterList filterSkeletonizeManual::initParameterList(FilterPlugin const&, MeshModel const& m)
+static Scalarm getMinEdgeLength_DefaultMaxValue(MeshModel const&);
+
+RichParameterList SkeletonizeFilter::initParameterList(FilterPlugin const&, MeshModel const& m)
 {
 	RichParameterList parlst;
 
@@ -81,4 +84,6 @@ RichParameterList filterSkeletonizeManual::initParameterList(FilterPlugin const&
 Scalarm getMinEdgeLength_DefaultMaxValue(MeshModel const& mesh)
 {
 	return mesh.cm.bbox.Diag();
+}
+
 }

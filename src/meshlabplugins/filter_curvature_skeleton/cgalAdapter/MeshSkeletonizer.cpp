@@ -21,9 +21,8 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "mesh_skeletonizer.h"
-#include "mesh_converter.h"
-#include <common/mlexception.h> //temp
+#include "MeshSkeletonizer.h"
+#include "MeshConverter.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -34,13 +33,13 @@
 #define QUALITY_TRADEOFF_DEFAULT 20
 #define MEDIALLY_CENTERING_TRADEOFF_DEFAULT 40
 
-namespace CGalAdapter
+namespace curvatureSkeleton { namespace CGalAdapter
 {
 
 MeshSkeletonizer::MeshSkeletonizer(CMeshO const& input)
 	: skeletonizer(nullptr), delta_area_threshold(DELTA_AREA_DEFAULT), original_area(0), last_area(0), skeleton()
 {
-	auto cgal_mesh = MeshConverter::convertCMeshToCGALMesh(input);
+	auto cgal_mesh = convertCMeshToCGALMesh(input);
 	skeletonizer   = new CGALSkeletonizer(cgal_mesh);
 	original_area  = CGAL::Polygon_mesh_processing::area(skeletonizer->meso_skeleton());
 	last_area      = original_area;
@@ -99,13 +98,13 @@ bool MeshSkeletonizer::hasConverged()
 CMeshO MeshSkeletonizer::getMesoSkeleton()
 {
 	CGALMesoSkeleton meso_skeleton = skeletonizer->meso_skeleton();
-	return MeshConverter::convertCGALMesoSkeletonToCMesh(meso_skeleton);
+	return convertCGALMesoSkeletonToCMesh(meso_skeleton);
 }
 
 CMeshO MeshSkeletonizer::getSkeleton()
 {
 	generateSkeleton();
-	return MeshConverter::convertCGALSkeletonToCMesh(skeleton);
+	return convertCGALSkeletonToCMesh(skeleton);
 }
 
 MeshSkeletonizer::MeshToSkeletonVertices MeshSkeletonizer::getSkeletonVertexAssociations()
@@ -157,4 +156,4 @@ double calculateMinEdgeLength(CMeshO const& mesh)
 	return 0.002 * boundingBox.Diag();
 }
 
-}
+} }

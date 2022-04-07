@@ -23,31 +23,25 @@
 
 #include "filter_curvature_skeleton.h"
 
-#include "filters/skeletonize_manual.h"
-#include "filters/skeleton_index_to_quality.h"
-#include "filters/skeleton_distance_to_quality.h"
+#include "filters/skeletonize/SkeletonizeFilter.h"
+#include "filters/skeletonIndexToQuality/IndexToQualityFilter.h"
+#include "filters/skeletonDistanceToQuality/DistanceToQualityFilter.h"
 
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
 
+namespace curvatureSkeleton
+{
+
 FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 {
-	filters = {};
-	filters.push_back(new filterSkeletonizeManual());
-	filters.push_back(new filterSkeletonIndexToMeshQuality());
-	filters.push_back(new filterSkeletonDistanceToMeshQuality());
+	filters.push_back( std::make_unique<SkeletonizeFilter>() );
+	filters.push_back( std::make_unique<SkeletonIndexToMeshQualityFilter>()) ;
+	filters.push_back( std::make_unique<SkeletonDistanceToMeshQualityFilter>() );
 
 	typeList = { SKELETONIZE_MANUAL, SKELETON_INDEX_TO_MESH_QUALITY, SKELETON_DISTANCE_TO_MESH_QUALITY };
 
 	for(ActionIDType tt : types())
 		actionList.push_back( new QAction(filterName(tt), this) );
-}
-
-FilterCurvatureSkeleton::~FilterCurvatureSkeleton()
-{
-	for (auto filter : filters)
-	{
-		delete filter;
-	}
 }
 
 QString FilterCurvatureSkeleton::pluginName() const
@@ -58,56 +52,56 @@ QString FilterCurvatureSkeleton::pluginName() const
 QString FilterCurvatureSkeleton::filterName(ActionIDType filterId) const
 {
 	return findFilterAndExecute<QString>(filterId,
-		[](templateFilter const& filter) { return filter.filterName(); },
+		[](TemplateFilter const& filter) { return filter.filterName(); },
 		[](){ assert(0); return QString(); });
 }
 
 QString FilterCurvatureSkeleton::pythonFilterName(ActionIDType filterId) const
 {
 	return findFilterAndExecute<QString>(filterId,
-		[](templateFilter const& filter) { return filter.pythonFilterName(); },
+		[](TemplateFilter const& filter) { return filter.pythonFilterName(); },
 		[](){ assert(0); return QString(); });
 }
 
  QString FilterCurvatureSkeleton::filterInfo(ActionIDType filterId) const
 {
 	return findFilterAndExecute<QString>(filterId,
-		[](templateFilter const& filter) { return filter.filterInfo(); },
+		[](TemplateFilter const& filter) { return filter.filterInfo(); },
 		[]() { assert(0); return QString("Unknown Filter"); });
 }
 
 FilterCurvatureSkeleton::FilterClass FilterCurvatureSkeleton::getClass(const QAction *a) const
 {
 	return findFilterAndExecute<FilterCurvatureSkeleton::FilterClass>(a,
-		[](templateFilter const& filter) { return filter.getClass(); },
+		[](TemplateFilter const& filter) { return filter.getClass(); },
 		[]() { assert(0); return FilterPlugin::Generic; });
 }
 
 FilterPlugin::FilterArity FilterCurvatureSkeleton::filterArity(const QAction* a) const
 {
 	return findFilterAndExecute<FilterCurvatureSkeleton::FilterArity>(a,
-		[](templateFilter const& filter) { return filter.filterArity(); },
+		[](TemplateFilter const& filter) { return filter.filterArity(); },
 		[]() { assert(0); return FilterPlugin::FilterArity::NONE; });
 }
 
 int FilterCurvatureSkeleton::getPreConditions(const QAction* a) const
 {
 	return findFilterAndExecute<int>(a,
-		[](templateFilter const& filter) { return filter.getPreConditions(); },
+		[](TemplateFilter const& filter) { return filter.getPreConditions(); },
 		[]() { assert(0); return MeshModel::MM_NONE; });
 }
 
 int FilterCurvatureSkeleton::postCondition(const QAction* a) const
 {
 	return findFilterAndExecute<int>(a,
-		[](templateFilter const& filter) { return filter.postCondition(); },
+		[](TemplateFilter const& filter) { return filter.postCondition(); },
 		[]() { assert(0); return MeshModel::MM_NONE; });
 }
 
-RichParameterList FilterCurvatureSkeleton::initParameterList(QAction const* a, MeshModel const& model)
+RichParameterList FilterCurvatureSkeleton::initParameterList(QAction const* a, MeshDocument const& document)
 {
 	return findFilterAndExecute<RichParameterList>(a,
-		[this, &model](templateFilter& filter) { return filter.initParameterList(*this, model); },
+		[this, &document](TemplateFilter& filter) { return filter.initParameterList(*this, document); },
 		[]() { assert(0); return RichParameterList(); });
 }
 
@@ -119,7 +113,7 @@ std::map<std::string, QVariant> FilterCurvatureSkeleton::applyFilter(
 	vcg::CallBackPos* callback)
 {
 	return findFilterAndExecute< std::map<std::string, QVariant> >(a,
-		[this, &params, &document, &val, callback](templateFilter& filter)
+		[this, &params, &document, &val, callback](TemplateFilter& filter)
 		{
 			return filter.applyFilter(*this, params, document, val, callback);
 		},
@@ -129,3 +123,5 @@ std::map<std::string, QVariant> FilterCurvatureSkeleton::applyFilter(
 }
 
 MESHLAB_PLUGIN_NAME_EXPORTER(FilterCurvatureSkeleton)
+
+}

@@ -21,20 +21,23 @@
 *                                                                           *
 ****************************************************************************/
 
-#include "skeletonize_manual.h"
-#include "cgal_adapter/mesh_skeletonizer.h"
-#include "algorithm_skeletonize.h"
+#include "SkeletonizeFilter.h"
+#include "cgalAdapter/MeshSkeletonizer.h"
+#include "AlgorithmSkeletonize.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <string>
 
-algorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList const& params);
-int getIterationCount(RichParameterList const& params);
-bool getGenerateIntermediateMeshes(RichParameterList const& params);
-bool getSaveSkeletonDistance(RichParameterList const& params);
+namespace curvatureSkeleton
+{
 
-std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
+static AlgorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList const& params);
+static int getIterationCount(RichParameterList const& params);
+static bool getGenerateIntermediateMeshes(RichParameterList const& params);
+static bool getSaveSkeletonDistance(RichParameterList const& params);
+
+std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 	FilterPlugin const&      plugin,
 	RichParameterList const& params,
 	MeshDocument&            document,
@@ -49,7 +52,7 @@ std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
 		int  iterations    = getIterationCount(params);
 		bool gen_meshes    = getGenerateIntermediateMeshes(params);
 		bool skel_distance = getSaveSkeletonDistance(params);
-		return algorithmSkeletonize(document, skel_params, *callback, plugin)
+		return AlgorithmSkeletonize(document, skel_params, *callback, plugin)
 			.apply(iterations, gen_meshes, skel_distance);
 	}
 	catch (MLException e) {
@@ -61,7 +64,7 @@ std::map<std::string, QVariant> filterSkeletonizeManual::applyFilter(
 }
 
 
-void filterSkeletonizeManual::checkParameters(RichParameterList const& params, vcg::CallBackPos& callback)
+void SkeletonizeFilter::checkParameters(RichParameterList const& params, vcg::CallBackPos& callback)
 {
 	callback(0, "Setup: Checking Parameters...");
 	if (params.getInt(PARAM_MAX_ITERATIONS) < 1)
@@ -97,9 +100,9 @@ void filterSkeletonizeManual::checkParameters(RichParameterList const& params, v
 	}
 }
 
-algorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList const& params)
+AlgorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList const& params)
 {
-	algorithmSkeletonize::Parameters skel_params = {};
+	AlgorithmSkeletonize::Parameters skel_params = {};
 
 	skel_params.delta_area_threshold   = params.getFloat(PARAM_DELTA_AREA_TERMINATION);
 	skel_params.max_triangle_angle     = params.getFloat(PARAM_MAX_ANGLE);
@@ -126,4 +129,6 @@ bool getGenerateIntermediateMeshes(RichParameterList const& params)
 bool getSaveSkeletonDistance(RichParameterList const& params)
 {
 	return params.getBool(PARAM_SAVE_SKELETAL_DISTANCE_TO_MESH_QUALITY);
+}
+
 }

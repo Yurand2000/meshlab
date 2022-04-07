@@ -21,23 +21,22 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_FILTER_SKELETON_DISTANCE_TO_MESH_QUALITY
-#define FILTERCURVATURESKELETON_FILTER_SKELETON_DISTANCE_TO_MESH_QUALITY
+#ifndef FILTERCURVATURESKELETON_CGAL_TYPEDEFS
+#define FILTERCURVATURESKELETON_CGAL_TYPEDEFS
 
-#include "filter_template.h"
+#include <CGAL/Mean_curvature_flow_skeletonization.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
 
-class filterSkeletonDistanceToMeshQuality : public templateFilter
+namespace curvatureSkeleton { namespace CGalAdapter
 {
-public:
-	filterSkeletonDistanceToMeshQuality();
-	~filterSkeletonDistanceToMeshQuality() {}
+	typedef CGAL::Simple_cartesian<double>                      CGALKernel;
+	typedef CGALKernel::Point_3									CGALPoint;
+	typedef CGAL::Surface_mesh<CGALPoint>                       CGALMesh;
+	typedef CGAL::SM_Vertex_index							    CGALVertexIndex;
+	typedef CGAL::Mean_curvature_flow_skeletonization<CGALMesh> CGALSkeletonizer;
+	typedef CGALSkeletonizer::Skeleton                          CGALSkeleton;
+	typedef CGALSkeletonizer::Meso_skeleton                     CGALMesoSkeleton;
+} }
 
-	virtual std::map<std::string, QVariant> applyFilter(
-		FilterPlugin const&,
-		RichParameterList const&,
-		MeshDocument&,
-		unsigned int&,
-		vcg::CallBackPos*) override;
-};
-
-#endif
+#endif //FILTERCURVATURESKELETON_CGAL_TYPEDEFS

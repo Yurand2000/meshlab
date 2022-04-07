@@ -21,22 +21,63 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_CGAL_TYPEDEFS
-#define FILTERCURVATURESKELETON_CGAL_TYPEDEFS
+#ifndef FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
+#define FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
 
-#include <CGAL/Mean_curvature_flow_skeletonization.h>
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
+#include "typedefs.h"
+#include <common/ml_document/mesh_document.h>
 
-namespace CGalAdapter
+#include <unordered_map>
+
+namespace curvatureSkeleton { namespace CGalAdapter
 {
-	typedef CGAL::Simple_cartesian<double>                      CGALKernel;
-	typedef CGALKernel::Point_3									CGALPoint;
-	typedef CGAL::Surface_mesh<CGALPoint>                       CGALMesh;
-	typedef CGAL::SM_Vertex_index							    CGALVertexIndex;
-	typedef CGAL::Mean_curvature_flow_skeletonization<CGALMesh> CGALSkeletonizer;
-	typedef CGALSkeletonizer::Skeleton                          CGALSkeleton;
-	typedef CGALSkeletonizer::Meso_skeleton                     CGALMesoSkeleton;
-	}
+
+struct MeshSkeletonizerParameters;
+
+class MeshSkeletonizer
+{
+public:
+	typedef std::unordered_map<uint, uint> MeshToSkeletonVertices;
+
+public:
+	MeshSkeletonizer(CMeshO const& input);
+	MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParameters const& params);
+	~MeshSkeletonizer();
+
+	MeshSkeletonizer(MeshSkeletonizer& copy) = delete;
+	MeshSkeletonizer& operator=(MeshSkeletonizer& copy) = delete;
+
+	void   computeStep();
+	bool   hasConverged();
+	CMeshO getMesoSkeleton();
+	CMeshO getSkeleton();
+	MeshToSkeletonVertices getSkeletonVertexAssociations();
+
+private:
+	CGALSkeletonizer* skeletonizer;
+	double            delta_area_threshold;
+
+	double            original_area;
+	double            last_area;
+
+	CGALSkeleton	  skeleton;
+
+	void setSkeletonizerParameters(MeshSkeletonizerParameters const& params);
+	void generateSkeleton();
+};
+
+struct MeshSkeletonizerParameters
+{
+	double max_triangle_angle;
+	double min_edge_length;
+	double quality_speed_tradeoff;
+	double medially_centering_speed_tradeoff;
+	double delta_area_threshold;
+
+	MeshSkeletonizerParameters();
+	MeshSkeletonizerParameters(CMeshO const&);
+};
+
+} } //FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
 
 #endif

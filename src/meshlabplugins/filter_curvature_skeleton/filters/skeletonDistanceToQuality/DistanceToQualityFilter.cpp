@@ -21,30 +21,58 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "skeletonize_manual.h"
-#include "../filter_curvature_skeleton.h"
+#include "DistanceToQualityFilter.h"
 
-#define F_FILTERID	  FilterCurvatureSkeleton::SKELETONIZE_MANUAL
-#define F_DISPLAYNAME "Skeletonize Manual"
-#define F_DESCRIPTION "Perform the skeletonization of the given mesh by manually adjusting the algorithm parameters."\
-" The most important parameters are edge collapsing length, which determines the overall resolution of the resulting skeleton and"\
-" the quality speed and medially centering tradeoff values, which control the convergence speed at the cost of the quality of the resulting skeleton.<br /><br />"\
-" The parameters referenced in the paper are <b>Omega_L, Omega_H, Omega_M, and Epsilon</b>. The <b>Omega_L</b> parameter is considered always as 1 and it is not needed"\
-" because the three Omega values have a partition of unity property over multiplication. The other two Omega parameters are called respectively"\
-" <b>Quality-Speed Tradeoff</b> and <b>Medially Centering Tradeoff</b>. The <b>Epsilon</b> parameter refers instead the <b>Min Edge Length</b> parameter." \
-" The angle of the opposing vertex at which an edge is split is not meant as a parameter by the paper, here instead it can be changed."\
-" It performs the algorithm described in the referenced paper and implemented into the CGAL library."\
-"<br /><br /><b>REFERENCES:</b><br />Tagliasacchi A., Alhashim I., Olson M., Zhang H.: <b>Mean Curvature Skeletons.</b><br />"\
-"<i>In Computer Graphics Forum (Proc. of the Symposium on Geometry Processing) 31, 5 (2012), 1735-1744.</i><br /><a href='https://doi.org/10.1111/j.1467-8659.2012.03178.x'>doi:10.1111/j.1467-8659.2012.03178.x</a>"
+#include <vcg/complex/allocate.h>
+#include "filter_curvature_skeleton.h"
+#include "common/additionalAttributeNames.h"
+
+#define F_FILTERID	  FilterCurvatureSkeleton::SKELETON_DISTANCE_TO_MESH_QUALITY
+#define F_DISPLAYNAME "Skeleton Distance to Quality"
+#define F_DESCRIPTION "After skeletonizing any mesh, you can set the values of the vertex quality with the distance from the vertex it has collapsed onto the skeleton."
 #define F_CATEGORY    FilterPlugin::Other
-#define F_PYTHON_NAME "skeletonizer_mesh_manual"
+#define F_PYTHON_NAME "skeleton_distance_to_mesh_quality"
 #define F_ARITY       FilterPlugin::FilterArity::SINGLE_MESH
 #define F_PRECONDS    MeshModel::MM_NONE
 #define F_POSTCONDS   MeshModel::MM_VERTQUALITY
 
-filterSkeletonizeManual::filterSkeletonizeManual() :
-	templateFilter(
-		F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
+namespace curvatureSkeleton
+{
+
+SkeletonDistanceToMeshQualityFilter::SkeletonDistanceToMeshQualityFilter() :
+	TemplateFilter(F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
 		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
 
-filterSkeletonizeManual::~filterSkeletonizeManual() { }
+std::map<std::string, QVariant> SkeletonDistanceToMeshQualityFilter::applyFilter(
+	FilterPlugin const& plugin,
+	RichParameterList const&,
+	MeshDocument& document,
+	unsigned int&,
+	vcg::CallBackPos* callback)
+{
+	auto    meshModel = document.mm();
+	CMeshO& mesh      = meshModel->cm;
+
+	auto iterator = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(
+		mesh, ATTRIBUTE_MESH_TO_SKELETON_DISTANCE_NAME);
+
+	if(vcg::tri::Allocator<CMeshO>::IsValidHandle(mesh, iterator))
+	{
+		meshModel->setMeshModified(true);
+		meshModel->updateDataMask(MeshModel::MM_VERTQUALITY);
+		for (uint i = 0; i < mesh.vert.size(); i++)
+		{
+			auto& vert = mesh.vert[i];
+			vert.Q()   = iterator[i];
+		}
+	}	
+	else
+	{
+		throw MLException("The selected mesh has no attribute by name \"" ATTRIBUTE_MESH_TO_SKELETON_DISTANCE_NAME "\"."\
+			" Have you skeletonized the mesh first?");
+	}
+
+	return std::map<std::string, QVariant>();
+}
+
+}

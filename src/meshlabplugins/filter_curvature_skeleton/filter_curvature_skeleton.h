@@ -24,8 +24,12 @@
 #ifndef FILTERCURVATURESKELETON_PLUGIN
 #define FILTERCURVATURESKELETON_PLUGIN
 
+#include <memory>
 #include <common/plugins/interfaces/filter_plugin.h>
-#include "filters/filter_template.h"
+#include "common/TemplateFilter.h"
+
+namespace curvatureSkeleton
+{
 
 class FilterCurvatureSkeleton : public QObject, public FilterPlugin
 {
@@ -34,15 +38,17 @@ class FilterCurvatureSkeleton : public QObject, public FilterPlugin
 	Q_INTERFACES(FilterPlugin)
 
 public:
-	//possible filters
+	typedef std::vector<std::unique_ptr<TemplateFilter>> Filters;
+
+public:
+	// possible filters
 	enum {
-		SKELETONIZE_MANUAL,
+		SKELETONIZE,
 		SKELETON_INDEX_TO_MESH_QUALITY,
 		SKELETON_DISTANCE_TO_MESH_QUALITY
 	};
 
 	FilterCurvatureSkeleton();
-	virtual ~FilterCurvatureSkeleton();
 
 	QString pluginName() const override;
 
@@ -53,7 +59,7 @@ public:
 	FilterArity filterArity(QAction const* a) const override;
 	int getPreConditions(QAction const* a) const override;
 	int postCondition(QAction const* a) const override;
-	RichParameterList initParameterList(QAction const*, MeshModel const&) override;
+	RichParameterList initParameterList(QAction const*, MeshDocument const&) override;
 	std::map<std::string, QVariant> applyFilter(
 		QAction const*,
 		RichParameterList const&,
@@ -63,36 +69,42 @@ public:
 	) override;
 
 private:
-	template<class T>
-	T findFilterAndExecute(ActionIDType filter_id, std::function<T(templateFilter&)> func, std::function<T()> def)
-	{
-		for (auto filter : filters) {
-			if (filter->isValidFilter(filter_id))
-				return func(*filter);
-		}
-		return def();
-	}
-
-	template<class T>
-	T findFilterAndExecute(ActionIDType filter_id, std::function<T(templateFilter const&)> func, std::function<T()> def) const
-	{
-		for (auto filter : filters) {
-			if (filter->isValidFilter(filter_id))
-				return func(*filter);
-		}
-		return def();
-	}
-
-	template<class T>
-	T findFilterAndExecute(QAction const* a, std::function<T(templateFilter&)> func, std::function<T()> def)
-	{ return findFilterAndExecute<T>(ID(a), func, def); }
-
-	template<class T>
-	T findFilterAndExecute(QAction const* a, std::function<T(templateFilter const&)> func, std::function<T()> def) const
-	{ return findFilterAndExecute<T>(ID(a), func, def); }
+	Filters filters;
 
 private:
-	std::vector<templateFilter*> filters;
+	template<class T>
+	T findFilterAndExecute(ActionIDType filter_id, std::function<T(TemplateFilter&)> func, std::function<T()> def)
+	{
+		for (auto& filter : filters) {
+			if (filter->isValidFilter(filter_id))
+				return func(*filter);
+		}
+		return def();
+	}
+
+	template<class T>
+	T findFilterAndExecute(ActionIDType filter_id, std::function<T(TemplateFilter const&)> func, std::function<T()> def) const
+	{
+		for (auto& filter : filters) {
+			if (filter->isValidFilter(filter_id))
+				return func(*filter);
+		}
+		return def();
+	}
+
+	template<class T>
+	T findFilterAndExecute(QAction const* a, std::function<T(TemplateFilter&)> func, std::function<T()> def)
+	{
+		return findFilterAndExecute<T>(ID(a), func, def);
+	}
+
+	template<class T>
+	T findFilterAndExecute(QAction const* a, std::function<T(TemplateFilter const&)> func, std::function<T()> def) const
+	{
+		return findFilterAndExecute<T>(ID(a), func, def);
+	}
 };
+
+}
 
 #endif

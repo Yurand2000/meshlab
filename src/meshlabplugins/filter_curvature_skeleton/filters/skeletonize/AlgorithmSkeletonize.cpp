@@ -21,12 +21,16 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "algorithm_skeletonize.h"
-#include "skeletonize_manual.h"
-#include "additional_attribute_names.h"
-#include "vcg/complex/allocate.h"
+#include "AlgorithmSkeletonize.h"
+#include "SkeletonizeFilter.h"
+#include "common/additionalAttributeNames.h"
+#include "branchExtender/BranchExtender.h"
+#include <vcg/complex/allocate.h>
 
-algorithmSkeletonize::algorithmSkeletonize(
+namespace curvatureSkeleton
+{
+
+AlgorithmSkeletonize::AlgorithmSkeletonize(
 	MeshDocument&              document,
 	Parameters&                parameters,
 	vcg::CallBackPos&          callback_pos,
@@ -42,22 +46,13 @@ algorithmSkeletonize::algorithmSkeletonize(
 	new_meshes   = NewMeshVector();
 }
 
-algorithmSkeletonize::~algorithmSkeletonize()
-{
-	if (skeletonizer != nullptr) {
-		delete skeletonizer;
-	}
-}
-
-
-
-std::map<std::string, QVariant> algorithmSkeletonize::apply(
+std::map<std::string, QVariant> AlgorithmSkeletonize::apply(
 	int  max_iterations,
 	bool generate_intermediate_meshes,
 	bool skeleton_distance_in_mesh_quality)
 {
 	checkSelectedMesh();
-	skeletonizer = new Skeletonizer(mesh, parameters);
+	skeletonizer         = std::make_unique<Skeletonizer>(mesh, parameters);
 	int total_iterations = skeletonize(max_iterations, generate_intermediate_meshes);
 	generateSkeleton(skeleton_distance_in_mesh_quality);
 	addNewMeshes();
@@ -68,7 +63,7 @@ std::map<std::string, QVariant> algorithmSkeletonize::apply(
 	return std::map<std::string, QVariant>();
 }
 
-void algorithmSkeletonize::checkSelectedMesh() const
+void AlgorithmSkeletonize::checkSelectedMesh() const
 {
 	callback_pos(0, "Checking mesh is watertight...");
 	if (!vcg::tri::Clean<CMeshO>::IsWaterTight(mesh)) {
@@ -77,7 +72,7 @@ void algorithmSkeletonize::checkSelectedMesh() const
 }
 
 
-int algorithmSkeletonize::skeletonize(int max_iters, bool gen_intermediate_meshes)
+int AlgorithmSkeletonize::skeletonize(int max_iters, bool gen_intermediate_meshes)
 {
 	int  i         = 0;
 	bool converged = false;
@@ -96,13 +91,13 @@ int algorithmSkeletonize::skeletonize(int max_iters, bool gen_intermediate_meshe
 }
 
 
-bool algorithmSkeletonize::computeIteration()
+bool AlgorithmSkeletonize::computeIteration()
 {
 	skeletonizer->computeStep();
 	return skeletonizer->hasConverged();
 }
 
-void algorithmSkeletonize::generateIntermediateMesh(int iteration_num)
+void AlgorithmSkeletonize::generateIntermediateMesh(int iteration_num)
 {
 	auto mesoSkeleton = skeletonizer->getMesoSkeleton();
 	new_meshes.push_back(
@@ -112,21 +107,24 @@ void algorithmSkeletonize::generateIntermediateMesh(int iteration_num)
 	));
 }
 
-void algorithmSkeletonize::generateSkeleton(bool skeleton_distance_in_mesh_quality)
+void AlgorithmSkeletonize::generateSkeleton(bool skeleton_distance_in_mesh_quality)
 {
 	callback_pos(98, "Generating skeleton...");
 
 	auto skeleton         = skeletonizer->getSkeleton();
 	auto mesh_to_skeleton = skeletonizer->getSkeletonVertexAssociations();
-	new_meshes.push_back(std::make_pair(skeleton, mesh_name + "-skeleton"));
 
 	document.mm()->setMeshModified(true);
 
 	saveMeshToSkeletonIndex(mesh_to_skeleton);
 	saveMeshToSkeletonDistance(skeleton_distance_in_mesh_quality, skeleton, mesh_to_skeleton);
+
+	extendLeafBranches(mesh, skeleton);
+
+	new_meshes.push_back(std::make_pair(skeleton, mesh_name + "-skeleton"));
 }
 
-void algorithmSkeletonize::addNewMeshes()
+void AlgorithmSkeletonize::addNewMeshes()
 {
 	callback_pos(99, "Adding new meshes...");
 	for (auto pair : new_meshes)
@@ -136,9 +134,9 @@ void algorithmSkeletonize::addNewMeshes()
 	}
 }
 
-void algorithmSkeletonize::saveMeshToSkeletonIndex(Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton)
+void AlgorithmSkeletonize::saveMeshToSkeletonIndex(Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton)
 {
-	auto iterator = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<uint>(
+	auto iterator = vcg::tri::Allocator<CMeshO>::GetPerVertexAttribute<uint>(
 		mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
 
 	for (uint i = 0; i < mesh.vert.size(); i++)
@@ -148,12 +146,12 @@ void algorithmSkeletonize::saveMeshToSkeletonIndex(Skeletonizer::MeshToSkeletonV
 	}
 }
 
-void algorithmSkeletonize::saveMeshToSkeletonDistance(
+void AlgorithmSkeletonize::saveMeshToSkeletonDistance(
 	bool										skeleton_distance_in_mesh_quality,
 	CMeshO const&                               skeleton,
 	Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton)
 {
-	auto iterator = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(
+	auto iterator = vcg::tri::Allocator<CMeshO>::GetPerVertexAttribute<Scalarm>(
 		mesh, ATTRIBUTE_MESH_TO_SKELETON_DISTANCE_NAME);
 
 	if (skeleton_distance_in_mesh_quality)
@@ -168,4 +166,6 @@ void algorithmSkeletonize::saveMeshToSkeletonDistance(
 		if (skeleton_distance_in_mesh_quality)
 			vertex.Q() = iterator[i];
 	}
+}
+
 }

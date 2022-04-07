@@ -21,40 +21,14 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_FILTER_SKELETONIZE_MANUAL
-#define FILTERCURVATURESKELETON_FILTER_SKELETONIZE_MANUAL
+#ifndef FILTERCURVATURESKELETON_BRANCH_EXTENDER
+#define FILTERCURVATURESKELETON_BRANCH_EXTENDER
 
-#include "filter_template.h"
+#include <common/ml_document/mesh_document.h>
 
-#include <common/plugins/interfaces/filter_plugin.h>
-
-//parameter names
-#define PARAM_MAX_ITERATIONS "max_iterations"
-#define PARAM_DELTA_AREA_TERMINATION "delta_area_convergence"
-#define PARAM_GENERATE_INTERMEDIATE_MESHES "generate_intermediate_meshes"
-#define PARAM_SAVE_SKELETAL_DISTANCE_TO_MESH_QUALITY "save_skeletal_distance_in_quality"
-#define PARAM_MAX_ANGLE "max_triangle_angle"
-#define PARAM_MIN_EDGE_LENGTH "min_edge_length"
-#define PARAM_QUALITY_TRADEOFF "quality_tradeoff"
-#define PARAM_ENABLE_MEDIALLY_CENTERING "enable_medially_centering"
-#define PARAM_MEDIALLY_CENTERING_TRADEOFF "medially_centering_tradeoff"
-
-class filterSkeletonizeManual : public templateFilter
+namespace curvatureSkeleton
 {
-public:
-	filterSkeletonizeManual();
-	~filterSkeletonizeManual();
+	void extendLeafBranches(CMeshO const& mesh, CMeshO& skeleton);
+}
 
-	virtual RichParameterList initParameterList(FilterPlugin const&, MeshModel const&) override;
-	virtual std::map<std::string, QVariant> applyFilter(
-		FilterPlugin const&,
-		RichParameterList const&,
-		MeshDocument&,
-		unsigned int&,
-		vcg::CallBackPos*) override;
-
-private:
-	void checkParameters(RichParameterList const&, vcg::CallBackPos&);
-};
-
-#endif
+#endif //FILTERCURVATURESKELETON_BRANCH_EXTENDER
