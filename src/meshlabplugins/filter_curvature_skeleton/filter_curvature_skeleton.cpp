@@ -26,6 +26,7 @@
 #include "filters/skeletonize/SkeletonizeFilter.h"
 #include "filters/skeletonIndexToQuality/IndexToQualityFilter.h"
 #include "filters/skeletonDistanceToQuality/DistanceToQualityFilter.h"
+#include "filters/extendBranches/ExtendBranchesFilter.h"
 
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
 
@@ -35,10 +36,16 @@ namespace curvatureSkeleton
 FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 {
 	filters.push_back( std::make_unique<SkeletonizeFilter>() );
-	filters.push_back( std::make_unique<SkeletonIndexToMeshQualityFilter>()) ;
+	filters.push_back( std::make_unique<SkeletonIndexToMeshQualityFilter>() );
 	filters.push_back( std::make_unique<SkeletonDistanceToMeshQualityFilter>() );
+	filters.push_back( std::make_unique<ExtendBranchesFilter>() );
 
-	typeList = { SKELETONIZE, SKELETON_INDEX_TO_MESH_QUALITY, SKELETON_DISTANCE_TO_MESH_QUALITY };
+	typeList = {
+		SKELETONIZE,
+		SKELETON_INDEX_TO_MESH_QUALITY,
+		SKELETON_DISTANCE_TO_MESH_QUALITY,
+		EXTEND_BRANCHES
+	};
 
 	for(ActionIDType tt : types())
 		actionList.push_back( new QAction(filterName(tt), this) );

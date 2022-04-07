@@ -21,7 +21,7 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "branchExtender.h"
+#include "BranchExtender.h"
 
 #include "common/additionalAttributeNames.h"
 
@@ -47,14 +47,14 @@ struct SkeletonLeaf
 };
 
 static std::vector<SkeletonLeaf> findSkeletonLeafs(CMeshO const& skeleton);
-static void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton);
+static void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle);
 
-void extendLeafBranches(CMeshO const& mesh, CMeshO& skeleton)
+void extendLeafBranches(CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
 	auto vertices = findSkeletonLeafs(skeleton);
 	for (auto& leaf : vertices)
 	{
-		extendBranch(leaf, mesh, skeleton);
+		extendBranch(leaf, mesh, skeleton, angle);
 	}
 }
 
@@ -88,7 +88,7 @@ std::vector<SkeletonLeaf> findSkeletonLeafs(CMeshO const& skeleton)
 		SkeletonLeaf leaf;
 		leaf.index  = findVertexIndex(skeleton.vert, edge_verts.first);
 		leaf.vertex = edge_verts.first;
-		leaf.normal = vcg::Normalize(edge_verts.first->cP() - edge_verts.second->cP());
+		leaf.normal = (edge_verts.first->cP() - edge_verts.second->cP()).Normalize();
 		vertices.push_back(leaf);
 	}
 
@@ -109,15 +109,16 @@ static std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO co
 static Point					calculateBranchExtension(
 									Point const& left_vertex,
 									std::vector<CVertexORef> const& mesh_leaf_vertices,
-									Normal const& leaf_normal);
+									Normal const& leaf_normal,
+									float angle);
 
-void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton)
+void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
 	auto vertices = getMeshLeafVertices(leaf.index, mesh);
-	auto new_point = calculateBranchExtension(leaf.vertex->cP(), vertices, leaf.normal);
+	auto new_point = calculateBranchExtension(leaf.vertex->cP(), vertices, leaf.normal, angle);
 
-	auto& new_vertex = *Allocator::AddVertex(skeleton, new_point);
-	Allocator::AddEdge(skeleton, leaf.vertex, &new_vertex);
+	Allocator::AddVertex(skeleton, new_point);
+	Allocator::AddEdge(skeleton, leaf.index, (skeleton.VN() - 1));
 }
 
 std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO const& mesh)
@@ -146,8 +147,6 @@ std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO const& me
 	return vertices;
 }
 
-#define CONE_ANGLE Scalarm(0.17)
-
 static bool isContainedInCone(
 	Point const& origin, Point const& point,
 	Scalarm cone_angle, Normal cone_direction);
@@ -155,13 +154,14 @@ static bool isContainedInCone(
 Point calculateBranchExtension(
 	Point const&                    leaf_vertex,
 	std::vector<CVertexORef> const& mesh_leaf_vertices,
-	Normal const&                   leaf_normal)
+	Normal const&                   leaf_normal,
+	float                           angle)
 {
 	Point  total = { 0, 0, 0 };
 	size_t count = 0;
 	for (CVertexO const& vertex : mesh_leaf_vertices)
 	{
-		if (isContainedInCone(leaf_vertex, vertex.P(), CONE_ANGLE, leaf_normal))
+		if (isContainedInCone(leaf_vertex, vertex.P(), angle, leaf_normal))
 		{
 			count++;
 			total += vertex.P();
@@ -175,7 +175,7 @@ bool isContainedInCone(
 	Point const& origin, Point const& point,
 	Scalarm cone_angle, Normal cone_direction)
 {
-	Normal vert_normal = vcg::Normalize(point - origin);
+	Normal  vert_normal  = (point - origin).Normalize();
 	Scalarm normal_angle = vcg::AngleN(cone_direction, vert_normal);
 
 	return normal_angle <= cone_angle;

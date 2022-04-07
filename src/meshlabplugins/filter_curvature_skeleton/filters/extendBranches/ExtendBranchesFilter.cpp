@@ -21,14 +21,24 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_BRANCH_EXTENDER
-#define FILTERCURVATURESKELETON_BRANCH_EXTENDER
+#include "ExtendBranchesFilter.h"
+#include "filter_curvature_skeleton.h"
 
-#include <common/ml_document/mesh_document.h>
+#define F_FILTERID	  FilterCurvatureSkeleton::EXTEND_BRANCHES
+#define F_DISPLAYNAME "Extend Branches"
+#define F_DESCRIPTION "Extend the branches of the selected skeleton to the tip of the original mesh branch."
+#define F_CATEGORY    FilterPlugin::Other
+#define F_PYTHON_NAME "extend_branches"
+#define F_ARITY       FilterPlugin::FilterArity::FIXED
+#define F_PRECONDS    MeshModel::MM_NONE
+#define F_POSTCONDS   MeshModel::MM_NONE
 
 namespace curvatureSkeleton
 {
-	void extendLeafBranches(CMeshO const& mesh, CMeshO& skeleton, float angle);
-}
 
-#endif //FILTERCURVATURESKELETON_BRANCH_EXTENDER
+ExtendBranchesFilter::ExtendBranchesFilter() :
+	TemplateFilter(
+		F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
+		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
+
+}

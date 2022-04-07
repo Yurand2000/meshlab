@@ -24,7 +24,6 @@
 #include "AlgorithmSkeletonize.h"
 #include "SkeletonizeFilter.h"
 #include "common/additionalAttributeNames.h"
-#include "branchExtender/BranchExtender.h"
 #include <vcg/complex/allocate.h>
 
 namespace curvatureSkeleton
@@ -118,8 +117,6 @@ void AlgorithmSkeletonize::generateSkeleton(bool skeleton_distance_in_mesh_quali
 
 	saveMeshToSkeletonIndex(mesh_to_skeleton);
 	saveMeshToSkeletonDistance(skeleton_distance_in_mesh_quality, skeleton, mesh_to_skeleton);
-
-	extendLeafBranches(mesh, skeleton);
 
 	new_meshes.push_back(std::make_pair(skeleton, mesh_name + "-skeleton"));
 }
