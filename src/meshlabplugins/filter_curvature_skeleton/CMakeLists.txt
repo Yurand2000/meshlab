@@ -18,6 +18,7 @@ else()
 	add_subdirectory(filters)
 	add_subdirectory(cgalAdapter)
 	add_subdirectory(branchExtender)
+	add_subdirectory(strahlerBranchTagging)
 endif()
 
 
