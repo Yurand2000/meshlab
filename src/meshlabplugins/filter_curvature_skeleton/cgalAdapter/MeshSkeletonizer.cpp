@@ -113,12 +113,9 @@ MeshSkeletonizer::MeshToSkeletonVertices MeshSkeletonizer::getSkeletonVertexAsso
 	MeshToSkeletonVertices mesh_to_skeleton = {};
 	for (uint i = 0; i < skeleton.m_vertices.size(); i++)
 	{
-		for(auto orig_vertex : skeleton.m_vertices[i].m_property.vertices)
+		for (auto const& orig_vertex : skeleton.m_vertices[i].m_property.vertices)
 		{
-			mesh_to_skeleton.insert(
-				std::make_pair(
-					static_cast<uint>(orig_vertex), i
-			));
+			auto temp = mesh_to_skeleton.insert({ static_cast<uint>(orig_vertex.idx()), i });
 		}
 	}
 	return mesh_to_skeleton;

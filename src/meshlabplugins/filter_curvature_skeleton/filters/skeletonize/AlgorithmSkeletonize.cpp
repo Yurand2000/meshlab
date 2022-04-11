@@ -138,8 +138,12 @@ void AlgorithmSkeletonize::saveMeshToSkeletonIndex(Skeletonizer::MeshToSkeletonV
 
 	for (uint i = 0; i < mesh.vert.size(); i++)
 	{
-		uint skel_index = mesh_to_skeleton.at(i);
-		iterator[i]     = skel_index;
+		auto it = mesh_to_skeleton.find(i);
+		if (it != mesh_to_skeleton.end())
+		{
+			uint skel_index = it->second;
+			iterator[i]     = skel_index;
+		}
 	}
 }
 
@@ -156,12 +160,16 @@ void AlgorithmSkeletonize::saveMeshToSkeletonDistance(
 
 	for (uint i = 0; i < mesh.vert.size(); i++)
 	{
-		auto& vertex    = mesh.vert[i];
-		auto& skel_vertex = skeleton.vert[mesh_to_skeleton.at(i)];
-		iterator[i]       = (vertex.cP() - skel_vertex.cP()).Norm();
+		auto it = mesh_to_skeleton.find(i);
+		if (it != mesh_to_skeleton.end())
+		{
+			auto& vertex    = mesh.vert[i];
+			auto& skel_vertex = skeleton.vert[it->second];
+			iterator[i]       = (vertex.cP() - skel_vertex.cP()).Norm();
 
-		if (skeleton_distance_in_mesh_quality)
-			vertex.Q() = iterator[i];
+			if (skeleton_distance_in_mesh_quality)
+				vertex.Q() = iterator[i];
+		}
 	}
 }
 
