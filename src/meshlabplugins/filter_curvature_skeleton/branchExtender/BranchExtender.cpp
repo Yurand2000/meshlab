@@ -41,9 +41,8 @@ typedef vcg::tri::Allocator<CMeshO>      Allocator;
 
 struct SkeletonLeaf
 {
-	uint      index;
-	CVertexO* vertex;
-	Normal    normal;
+	uint   index;
+	Normal normal;
 };
 
 static std::vector<SkeletonLeaf> findSkeletonLeafs(CMeshO const& skeleton);
@@ -87,7 +86,6 @@ std::vector<SkeletonLeaf> findSkeletonLeafs(CMeshO const& skeleton)
 	{
 		SkeletonLeaf leaf;
 		leaf.index  = findVertexIndex(skeleton.vert, edge_verts.first);
-		leaf.vertex = edge_verts.first;
 		leaf.normal = (edge_verts.first->cP() - edge_verts.second->cP()).Normalize();
 		vertices.push_back(leaf);
 	}
@@ -115,7 +113,7 @@ static Point					calculateBranchExtension(
 void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
 	auto vertices = getMeshLeafVertices(leaf.index, mesh);
-	auto new_point = calculateBranchExtension(leaf.vertex->cP(), vertices, leaf.normal, angle);
+	auto new_point = calculateBranchExtension(skeleton.vert[leaf.index].cP(), vertices, leaf.normal, angle);
 
 	Allocator::AddVertex(skeleton, new_point);
 	Allocator::AddEdge(skeleton, leaf.index, (skeleton.VN() - 1));
