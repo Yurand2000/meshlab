@@ -89,9 +89,9 @@ public:
 	typedef std::queue<ExpandVertexData> ExpandVertexFrontier;
 
 public:
-	TreeBuilder(CMeshO const& skeleton, NodeNeighbors const& neighbors);
+	TreeBuilder(CMeshO& tree, CMeshO const& skeleton, NodeNeighbors const& neighbors);
 
-	CMeshO generateTree(uint root_index);
+	void generateTree(uint root_index);
 
 	static SkeletonTreeBuilder::SkeletonTreeNodes    getTreeNodes(CMeshO const& tree);
 	static SkeletonTreeBuilder::SkeletonTreeBranches getTreeBranches(CMeshO const& tree);
@@ -100,7 +100,7 @@ private:
 	uint closeCurrentBranch(ExpandVertexData node);
 
 private:
-	CMeshO               tree;
+	CMeshO&              tree;
 	SkeletonTreeNodes    nodes;
 	SkeletonTreeBranches branches;
 	CMeshO const&        skeleton;

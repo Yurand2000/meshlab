@@ -44,9 +44,9 @@ RichParameterList StrahlerTaggingFilter::initParameterList(FilterPlugin const& p
 {
 	RichParameterList parlst;
 
-	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, getSelectedMeshIndex(m), &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, 0, &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
 	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, 0, &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
-	parlst.addParam(RichMesh(PARAM_TREE_MESH, 0, &m, TREE_MESH_DISPLAYNAME, TREE_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_TREE_MESH, getSelectedMeshIndex(m), &m, TREE_MESH_DISPLAYNAME, TREE_MESH_DESCRIPTION, false, MESH_CATEGORY));
 	parlst.addParam(RichBool(PARAM_STRAHLER_NUMBERS_TO_QUALITY, true, STRAHLER_TO_QUALITY_DISPLAYNAME, STRAHLER_TO_QUALITY_DESCRIPTION, false, PARAMETER_CATEGORY));
 	return parlst;
 }

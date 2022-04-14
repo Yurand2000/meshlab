@@ -99,12 +99,11 @@ bool IsGraphATree::isGraphATree(uint start_node, size_t& return_visited_nodes)
 }
 
 
-TreeBuilder::TreeBuilder(CMeshO const& skeleton, NodeNeighbors const& neighbors)
-	: skeleton(skeleton), neighbors(neighbors) { }
+TreeBuilder::TreeBuilder(CMeshO& tree, CMeshO const& skeleton, NodeNeighbors const& neighbors)
+	: tree(tree), skeleton(skeleton), neighbors(neighbors) { }
 
-CMeshO TreeBuilder::generateTree(uint skeleton_root_vertex)
+void TreeBuilder::generateTree(uint skeleton_root_vertex)
 {
-	tree  = {};
 	nodes = Allocator::AddPerVertexAttribute<SkeletonTreeBuilder::SkeletonTreeNode>(
 		tree, ATTRIBUTE_TREE_NODE_STRUCT);
 	branches = Allocator::AddPerEdgeAttribute<SkeletonTreeBuilder::SkeletonTreeBranch>(
@@ -167,8 +166,6 @@ CMeshO TreeBuilder::generateTree(uint skeleton_root_vertex)
 		}
 		frontier.pop();
 	}
-
-	return tree;
 }
 
 uint TreeBuilder::closeCurrentBranch(ExpandVertexData node)
@@ -196,12 +193,28 @@ uint TreeBuilder::closeCurrentBranch(ExpandVertexData node)
 
 SkeletonTreeBuilder::SkeletonTreeNodes TreeBuilder::getTreeNodes(CMeshO const& tree)
 {
-	return Allocator::GetPerVertexAttribute<SkeletonTreeBuilder::SkeletonTreeNode>(tree, ATTRIBUTE_TREE_NODE_STRUCT);
+	auto attribute = Allocator::GetPerVertexAttribute<SkeletonTreeBuilder::SkeletonTreeNode>(tree, ATTRIBUTE_TREE_NODE_STRUCT);
+	if (Allocator::IsValidHandle(tree, attribute))
+	{
+		return attribute;
+	}
+	else
+	{
+		throw MLException("Could not find the attribute \"" ATTRIBUTE_TREE_NODE_STRUCT "\" for the given model.");
+	}
 }
 
 SkeletonTreeBuilder::SkeletonTreeBranches TreeBuilder::getTreeBranches(CMeshO const& tree)
 {
-	return Allocator::GetPerEdgeAttribute<SkeletonTreeBuilder::SkeletonTreeBranch>(tree, ATTRIBUTE_TREE_BRANCH_STRUCT);
+	auto attribute = Allocator::GetPerEdgeAttribute<SkeletonTreeBuilder::SkeletonTreeBranch>(tree, ATTRIBUTE_TREE_BRANCH_STRUCT);
+	if (Allocator::IsValidHandle(tree, attribute))
+	{
+		return attribute;
+	}
+	else
+	{
+		throw MLException("Could not find the attribute \"" ATTRIBUTE_TREE_BRANCH_STRUCT "\" for the given model.");
+	}
 }
 
 }

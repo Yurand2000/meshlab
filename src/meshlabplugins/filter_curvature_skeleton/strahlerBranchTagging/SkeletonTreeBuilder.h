@@ -57,7 +57,7 @@ public:
 public:
 	static void checkSkeletonTree(CMeshO const& skeleton);
 
-	static CMeshO generateTree(CMeshO const& skeleton, uint root_index);
+	static void generateTree(CMeshO& tree, CMeshO const& skeleton, uint root_index);
 
 	static SkeletonTreeNodes    getTreeNodes(CMeshO const& tree);
 	static SkeletonTreeBranches getTreeBranches(CMeshO const& tree);

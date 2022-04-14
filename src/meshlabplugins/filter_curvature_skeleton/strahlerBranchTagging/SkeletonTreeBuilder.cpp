@@ -42,14 +42,14 @@ void SkeletonTreeBuilder::checkSkeletonTree(CMeshO const& skeleton)
 		throw MLException("Cannot generate tree structure: given skeleton graph is not connected.");
 }
 
-CMeshO SkeletonTreeBuilder::generateTree(CMeshO const& skeleton, uint root_index)
+void SkeletonTreeBuilder::generateTree(CMeshO& tree, CMeshO const& skeleton, uint root_index)
 {
 	auto neighbors = TreeConnectivity().findConnectedVertices(skeleton);
 	if (neighbors.size() != skeleton.vert.size())
 		throw MLException(
 			"Cannot generate tree structure: could not determine the correct vertex graph. "
 			"Has the skeleton mesh been generated through the Skeletonization filter?");
-	return TreeBuilder(skeleton, neighbors).generateTree(root_index);
+	TreeBuilder(tree, skeleton, neighbors).generateTree(root_index);
 }
 
 SkeletonTreeBuilder::SkeletonTreeNodes SkeletonTreeBuilder::getTreeNodes(CMeshO const& tree)
