@@ -21,39 +21,38 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
-#define FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#include "StrahlerTaggingFilter.h"
 
-#include "SkeletonTreeBuilder.h"
-
-#include <common/ml_document/mesh_document.h>
+#include"strahlerBranchTagging/StrahlerBranchTagger.h"
 
 namespace curvatureSkeleton
 {
 
-class StrahlerBranchTagger
+std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
+	FilterPlugin const& plugin,
+	RichParameterList const& params,
+	MeshDocument& document,
+	unsigned int&,
+	vcg::CallBackPos* cb)
 {
-public:
-	typedef SkeletonTreeBuilder::SkeletonTreeNode     SkeletonTreeNode;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranch   SkeletonTreeBranch;
-	typedef SkeletonTreeBuilder::SkeletonTreeNodes    SkeletonTreeNodes;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranches SkeletonTreeBranches;
+	auto original = document.getMesh(params.getMeshId(PARAM_ORIGINAL_MESH));
+	auto skeleton = document.getMesh(params.getMeshId(PARAM_SKELETON_MESH));
+	auto tree = document.getMesh( params.getMeshId(PARAM_TREE_MESH) );
+	auto save_to_quality = params.getBool(PARAM_STRAHLER_NUMBERS_TO_QUALITY);
 
-	typedef CMeshO::ConstPerVertexAttributeHandle<uint> StrahlerNodeNumbers;
-	typedef CMeshO::ConstPerEdgeAttributeHandle<uint>   StrahlerBranchNumbers;
+	StrahlerBranchTagger::calculateStrahlerNumbers(original->cm, skeleton->cm, tree->cm);
+	original->setMeshModified(true);
+	skeleton->setMeshModified(true);
 
-public:
-	static void calculateStrahlerNumbers(CMeshO& original_mesh, CMeshO& skeleton_mesh, CMeshO& tree_mesh);
+	if (save_to_quality)
+	{
+		original->updateDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
+		skeleton->updateDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
+		StrahlerBranchTagger::strahlerNumberToQuality(skeleton->cm);
+		StrahlerBranchTagger::strahlerNumberToQuality(original->cm);
+	}
 
-	static StrahlerNodeNumbers getNodeNumbers(CMeshO const& tree_mesh);
-	static StrahlerBranchNumbers getBranchNumbers(CMeshO const& tree_mesh);
-
-	static void strahlerNumberToQuality(CMeshO& mesh);
-
-private:
-	StrahlerBranchTagger() = delete;
-};
-
+	return {};
 }
 
-#endif // FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+}

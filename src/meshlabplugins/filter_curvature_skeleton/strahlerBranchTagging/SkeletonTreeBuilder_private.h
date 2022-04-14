@@ -29,7 +29,6 @@
 #include <queue>
 #include <unordered_set>
 #include <unordered_map>
-#include <vcg/complex/allocate.h>
 #include <common/plugins/interfaces/filter_plugin.h>
 
 #define ATTRIBUTE_TREE_NODE_STRUCT "tree_node_struct"

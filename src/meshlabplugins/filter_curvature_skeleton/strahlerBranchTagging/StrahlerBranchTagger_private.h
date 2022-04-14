@@ -21,39 +21,47 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
-#define FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#ifndef FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER_PRIVATE
+#define FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER_PRIVATE
 
-#include "SkeletonTreeBuilder.h"
+#include "StrahlerBranchTagger.h"
 
-#include <common/ml_document/mesh_document.h>
+#define ATTRIBUTE_TREE_NODE_STRAHLER_NUMBER "tree_node_strahler_number"
+#define ATTRIBUTE_TREE_BRANCH_STRAHLER_NUMBER "tree_branch_strahler_number"
+#define ATTRIBUTE_VERTEX_STRAHLER_NUMBER "strahler_number"
 
 namespace curvatureSkeleton
 {
 
-class StrahlerBranchTagger
+class StrahlerNumberCalculator
 {
 public:
-	typedef SkeletonTreeBuilder::SkeletonTreeNode     SkeletonTreeNode;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranch   SkeletonTreeBranch;
-	typedef SkeletonTreeBuilder::SkeletonTreeNodes    SkeletonTreeNodes;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranches SkeletonTreeBranches;
+	StrahlerNumberCalculator(CMeshO& tree_mesh);
 
-	typedef CMeshO::ConstPerVertexAttributeHandle<uint> StrahlerNodeNumbers;
-	typedef CMeshO::ConstPerEdgeAttributeHandle<uint>   StrahlerBranchNumbers;
+	void compute();
 
+	static StrahlerBranchTagger::StrahlerNodeNumbers     getNodeNumbers(CMeshO const& tree_mesh);
+	static StrahlerBranchTagger::StrahlerBranchNumbers getBranchNumbers(CMeshO const& tree_mesh);
+
+private:
+	CMeshO& tree;
+};
+
+class SaveStrahlerNumber
+{
 public:
-	static void calculateStrahlerNumbers(CMeshO& original_mesh, CMeshO& skeleton_mesh, CMeshO& tree_mesh);
+	SaveStrahlerNumber(CMeshO& original_mesh, CMeshO& skeleton, CMeshO const& tree);
 
-	static StrahlerNodeNumbers getNodeNumbers(CMeshO const& tree_mesh);
-	static StrahlerBranchNumbers getBranchNumbers(CMeshO const& tree_mesh);
+	void saveNumbers();
 
 	static void strahlerNumberToQuality(CMeshO& mesh);
 
 private:
-	StrahlerBranchTagger() = delete;
+	CMeshO& original;
+	CMeshO& skeleton;
+	CMeshO const& tree;
 };
 
 }
 
-#endif // FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#endif //FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER_PRIVATE

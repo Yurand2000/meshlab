@@ -23,6 +23,8 @@
 
 #include "SkeletonTreeBuilder_private.h"
 
+#include <vcg/complex/allocate.h>
+
 typedef vcg::tri::Allocator<CMeshO> Allocator;
 
 namespace curvatureSkeleton

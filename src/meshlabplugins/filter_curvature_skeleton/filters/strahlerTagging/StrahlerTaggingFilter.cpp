@@ -21,39 +21,24 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
-#define FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#include "StrahlerTaggingFilter.h"
+#include "filter_curvature_skeleton.h"
 
-#include "SkeletonTreeBuilder.h"
-
-#include <common/ml_document/mesh_document.h>
+#define F_FILTERID    FilterCurvatureSkeleton::CALCULATE_STRAHLER_NUMBERS
+#define F_DISPLAYNAME "Calculate Strahler Numbers"
+#define F_DESCRIPTION ""
+#define F_CATEGORY    FilterPlugin::Other
+#define F_PYTHON_NAME "calculate_strahler_numbers"
+#define F_ARITY       FilterPlugin::FilterArity::FIXED
+#define F_PRECONDS    MeshModel::MM_NONE
+#define F_POSTCONDS   MeshModel::MM_NONE
 
 namespace curvatureSkeleton
 {
 
-class StrahlerBranchTagger
-{
-public:
-	typedef SkeletonTreeBuilder::SkeletonTreeNode     SkeletonTreeNode;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranch   SkeletonTreeBranch;
-	typedef SkeletonTreeBuilder::SkeletonTreeNodes    SkeletonTreeNodes;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranches SkeletonTreeBranches;
-
-	typedef CMeshO::ConstPerVertexAttributeHandle<uint> StrahlerNodeNumbers;
-	typedef CMeshO::ConstPerEdgeAttributeHandle<uint>   StrahlerBranchNumbers;
-
-public:
-	static void calculateStrahlerNumbers(CMeshO& original_mesh, CMeshO& skeleton_mesh, CMeshO& tree_mesh);
-
-	static StrahlerNodeNumbers getNodeNumbers(CMeshO const& tree_mesh);
-	static StrahlerBranchNumbers getBranchNumbers(CMeshO const& tree_mesh);
-
-	static void strahlerNumberToQuality(CMeshO& mesh);
-
-private:
-	StrahlerBranchTagger() = delete;
-};
+StrahlerTaggingFilter::StrahlerTaggingFilter()
+	: TemplateFilter(
+		F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
+		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
 
 }
-
-#endif // FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER

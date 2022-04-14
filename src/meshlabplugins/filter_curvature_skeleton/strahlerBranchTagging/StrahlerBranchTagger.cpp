@@ -22,8 +22,30 @@
  ****************************************************************************/
 
 #include "StrahlerBranchTagger.h"
+#include "StrahlerBranchTagger_private.h"
 
 namespace curvatureSkeleton
 {
+    
+void StrahlerBranchTagger::calculateStrahlerNumbers(CMeshO& original, CMeshO& skeleton, CMeshO& tree)
+{
+	StrahlerNumberCalculator(tree).compute();
+	SaveStrahlerNumber(original, skeleton, tree).saveNumbers();
+}
+
+StrahlerBranchTagger::StrahlerNodeNumbers StrahlerBranchTagger::getNodeNumbers(CMeshO const& tree_mesh)
+{
+	return StrahlerNumberCalculator::getNodeNumbers(tree_mesh);
+}
+
+StrahlerBranchTagger::StrahlerBranchNumbers StrahlerBranchTagger::getBranchNumbers(CMeshO const& tree_mesh)
+{
+	return StrahlerNumberCalculator::getBranchNumbers(tree_mesh);
+}
+
+void StrahlerBranchTagger::strahlerNumberToQuality(CMeshO& mesh)
+{
+	SaveStrahlerNumber::strahlerNumberToQuality(mesh);
+}
 
 }

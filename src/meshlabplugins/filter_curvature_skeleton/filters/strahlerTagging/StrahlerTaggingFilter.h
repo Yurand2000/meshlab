@@ -21,39 +21,35 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
-#define FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#ifndef FILTERCURVATURESKELETON_FILTER_STRAHLER_TAGGING
+#define FILTERCURVATURESKELETON_FILTER_STRAHLER_TAGGING
 
-#include "SkeletonTreeBuilder.h"
+#include "common/TemplateFilter.h"
 
-#include <common/ml_document/mesh_document.h>
+#include <common/plugins/interfaces/filter_plugin.h>
+
+#define PARAM_ORIGINAL_MESH "original_mesh"
+#define PARAM_SKELETON_MESH "skeleton_mesh"
+#define PARAM_TREE_MESH     "tree_mesh"
+#define PARAM_STRAHLER_NUMBERS_TO_QUALITY "numbers_to_quality"
 
 namespace curvatureSkeleton
 {
 
-class StrahlerBranchTagger
+class StrahlerTaggingFilter : public TemplateFilter
 {
 public:
-	typedef SkeletonTreeBuilder::SkeletonTreeNode     SkeletonTreeNode;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranch   SkeletonTreeBranch;
-	typedef SkeletonTreeBuilder::SkeletonTreeNodes    SkeletonTreeNodes;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranches SkeletonTreeBranches;
+	StrahlerTaggingFilter();
 
-	typedef CMeshO::ConstPerVertexAttributeHandle<uint> StrahlerNodeNumbers;
-	typedef CMeshO::ConstPerEdgeAttributeHandle<uint>   StrahlerBranchNumbers;
-
-public:
-	static void calculateStrahlerNumbers(CMeshO& original_mesh, CMeshO& skeleton_mesh, CMeshO& tree_mesh);
-
-	static StrahlerNodeNumbers getNodeNumbers(CMeshO const& tree_mesh);
-	static StrahlerBranchNumbers getBranchNumbers(CMeshO const& tree_mesh);
-
-	static void strahlerNumberToQuality(CMeshO& mesh);
-
-private:
-	StrahlerBranchTagger() = delete;
+	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
+	virtual std::map<std::string, QVariant> applyFilter(
+		FilterPlugin const&,
+		RichParameterList const&,
+		MeshDocument&,
+		unsigned int&,
+		vcg::CallBackPos*) override;
 };
 
 }
 
-#endif // FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#endif //FILTERCURVATURESKELETON_FILTER_STRAHLER_TAGGING

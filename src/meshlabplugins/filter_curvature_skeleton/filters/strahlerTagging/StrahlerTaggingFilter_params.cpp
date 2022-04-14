@@ -21,39 +21,45 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
-#define FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#include "StrahlerTaggingFilter.h"
 
-#include "SkeletonTreeBuilder.h"
-
-#include <common/ml_document/mesh_document.h>
+// displayed strings
+#define MESH_CATEGORY ""
+#define ORIGINAL_MESH_DISPLAYNAME "Original Mesh"
+#define ORIGINAL_MESH_DESCRIPTION ""
+#define SKELETON_MESH_DISPLAYNAME "Skeleton Mesh"
+#define SKELETON_MESH_DESCRIPTION ""
+#define TREE_MESH_DISPLAYNAME "Tree Mesh"
+#define TREE_MESH_DESCRIPTION ""
+#define PARAMETER_CATEGORY "Parameters"
+#define STRAHLER_TO_QUALITY_DISPLAYNAME "Save Strahler number to quality"
+#define STRAHLER_TO_QUALITY_DESCRIPTION ""
 
 namespace curvatureSkeleton
 {
 
-class StrahlerBranchTagger
+static uint getSelectedMeshIndex(MeshDocument const&);
+
+RichParameterList StrahlerTaggingFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
 {
-public:
-	typedef SkeletonTreeBuilder::SkeletonTreeNode     SkeletonTreeNode;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranch   SkeletonTreeBranch;
-	typedef SkeletonTreeBuilder::SkeletonTreeNodes    SkeletonTreeNodes;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranches SkeletonTreeBranches;
+	RichParameterList parlst;
 
-	typedef CMeshO::ConstPerVertexAttributeHandle<uint> StrahlerNodeNumbers;
-	typedef CMeshO::ConstPerEdgeAttributeHandle<uint>   StrahlerBranchNumbers;
-
-public:
-	static void calculateStrahlerNumbers(CMeshO& original_mesh, CMeshO& skeleton_mesh, CMeshO& tree_mesh);
-
-	static StrahlerNodeNumbers getNodeNumbers(CMeshO const& tree_mesh);
-	static StrahlerBranchNumbers getBranchNumbers(CMeshO const& tree_mesh);
-
-	static void strahlerNumberToQuality(CMeshO& mesh);
-
-private:
-	StrahlerBranchTagger() = delete;
-};
-
+	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, getSelectedMeshIndex(m), &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, 0, &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_TREE_MESH, 0, &m, TREE_MESH_DISPLAYNAME, TREE_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichBool(PARAM_STRAHLER_NUMBERS_TO_QUALITY, true, STRAHLER_TO_QUALITY_DISPLAYNAME, STRAHLER_TO_QUALITY_DESCRIPTION, false, PARAMETER_CATEGORY));
+	return parlst;
 }
 
-#endif // FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+uint getSelectedMeshIndex(MeshDocument const& m)
+{
+	auto selected = m.mm();
+	for (uint i = 0; i < m.meshNumber(); i++)
+	{
+		if (m.getMesh(i) == selected)
+			return i;
+	}
+	return 0;
+}
+
+}
