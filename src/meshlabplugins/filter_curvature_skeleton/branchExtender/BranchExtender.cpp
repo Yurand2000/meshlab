@@ -103,46 +103,20 @@ uint findVertexIndex(CMeshO::VertContainer const& vertices, CVertexO const* vert
 	throw MLException("Given vertex is not contained in the given vector.");
 }
 
-static std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO const& mesh);
-static Point					calculateBranchExtension(
-									Point const& left_vertex,
-									std::vector<CVertexORef> const& mesh_leaf_vertices,
-									Normal const& leaf_normal,
-									float angle);
+static Point calculateBranchExtension(
+	Point const&  leaf_vertex,
+	CMeshO const& mesh,
+	Normal const& leaf_normal,
+	float         angle);
 
 void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
-	auto vertices = getMeshLeafVertices(leaf.index, mesh);
-	auto new_point = calculateBranchExtension(skeleton.vert[leaf.index].cP(), vertices, leaf.normal, angle);
-
-	Allocator::AddVertex(skeleton, new_point);
-	Allocator::AddEdge(skeleton, leaf.index, (skeleton.VN() - 1));
-}
-
-std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO const& mesh)
-{
-	std::vector<CVertexORef> vertices;
-	auto iterator = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<uint>(
-        mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
-
-	if (vcg::tri::Allocator<CMeshO>::IsValidHandle(mesh, iterator))
+	auto new_point = calculateBranchExtension(skeleton.vert[leaf.index].cP(), mesh, leaf.normal, angle);
+	if ( new_point != Point(0,0,0) )
 	{
-		for (uint i = 0; i < mesh.vert.size(); i++)
-		{
-			if (iterator[i] == vertex_index)
-			{
-				vertices.push_back(mesh.vert[i]);
-			}
-		}
+		Allocator::AddVertex(skeleton, new_point);
+		Allocator::AddEdge(skeleton, leaf.index, (skeleton.VN() - 1));
 	}
-	else {
-		throw MLException(
-			"The selected mesh has no attribute by name \""
-			ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME "\"."
-		);
-	}
-
-	return vertices;
 }
 
 static bool isContainedInCone(
@@ -150,14 +124,14 @@ static bool isContainedInCone(
 	Scalarm cone_angle, Normal cone_direction);
 
 Point calculateBranchExtension(
-	Point const&                    leaf_vertex,
-	std::vector<CVertexORef> const& mesh_leaf_vertices,
-	Normal const&                   leaf_normal,
-	float                           angle)
+	Point const&  leaf_vertex,
+	CMeshO const& mesh,
+	Normal const& leaf_normal,
+	float         angle)
 {
 	Point  total = { 0, 0, 0 };
 	size_t count = 0;
-	for (CVertexO const& vertex : mesh_leaf_vertices)
+	for (CVertexO const& vertex : mesh.vert)
 	{
 		if (isContainedInCone(leaf_vertex, vertex.P(), angle, leaf_normal))
 		{
@@ -165,7 +139,9 @@ Point calculateBranchExtension(
 			total += vertex.P();
 		}
 	}
-	total /= count;
+
+	if (count > 0)
+		total /= count;
 	return total;
 }
 

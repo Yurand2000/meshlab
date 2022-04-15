@@ -26,7 +26,8 @@
 
 #define F_FILTERID	  FilterCurvatureSkeleton::EXTEND_BRANCHES
 #define F_DISPLAYNAME "Extend Branches"
-#define F_DESCRIPTION "Extend the branches of the selected skeleton to the tip of the original mesh branch."
+#define F_DESCRIPTION "Extend the branches of the selected skeleton to the tip of the original mesh branch. "\
+					  "The branch tip is found by taking the average of the points in a cone in the same direction as the branch normal vector."
 #define F_CATEGORY    FilterPlugin::Other
 #define F_PYTHON_NAME "extend_branches"
 #define F_ARITY       FilterPlugin::FilterArity::FIXED

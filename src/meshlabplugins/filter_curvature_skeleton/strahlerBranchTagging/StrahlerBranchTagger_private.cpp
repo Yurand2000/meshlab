@@ -85,6 +85,10 @@ StrahlerBranchTagger::StrahlerBranchNumbers StrahlerNumberCalculator::getBranchN
 	return Allocator::GetPerEdgeAttribute<uint>(tree_mesh, ATTRIBUTE_TREE_BRANCH_STRAHLER_NUMBER);
 }
 
+StrahlerBranchTagger::StrahlerVertexNumbers StrahlerBranchTagger::getStrahlerNumbers(CMeshO const& mesh)
+{
+	return Allocator::GetPerVertexAttribute<uint>(mesh, ATTRIBUTE_VERTEX_STRAHLER_NUMBER);
+}
 
 
 SaveStrahlerNumber::SaveStrahlerNumber(CMeshO& original_mesh, CMeshO& skeleton, CMeshO const& tree)

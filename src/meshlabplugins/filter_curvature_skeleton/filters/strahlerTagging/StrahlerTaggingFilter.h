@@ -32,6 +32,7 @@
 #define PARAM_SKELETON_MESH "skeleton_mesh"
 #define PARAM_TREE_MESH     "tree_mesh"
 #define PARAM_STRAHLER_NUMBERS_TO_QUALITY "numbers_to_quality"
+#define PARAM_STRAHLER_NUMBERS_TO_COLOR "numbers_to_color"
 
 namespace curvatureSkeleton
 {

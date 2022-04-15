@@ -116,7 +116,7 @@ void TreeBuilder::generateTree(uint skeleton_root_vertex)
 		root_node.skeleton_vertex = skeleton_root_vertex;
 	}
 
-	auto frontier = ExpandVertexFrontier();
+	ExpandVertexFrontier frontier;
 	for (auto neighbor : neighbors.at(skeleton_root_vertex))
 	{
 		ExpandVertexData node;

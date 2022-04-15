@@ -26,12 +26,13 @@
 // displayed strings
 #define PARAMETER_CATEGORY "Parameters"
 #define CONE_ANGLE_DISPLAYNAME "Cone Angle"
-#define CONE_ANGLE_DESCRIPTION ""
+#define CONE_ANGLE_DESCRIPTION "The angle the cone spans from the branch normal, in degrees.\n"\
+							   "NOTE: the total angle of the cone will be double this angle!"
 #define MESH_CATEGORY "Meshes"
 #define SKELETON_MESH_DISPLAYNAME "Skeleton Mesh"
 #define SKELETON_MESH_DESCRIPTION "The generated skeleton mesh you want its branches to be extended. (Defaults to the selected mesh)"
 #define ORIGINAL_MESH_DISPLAYNAME "Original Mesh"
-#define ORIGINAL_MESH_DESCRIPTION "The mesh that has generated the skeleton."
+#define ORIGINAL_MESH_DESCRIPTION "The mesh that has generated the given skeleton."
 
 namespace curvatureSkeleton
 {
@@ -42,7 +43,7 @@ RichParameterList ExtendBranchesFilter::initParameterList(FilterPlugin const& p,
 {
 	RichParameterList parlst;
 	
-	parlst.addParam(RichDynamicFloat(PARAM_CONE_ANGLE, 10, 0, 90, CONE_ANGLE_DISPLAYNAME, CONE_ANGLE_DESCRIPTION, false, PARAMETER_CATEGORY));
+	parlst.addParam(RichDynamicFloat(PARAM_CONE_ANGLE, 5, 0, 90, CONE_ANGLE_DISPLAYNAME, CONE_ANGLE_DESCRIPTION, false, PARAMETER_CATEGORY));
 	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, getSelectedMeshIndex(m), &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
 	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, 0, &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
 	return parlst;
