@@ -73,7 +73,7 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 		strahlerNumberToVertexColor(skeleton->cm);
 
 		tree->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-		auto& tree_numbers = StrahlerBranchTagger::getNodeNumbers(tree->cm);
+		auto tree_numbers = StrahlerBranchTagger::getNodeNumbers(tree->cm);
 		strahlerNumberToVertexColor(tree_numbers, tree->cm);
 	}
 
@@ -82,7 +82,7 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 
 void strahlerNumberToVertexColor(CMeshO& mesh)
 {
-	auto& numbers = StrahlerBranchTagger::getStrahlerNumbers(mesh);
+	auto numbers = StrahlerBranchTagger::getStrahlerNumbers(mesh);
 	strahlerNumberToVertexColor(numbers, mesh);
 }
 
