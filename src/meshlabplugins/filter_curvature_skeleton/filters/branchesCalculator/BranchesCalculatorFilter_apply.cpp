@@ -42,7 +42,7 @@ std::map<std::string, QVariant> BranchesCalculatorFilter::applyFilter(
 
 	SkeletonTreeBuilder::checkSkeletonTree(document.mm()->cm);
 
-	auto mesh = document.addNewMesh(CMeshO(), "skeleton_tree", false);
+	auto mesh = document.addNewMesh(CMeshO(), "Tree-" + document.mm()->label(), false);
 	SkeletonTreeBuilder::generateTree(mesh->cm, document.mm()->cm, static_cast<uint>(root_index));
 
 	mesh->clearDataMask(MeshModel::MM_VERTQUALITY);

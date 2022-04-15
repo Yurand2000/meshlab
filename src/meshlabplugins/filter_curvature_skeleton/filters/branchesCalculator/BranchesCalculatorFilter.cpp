@@ -26,7 +26,10 @@
 
 #define F_FILTERID    FilterCurvatureSkeleton::CALCULATE_BRANCHES
 #define F_DISPLAYNAME "Generate Branches Tree"
-#define F_DESCRIPTION ""
+#define F_DESCRIPTION "Generate a tree mesh that represents the tree structure of the selected skeleton. "\
+					  "Requires the knowledge of the root vertex of the skeleton.\n"\
+					  "NOTE: It contains other informations in the additional attributes of the mesh, "\
+					  "such as correspondeces of the skeleton vertices to any tree branch/edge."
 #define F_CATEGORY    FilterPlugin::Other
 #define F_PYTHON_NAME "calculate_branches_tree"
 #define F_ARITY       FilterPlugin::FilterArity::SINGLE_MESH

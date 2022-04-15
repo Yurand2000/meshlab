@@ -49,7 +49,15 @@ void SkeletonTreeBuilder::generateTree(CMeshO& tree, CMeshO const& skeleton, uin
 		throw MLException(
 			"Cannot generate tree structure: could not determine the correct vertex graph. "
 			"Has the skeleton mesh been generated through the Skeletonization filter?");
-	TreeBuilder(tree, skeleton, neighbors).generateTree(root_index);
+
+	try
+	{
+		TreeBuilder(tree, skeleton, neighbors).generateTree(root_index);
+	}
+	catch (std::exception e)
+	{
+		throw MLException( QString("Cannot generate tree structure: ") + e.what() );
+	}
 }
 
 SkeletonTreeBuilder::SkeletonTreeNodes SkeletonTreeBuilder::getTreeNodes(CMeshO const& tree)

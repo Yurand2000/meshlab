@@ -41,7 +41,7 @@ AlgorithmSkeletonize::AlgorithmSkeletonize(
 		skeletonizer(),
 		logger(logger)
 {
-	mesh_name    = QFileInfo(document.mm()->fullName()).baseName();
+	mesh_name    = document.mm()->label();
 	new_meshes   = NewMeshVector();
 }
 
@@ -78,8 +78,8 @@ int AlgorithmSkeletonize::skeletonize(int max_iters, bool gen_intermediate_meshe
 	for (i = 0; i < max_iters && !converged; i++)
 	{
 		callback_pos(
-			((100.0 * (i+1)) / max_iters),
-			("Computing iteration " + std::to_string(i + 1) + " of " + std::to_string(max_iters)).c_str()
+			( (100.0 * (i+1)) / max_iters ),
+			( "Computing iteration " + std::to_string(i + 1) ).c_str()
 		);
 
 		converged = computeIteration();
@@ -102,7 +102,7 @@ void AlgorithmSkeletonize::generateIntermediateMesh(int iteration_num)
 	new_meshes.push_back(
 		std::make_pair(
 			mesoSkeleton,
-			mesh_name + "-mesoSkeleton" + QString::number(iteration_num + 1)
+			"MesoSkeleton-" + mesh_name + QString::number(iteration_num + 1)
 	));
 }
 
@@ -118,7 +118,7 @@ void AlgorithmSkeletonize::generateSkeleton(bool skeleton_distance_in_mesh_quali
 	saveMeshToSkeletonIndex(mesh_to_skeleton);
 	saveMeshToSkeletonDistance(skeleton_distance_in_mesh_quality, skeleton, mesh_to_skeleton);
 
-	new_meshes.push_back(std::make_pair(skeleton, mesh_name + "-skeleton"));
+	new_meshes.push_back(std::make_pair(skeleton, "Skeleton-" + mesh_name));
 }
 
 void AlgorithmSkeletonize::addNewMeshes()

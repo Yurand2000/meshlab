@@ -1,13 +1,20 @@
-# ![MeshLab Logo](src/meshlab/images/eye64.png) MeshLab
+# ![MeshLab Logo](src/meshlab/images/eye64.png) MeshLab - Curvature Skeleton Filter
+
+![Linux](https://github.com/Yurand2000/meshlab/actions/workflows/Linux.yml/badge.svg?branch=main)
+![MacOS](https://github.com/Yurand2000/meshlab/actions/workflows/MacOS.yml/badge.svg?branch=main)
+![Windows](https://github.com/Yurand2000/meshlab/actions/workflows/Windows.yml/badge.svg?branch=main)
+
+This is a forked repository of the [MeshLab](https://github.com/cnr-isti-vclab/meshlab) project for the development of an additional filter that enables the creation of skeletons from meshes and enables measurements on their tree structure. It is still on development.
+
+# Links
+
+- [Meshlab website](https://www.MeshLab.net)
+- [MeshLab GitHub repository](https://github.com/cnr-isti-vclab/meshlab)
+
+#
 
 
-![Linux](https://github.com/cnr-isti-vclab/meshlab/workflows/Linux/badge.svg)
-![MacOS](https://github.com/cnr-isti-vclab/meshlab/workflows/MacOS/badge.svg)
-![Windows](https://github.com/cnr-isti-vclab/meshlab/workflows/Windows/badge.svg)
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5114037.svg)](https://doi.org/10.5281/zenodo.5114037)
-
-This is the official repository for the source and the binaries of [MeshLab](https://www.MeshLab.net).
+# ![MeshLab Logo](src/meshlab/images/eye48.png)  MeshLab
 
 MeshLab is an open source, portable, and extensible system for the processing and editing of unstructured large 3D triangular meshes. It is aimed to help the processing of the typical not-so-small unstructured models arising in 3D scanning, providing a set of tools for editing, cleaning, healing, inspecting, rendering and converting this kind of meshes.
 

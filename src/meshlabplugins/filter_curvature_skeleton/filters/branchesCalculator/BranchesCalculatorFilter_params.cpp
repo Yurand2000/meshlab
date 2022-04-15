@@ -26,7 +26,11 @@
 // displayed strings
 #define PARAMETER_CATEGORY "Parameters"
 #define ROOT_INDEX_DISPLAYNAME "Root Vertex Index"
-#define ROOT_INDEX_DESCRIPTION ""
+#define ROOT_INDEX_DESCRIPTION "The index of the root vertex of the skeleton tree, which defaults to the lowest point of the skeleton "\
+							   "on the Y axis. If your model is aligned with the Y axis as the up direction, you probably don't need to change this value, "\
+							   "else you might need to find the vertex index.\nTUTORIAL: You can get this index by using the \'Get Info\' tool, "\
+							   "switching to \'Select Vertices\' mode, selecting the root vertex and logging its information to the console. "\
+							   "Then copy the index number here."
 
 namespace curvatureSkeleton
 {

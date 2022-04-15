@@ -39,7 +39,8 @@ public:
 	typedef SkeletonTreeBuilder::SkeletonTreeNodes    SkeletonTreeNodes;
 	typedef SkeletonTreeBuilder::SkeletonTreeBranches SkeletonTreeBranches;
 
-	typedef CMeshO::ConstPerVertexAttributeHandle<uint> StrahlerNodeNumbers;
+	typedef CMeshO::ConstPerVertexAttributeHandle<uint> StrahlerVertexNumbers;
+	typedef StrahlerVertexNumbers                       StrahlerNodeNumbers;
 	typedef CMeshO::ConstPerEdgeAttributeHandle<uint>   StrahlerBranchNumbers;
 
 public:
@@ -48,6 +49,7 @@ public:
 	static StrahlerNodeNumbers getNodeNumbers(CMeshO const& tree_mesh);
 	static StrahlerBranchNumbers getBranchNumbers(CMeshO const& tree_mesh);
 
+	static StrahlerVertexNumbers getStrahlerNumbers(CMeshO const& mesh);
 	static void strahlerNumberToQuality(CMeshO& mesh);
 
 private:
