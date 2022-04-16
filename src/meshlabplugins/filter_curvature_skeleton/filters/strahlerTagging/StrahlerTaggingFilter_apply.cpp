@@ -31,10 +31,11 @@ typedef vcg::Color4b                  Color;
 
 namespace curvatureSkeleton {
 
-static void strahlerNumberToVertexColor(CMeshO& mesh);
+static std::vector<Color> makeStrahlerColors(CMeshO const& tree_mesh);
+static void strahlerNumberToVertexColor(CMeshO& mesh, std::vector<Color> const& colors);
 static void strahlerNumberToVertexColor(
 	StrahlerBranchTagger::StrahlerVertexNumbers const& numbers,
-	CMeshO&                                            mesh);
+	CMeshO& mesh, std::vector<Color> const& colors);
 
 std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 	FilterPlugin const&      plugin,
@@ -66,46 +67,57 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 
 	if (save_to_color)
 	{
+		auto colors = makeStrahlerColors(tree->cm);
+
 		original->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-		strahlerNumberToVertexColor(original->cm);
+		strahlerNumberToVertexColor(original->cm, colors);
 
 		skeleton->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-		strahlerNumberToVertexColor(skeleton->cm);
+		strahlerNumberToVertexColor(skeleton->cm, colors);
 
 		tree->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
 		auto tree_numbers = StrahlerBranchTagger::getNodeNumbers(tree->cm);
-		strahlerNumberToVertexColor(tree_numbers, tree->cm);
+		strahlerNumberToVertexColor(tree_numbers, tree->cm, colors);
 	}
 
 	return {};
 }
 
-void strahlerNumberToVertexColor(CMeshO& mesh)
+std::vector<Color> makeStrahlerColors(CMeshO const& tree_mesh)
+{
+	auto tree_numbers = StrahlerBranchTagger::getNodeNumbers(tree_mesh);
+
+	uint min = 1, max = 1;
+	for (int i = 0; i < tree_mesh.VN(); i++)
+	{
+		if (tree_numbers[i] > max)
+			max = tree_numbers[i];
+	}
+
+	uint range  = max - min + 1;
+	auto colors = std::vector<Color>(range + min);
+	for (uint i = 0; i < range; i++)
+	{
+		colors[i + min] = Color::Scatter(range, i, 0.6f, 1.f);
+	}
+
+	return colors;
+}
+
+void strahlerNumberToVertexColor(CMeshO& mesh, std::vector<Color> const& colors)
 {
 	auto numbers = StrahlerBranchTagger::getStrahlerNumbers(mesh);
-	strahlerNumberToVertexColor(numbers, mesh);
+	strahlerNumberToVertexColor(numbers, mesh, colors);
 }
 
 void strahlerNumberToVertexColor(
 	StrahlerBranchTagger::StrahlerVertexNumbers const& numbers,
-	CMeshO&                                            mesh)
+	CMeshO& mesh, std::vector<Color> const& colors)
 {
-	uint min = 1, max = 1;
-	for (int i = 0; i < mesh.VN(); i++) {
-		if (numbers[i] > max)
-			max = numbers[i];
-	}
-
-	uint range  = max;
-	auto colors = std::vector<Color>(range);
-	for (uint i = 0; i < range; i++) {
-		colors[i] = Color::Scatter(range, i, 0.6f, 1.f);
-	}
-
-	for (int i = 0; i < mesh.VN(); i++) {
-		auto& vertex   = mesh.vert[i];
-		auto  strahler = numbers[i] - min;
-		vertex.C()     = colors[strahler];
+	for (int i = 0; i < mesh.VN(); i++)
+	{
+		auto& vertex = mesh.vert[i];
+		vertex.C() = colors[ numbers[i] ];
 	}
 }
 

@@ -70,17 +70,22 @@ void AlgorithmSkeletonize::checkSelectedMesh() const
 	}
 }
 
-
 int AlgorithmSkeletonize::skeletonize(int max_iters, bool gen_intermediate_meshes)
 {
 	int  i         = 0;
 	bool converged = false;
 	for (i = 0; i < max_iters && !converged; i++)
 	{
-		callback_pos(
-			( (100.0 * (i+1)) / max_iters ),
-			( "Computing iteration " + std::to_string(i + 1) ).c_str()
-		);
+		auto curr_percent = (100.0 * (i + 1)) / max_iters;
+		auto curr_string  = "Computing iteration " + std::to_string(i + 1);
+
+		callback_pos( curr_percent, curr_string.c_str() );
+		{
+			// trick the UI to show the updated callback text even if the current percent is
+			// unchanged.
+			callback_pos( 101, curr_string.c_str() );
+		}
+
 
 		converged = computeIteration();
 		if (gen_intermediate_meshes)
