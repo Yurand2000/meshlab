@@ -30,11 +30,13 @@
 #include <unordered_map>
 #include <functional>
 #include <common/plugins/interfaces/filter_plugin.h>
+#include <vcg/space/intersection3.h>
 
 namespace curvatureSkeleton
 {
 
 typedef vcg::Point3<Scalarm>             Point;
+typedef vcg::Line3<Scalarm>				 Ray;
 typedef vcg::Point3<Scalarm>             Normal;
 typedef std::reference_wrapper<CVertexO const> CVertexORef;
 typedef vcg::tri::Allocator<CMeshO>      Allocator;
@@ -103,15 +105,17 @@ uint findVertexIndex(CMeshO::VertContainer const& vertices, CVertexO const* vert
 	throw MLException("Given vertex is not contained in the given vector.");
 }
 
+static std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO const& mesh);
 static Point calculateBranchExtension(
 	Point const&  leaf_vertex,
-	CMeshO const& mesh,
+	std::vector<CVertexORef> const& leaf_vertices,
 	Normal const& leaf_normal,
 	float         angle);
 
 void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
-	auto new_point = calculateBranchExtension(skeleton.vert[leaf.index].cP(), mesh, leaf.normal, angle);
+	auto leaf_vertices = getMeshLeafVertices(leaf.index, mesh);
+	auto new_point = calculateBranchExtension(skeleton.vert[leaf.index].cP(), leaf_vertices, leaf.normal, angle);
 	if ( new_point != Point(0,0,0) )
 	{
 		Allocator::AddVertex(skeleton, new_point);
@@ -119,21 +123,52 @@ void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton
 	}
 }
 
+std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO const& mesh)
+{
+	std::vector<CVertexORef> vertices;
+	auto iterator = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<uint>(
+        mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
+
+	if (vcg::tri::Allocator<CMeshO>::IsValidHandle(mesh, iterator))
+	{
+		for (uint i = 0; i < mesh.vert.size(); i++)
+		{
+			if (iterator[i] == vertex_index)
+			{
+				vertices.push_back(mesh.vert[i]);
+			}
+		}
+	}
+	else
+	{
+		throw MLException(
+			"The selected mesh has no attribute by name \""
+			ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME "\"."
+		);
+	}
+
+	return vertices;
+}
+
 static bool isContainedInCone(
 	Point const& origin, Point const& point,
 	Scalarm cone_angle, Normal cone_direction);
 
+static bool isOnTheSameBranch(CMeshO const& mesh, Point const& origin, Point const& point);
+
+static Point getClosestIntersection(CMeshO const& mesh, Ray const& ray);
+
 Point calculateBranchExtension(
-	Point const&  leaf_vertex,
-	CMeshO const& mesh,
+	Point const& leaf_vertex,
+	std::vector<CVertexORef> const& leaf_vertices,
 	Normal const& leaf_normal,
 	float         angle)
 {
 	Point  total = { 0, 0, 0 };
 	size_t count = 0;
-	for (CVertexO const& vertex : mesh.vert)
+	for (CVertexO const& vertex : leaf_vertices)
 	{
-		if (isContainedInCone(leaf_vertex, vertex.P(), angle, leaf_normal))
+		if ( isContainedInCone(leaf_vertex, vertex.P(), angle, leaf_normal) )
 		{
 			count++;
 			total += vertex.P();
@@ -153,6 +188,37 @@ bool isContainedInCone(
 	Scalarm normal_angle = vcg::AngleN(cone_direction, vert_normal);
 
 	return normal_angle <= cone_angle;
+}
+
+bool isOnTheSameBranch(CMeshO const& mesh, Point const& origin, Point const& point)
+{
+	Ray   ray              = Ray( origin, (point - origin).Normalize() );
+	Point ray_intersection = getClosestIntersection(mesh, ray);
+
+	auto distance_sqr = (ray_intersection - point).SquaredNorm();
+	return distance_sqr <= Scalarm(0.00001);
+}
+
+Point getClosestIntersection(CMeshO const& mesh, Ray const& ray)
+{
+	Scalarm min_dist  = std::numeric_limits<Scalarm>::max();
+	Point   min_point;
+
+	Scalarm bar1, bar2, dist;
+	for (auto fi = mesh.face.begin(); fi != mesh.face.end(); fi++)
+	{
+		Point const &p1 = fi->P(0), &p2 = fi->P(1), &p3 = fi->P(2);
+		if ( vcg::IntersectionLineTriangle<Scalarm>(ray, p1, p2, p3, dist, bar1, bar2) )
+		{
+			if (dist > Scalarm(0) && dist < min_dist)
+			{
+				min_point = p1 * (1 - bar1 - bar2) + p2 * bar1 + p3 * bar2;
+				min_dist = dist;
+			}
+		}
+	}
+
+	return min_point;
 }
 
 }
