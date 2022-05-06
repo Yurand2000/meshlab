@@ -6,6 +6,7 @@ set (SOURCES
 set (HEADERS
 	"additionalAttributeNames.h"
 	"TemplateFilter.h"
+	"SkeletonMesh.h"
 )
 
 list(TRANSFORM SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")

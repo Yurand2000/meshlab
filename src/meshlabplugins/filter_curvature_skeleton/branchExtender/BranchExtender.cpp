@@ -24,22 +24,23 @@
 #include "BranchExtender.h"
 
 #include "common/additionalAttributeNames.h"
+#include "common/SkeletonMesh.h"
 
 #include <vector>
-#include <unordered_set>
-#include <unordered_map>
-#include <functional>
 #include <common/plugins/interfaces/filter_plugin.h>
-#include <vcg/space/intersection3.h>
+#include <vcg/complex/complex.h>
+#include <vcg/complex/append.h>
 
 namespace curvatureSkeleton
 {
 
-typedef vcg::Point3<Scalarm>             Point;
-typedef vcg::Line3<Scalarm>				 Ray;
-typedef vcg::Point3<Scalarm>             Normal;
-typedef std::reference_wrapper<CVertexO const> CVertexORef;
-typedef vcg::tri::Allocator<CMeshO>      Allocator;
+typedef vcg::Point3<Scalarm> Point;
+typedef vcg::Point3<Scalarm> Normal;
+
+typedef vcg::tri::UpdateTopology<SkeletonMesh> SkeletonMeshTopology;
+typedef vcg::tri::Allocator<CMeshO> CMeshOAllocator;
+typedef vcg::tri::Append<CMeshO, SkeletonMesh> SkeletonToCMeshOAppend;
+typedef vcg::tri::Append<SkeletonMesh, CMeshO> CMeshOToSkeletonAppend;
 
 struct SkeletonLeaf
 {
@@ -47,68 +48,93 @@ struct SkeletonLeaf
 	Normal normal;
 };
 
-static std::vector<SkeletonLeaf> findSkeletonLeafs(CMeshO const& skeleton);
+static std::vector<SkeletonLeaf> findSkeletonLeafs(SkeletonMesh const& skeleton);
 static void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle);
 
 void extendLeafBranches(CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
-	auto vertices = findSkeletonLeafs(skeleton);
+	SkeletonMesh converted_skeleton;
+	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
+	SkeletonMeshTopology::VertexEdge(converted_skeleton);
+	auto vertices = findSkeletonLeafs(converted_skeleton);
+
 	for (auto& leaf : vertices)
 	{
 		extendBranch(leaf, mesh, skeleton, angle);
 	}
 }
 
-static uint findVertexIndex(CMeshO::VertContainer const& vertices, CVertexO const* vertex);
+inline static bool   isLeafVertex(SkeletonVertex const& vertex);
+inline static Normal getVertexNormal(SkeletonVertex const& vertex, int max_depth = 5);
 
-std::vector<SkeletonLeaf> findSkeletonLeafs(CMeshO const& skeleton)
+std::vector<SkeletonLeaf> findSkeletonLeafs(SkeletonMesh const& skeleton)
 {
-	std::unordered_set<CVertexO const*>            found_vertices;
-	std::unordered_map<CVertexO*, CVertexO const*> border_vertices;
-
-	for (auto& edge : skeleton.edge)
+	std::vector<SkeletonLeaf> leafs;
+	for (uint i = 0; i < skeleton.vert.size(); i++)
 	{
-		auto v0 = edge.cV(0);
-		auto v1 = edge.cV(1);
-
-		if (found_vertices.insert(v0).second)
-			border_vertices.insert({v0, v1});
-		else
-			border_vertices.erase(v0);
-
-		if (found_vertices.insert(v1).second)
-			border_vertices.insert({v1, v0});
-		else
-			border_vertices.erase(v1);
+		auto& vertex = skeleton.vert[i];
+		if (isLeafVertex(vertex))
+		{
+			leafs.push_back({
+				i,
+				getVertexNormal(vertex)
+			});
+		}
 	}
-
-	std::vector<SkeletonLeaf> vertices;
-	vertices.reserve( border_vertices.size() );
-	for (auto& edge_verts : border_vertices)
-	{
-		SkeletonLeaf leaf;
-		leaf.index  = findVertexIndex(skeleton.vert, edge_verts.first);
-		leaf.normal = (edge_verts.first->cP() - edge_verts.second->cP()).Normalize();
-		vertices.push_back(leaf);
-	}
-
-	return vertices;
+	return leafs;
 }
 
-uint findVertexIndex(CMeshO::VertContainer const& vertices, CVertexO const* vertex)
+inline static bool isLeafVertex(SkeletonVertex const& vertex)
 {
-	for (uint i = 0; i < vertices.size(); i++)
-	{
-		if (&vertices[i] == vertex)
-			return i;
-	}
-	throw MLException("Given vertex is not contained in the given vector.");
+	return vcg::edge::VEDegree<SkeletonEdge>(&vertex) == 1;
 }
 
-static std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO const& mesh);
+static Normal getVertexNormalRecursive(SkeletonVertex const* vertex, SkeletonVertex const* parent, Normal curr_normal, int& depth);
+
+inline static Normal getVertexNormal(SkeletonVertex const& vertex, int max_depth)
+{
+	int depth = max_depth;
+	auto normal = getVertexNormalRecursive(&vertex, &vertex, Normal(0, 0, 0), depth);
+	if (depth != max_depth)
+	{
+		normal.normalize();
+		return normal;
+	}
+	else
+		throw std::runtime_error("Normal could not be found");
+}
+
+static Normal getVertexNormalRecursive(SkeletonVertex const* vertex, SkeletonVertex const* parent, Normal curr_normal, int& depth)
+{
+	if (depth == 0)
+		return curr_normal;
+
+	std::vector<SkeletonVertex*> vertices;
+	vcg::edge::VVStarVE(vertex, vertices);
+	if (vertices.size() < 2)
+	{
+		auto next_vertex = vertices[0];
+		if (vertices[0] == parent)
+			next_vertex = vertices[1];
+
+		auto this_normal = vertex->cP() - next_vertex->cP();
+
+		curr_normal += this_normal;
+
+		depth--;
+		return getVertexNormalRecursive(next_vertex, vertex, curr_normal, depth);
+	}
+	else
+		return curr_normal;
+}
+
+
+
+
+static std::vector<CVertexO const*> getMeshLeafVertices(uint vertex_index, CMeshO const& mesh);
 static Point calculateBranchExtension(
 	Point const&  leaf_vertex,
-	std::vector<CVertexORef> const& leaf_vertices,
+	std::vector<CVertexO const*> const& leaf_vertices,
 	Normal const& leaf_normal,
 	float         angle);
 
@@ -118,14 +144,14 @@ void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton
 	auto new_point = calculateBranchExtension(skeleton.vert[leaf.index].cP(), leaf_vertices, leaf.normal, angle);
 	if ( new_point != Point(0,0,0) )
 	{
-		Allocator::AddVertex(skeleton, new_point);
-		Allocator::AddEdge(skeleton, leaf.index, (skeleton.VN() - 1));
+		CMeshOAllocator::AddVertex(skeleton, new_point);
+		CMeshOAllocator::AddEdge(skeleton, leaf.index, (skeleton.VN() - 1));
 	}
 }
 
-std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO const& mesh)
+std::vector<CVertexO const*> getMeshLeafVertices(uint vertex_index, CMeshO const& mesh)
 {
-	std::vector<CVertexORef> vertices;
+	std::vector<CVertexO const*> vertices;
 	auto iterator = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<uint>(
         mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
 
@@ -135,7 +161,7 @@ std::vector<CVertexORef> getMeshLeafVertices(uint vertex_index, CMeshO const& me
 		{
 			if (iterator[i] == vertex_index)
 			{
-				vertices.push_back(mesh.vert[i]);
+				vertices.push_back( &(mesh.vert[i]) );
 			}
 		}
 	}
@@ -154,24 +180,20 @@ static bool isContainedInCone(
 	Point const& origin, Point const& point,
 	Scalarm cone_angle, Normal cone_direction);
 
-static bool isOnTheSameBranch(CMeshO const& mesh, Point const& origin, Point const& point);
-
-static Point getClosestIntersection(CMeshO const& mesh, Ray const& ray);
-
 Point calculateBranchExtension(
 	Point const& leaf_vertex,
-	std::vector<CVertexORef> const& leaf_vertices,
+	std::vector<CVertexO const*> const& leaf_vertices,
 	Normal const& leaf_normal,
 	float         angle)
 {
 	Point  total = { 0, 0, 0 };
 	size_t count = 0;
-	for (CVertexO const& vertex : leaf_vertices)
+	for (CVertexO const* vertex : leaf_vertices)
 	{
-		if ( isContainedInCone(leaf_vertex, vertex.P(), angle, leaf_normal) )
+		if ( isContainedInCone(leaf_vertex, vertex->P(), angle, leaf_normal) )
 		{
 			count++;
-			total += vertex.P();
+			total += vertex->P();
 		}
 	}
 
@@ -188,37 +210,6 @@ bool isContainedInCone(
 	Scalarm normal_angle = vcg::AngleN(cone_direction, vert_normal);
 
 	return normal_angle <= cone_angle;
-}
-
-bool isOnTheSameBranch(CMeshO const& mesh, Point const& origin, Point const& point)
-{
-	Ray   ray              = Ray( origin, (point - origin).Normalize() );
-	Point ray_intersection = getClosestIntersection(mesh, ray);
-
-	auto distance_sqr = (ray_intersection - point).SquaredNorm();
-	return distance_sqr <= Scalarm(0.00001);
-}
-
-Point getClosestIntersection(CMeshO const& mesh, Ray const& ray)
-{
-	Scalarm min_dist  = std::numeric_limits<Scalarm>::max();
-	Point   min_point;
-
-	Scalarm bar1, bar2, dist;
-	for (auto fi = mesh.face.begin(); fi != mesh.face.end(); fi++)
-	{
-		Point const &p1 = fi->P(0), &p2 = fi->P(1), &p3 = fi->P(2);
-		if ( vcg::IntersectionLineTriangle<Scalarm>(ray, p1, p2, p3, dist, bar1, bar2) )
-		{
-			if (dist > Scalarm(0) && dist < min_dist)
-			{
-				min_point = p1 * (1 - bar1 - bar2) + p2 * bar1 + p3 * bar2;
-				min_dist = dist;
-			}
-		}
-	}
-
-	return min_point;
 }
 
 }
