@@ -23,10 +23,16 @@
 
 #include "BranchesCalculatorFilter.h"
 
-#include"strahlerBranchTagging/SkeletonTreeBuilder.h"
+#include "simplifySkeleton/SimplifySkeleton.h"
 
 namespace curvatureSkeleton
 {
+
+typedef vcg::tri::UpdateTopology<SkeletonMesh> SkeletonMeshTopology;
+typedef vcg::tri::Allocator<CMeshO>            CMeshOAllocator;
+typedef vcg::tri::Allocator<SkeletonMesh>      SkeletonAllocator;
+typedef vcg::tri::Append<CMeshO, SkeletonMesh> SkeletonToCMeshOAppend;
+typedef vcg::tri::Append<SkeletonMesh, CMeshO> CMeshOToSkeletonAppend;
 
 std::map<std::string, QVariant> BranchesCalculatorFilter::applyFilter(
 	FilterPlugin const& plugin,
@@ -40,11 +46,19 @@ std::map<std::string, QVariant> BranchesCalculatorFilter::applyFilter(
 	if (root_index < 0 || root_index >= skeleton.vert.size())
 		throw MLException("Given index does not represent any valid vertex on the selected mesh.");
 
-	SkeletonTreeBuilder::checkSkeletonTree(document.mm()->cm);
+	SkeletonMesh converted_skeleton;
+	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
+	SkeletonMeshTopology::VertexEdge(converted_skeleton);
 
-	auto mesh = document.addNewMesh(CMeshO(), "Tree-" + document.mm()->label(), false);
-	SkeletonTreeBuilder::generateTree(mesh->cm, document.mm()->cm, static_cast<uint>(root_index));
+	if ( !isMeshConnected(converted_skeleton) )
+		throw MLException("Given graph mesh must be connected.");
+	collapseTwoConnectedVertices(converted_skeleton);
+	collapseShortEdges(converted_skeleton, root_index, .1f);
+	collapseTwoConnectedVertices(converted_skeleton);
 
+	CMeshO new_skeleton;
+	SkeletonToCMeshOAppend::MeshCopyConst(new_skeleton, converted_skeleton);
+	auto mesh = document.addNewMesh(new_skeleton, "Tree-" + document.mm()->label(), false);
 	mesh->clearDataMask(MeshModel::MM_VERTQUALITY);
 
 	return {};

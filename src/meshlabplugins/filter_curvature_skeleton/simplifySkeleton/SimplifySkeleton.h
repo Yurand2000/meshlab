@@ -1,8 +1,8 @@
 /****************************************************************************
  * MeshLab                                                           o o     *
- * An extendible mesh processor                                    o     o   *
+ * A versatile mesh processing toolbox                             o     o   *
  *                                                                _   O  _   *
- * Copyright(C) 2005 - 2020                                          \/)\/   *
+ * Copyright(C) 2005                                                \/)\/    *
  * Visual Computing Lab                                            /\/|      *
  * ISTI - Italian National Research Council                           |      *
  *                                                                    \      *
@@ -21,44 +21,16 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef SKELETON_MESH
-#define SKELETON_MESH
+#ifndef FILTERCURVATURESKELETON_SIMPLIFY_SKELETON
+#define FILTERCURVATURESKELETON_SIMPLIFY_SKELETON
 
-#include <vector>
-
-#include <common/ml_document/base_types.h>
-#include <common/ml_document/cmesh.h>
+#include "common/SkeletonMesh.h"
 
 namespace curvatureSkeleton
 {
-	class SkeletonVertex;
-	class SkeletonEdge;
-
-	class SkeletonUsedTypes : public vcg::UsedTypes<
-			vcg::Use<SkeletonVertex>::AsVertexType,
-			vcg::Use<SkeletonEdge>::AsEdgeType
-		>
-	{ };
-
-	class SkeletonVertex : public vcg::Vertex<SkeletonUsedTypes,
-			vcg::vertex::Coord3m,
-			vcg::vertex::Normal3m,
-			vcg::vertex::Qualitym,
-			vcg::vertex::Color4b,
-			vcg::vertex::VEAdj,
-			vcg::vertex::BitFlags
-		>
-	{ };
-
-	class SkeletonEdge : public vcg::Edge<SkeletonUsedTypes,
-			vcg::edge::VEAdj,
-			vcg::edge::EVAdj,
-			vcg::edge::EEAdj,
-			vcg::edge::BitFlags
-		>
-	{ };
-
-	typedef vcg::tri::TriMesh<std::vector<SkeletonVertex>, std::vector<SkeletonEdge>> SkeletonMesh;
+	bool isMeshConnected(SkeletonMesh const& skeleton);
+	void collapseTwoConnectedVertices(SkeletonMesh& skeleton);
+	void collapseShortEdges(SkeletonMesh& skeleton, int root_node, Scalarm min_length);
 }
 
-#endif //SKELETON_MESH
+#endif // FILTERCURVATURESKELETON_SIMPLIFY_SKELETON
