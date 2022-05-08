@@ -26,10 +26,15 @@
 
 #include "SkeletonTreeBuilder.h"
 
+#include "common/SkeletonMesh.h"
 #include <common/ml_document/mesh_document.h>
+
+#define ATTRIBUTE_STRAHLER_NUMBER "strahler_number"
 
 namespace curvatureSkeleton
 {
+
+void calculateStrahlerNumbers(SkeletonMesh& tree, int root_index);
 
 class StrahlerBranchTagger
 {

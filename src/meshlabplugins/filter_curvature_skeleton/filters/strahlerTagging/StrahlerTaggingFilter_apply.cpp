@@ -26,10 +26,13 @@
 #include "strahlerBranchTagging/StrahlerBranchTagger.h"
 #include <vcg/complex/algorithms/update/color.h>
 
-typedef vcg::tri::UpdateColor<CMeshO> UpdateColor;
-typedef vcg::Color4b                  Color;
 
 namespace curvatureSkeleton {
+
+typedef vcg::tri::Allocator<CMeshO>            Allocator;
+typedef vcg::tri::Append<CMeshO, SkeletonMesh> SkeletonToCMeshOAppend;
+typedef vcg::tri::UpdateColor<CMeshO>          UpdateColor;
+typedef vcg::Color4b                           Color;
 
 static std::vector<Color> makeStrahlerColors(CMeshO const& tree_mesh);
 static void strahlerNumberToVertexColor(CMeshO& mesh, std::vector<Color> const& colors);
@@ -44,30 +47,32 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 	unsigned int&,
 	vcg::CallBackPos* cb)
 {
-	auto original        = document.getMesh(params.getMeshId(PARAM_ORIGINAL_MESH));
-	auto skeleton        = document.getMesh(params.getMeshId(PARAM_SKELETON_MESH));
-	auto tree            = document.getMesh(params.getMeshId(PARAM_TREE_MESH));
-	auto save_to_quality = params.getBool(PARAM_STRAHLER_NUMBERS_TO_QUALITY);
-	auto save_to_color   = params.getBool(PARAM_STRAHLER_NUMBERS_TO_COLOR);
+	auto original      = document.getMesh(params.getMeshId(PARAM_ORIGINAL_MESH));
+	auto skeleton      = document.getMesh(params.getMeshId(PARAM_SKELETON_MESH));
+	auto save_to_color = params.getBool(PARAM_STRAHLER_NUMBERS_TO_COLOR);
+	auto save_gen_tree = params.getBool(PARAM_SAVE_GENERATED_TREE);
+	auto root_index    = params.getInt(PARAM_ROOT_INDEX);
+	auto min_edge_size = params.getFloat(PARAM_MIN_EDGE_SIZE);
 
-	StrahlerBranchTagger::calculateStrahlerNumbers(original->cm, skeleton->cm, tree->cm);
-	original->setMeshModified(true);
-	skeleton->setMeshModified(true);
-	tree->setMeshModified(true);
+	SkeletonMesh tree;
+	generateTreeMesh(tree, skeleton->cm, root_index, min_edge_size);
 
-	if (save_to_quality)
+	auto root_pos = skeleton->cm.vert[root_index].cP();
+	int tree_root_index = 0;
+	for (int i = 0; i < tree.vert.size(); i++)
 	{
-		original->updateDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
-		skeleton->updateDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
-		tree->updateDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
-
-		StrahlerBranchTagger::strahlerNumberToQuality(skeleton->cm);
-		StrahlerBranchTagger::strahlerNumberToQuality(original->cm);
+		if ( (tree.vert[i].cP() - root_pos).SquaredNorm() < 0.0001f )
+		{
+			tree_root_index = i;
+			break;
+		}
 	}
 
-	if (save_to_color)
+	calculateStrahlerNumbers(tree, tree_root_index);
+
+	/*if (save_to_color)
 	{
-		auto colors = makeStrahlerColors(tree->cm);
+		auto colors = makeStrahlerColors(tree);
 
 		original->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
 		strahlerNumberToVertexColor(original->cm, colors);
@@ -78,6 +83,19 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 		tree->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
 		auto tree_numbers = StrahlerBranchTagger::getNodeNumbers(tree->cm);
 		strahlerNumberToVertexColor(tree_numbers, tree->cm, colors);
+	}*/
+
+	if (save_gen_tree)
+	{
+		CMeshO tree_mesh;
+		auto numbers = Allocator::AddPerVertexAttribute<uint>(tree_mesh, ATTRIBUTE_STRAHLER_NUMBER);
+		SkeletonToCMeshOAppend::MeshCopyConst(tree_mesh, tree);
+		for (int i = 0; i < tree_mesh.VN(); i++)
+		{
+			auto& vert = tree_mesh.vert[i];
+			vert.Q()   = numbers[i];
+		}
+		auto mesh = document.addNewMesh(tree_mesh, "Tree-" + original->label(), false);
 	}
 
 	return {};

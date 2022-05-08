@@ -24,8 +24,35 @@
 #include "SkeletonTreeBuilder.h"
 #include "SkeletonTreeBuilder_private.h"
 
+#include "simplifySkeleton/SimplifySkeleton.h"
+
 namespace curvatureSkeleton
 {
+
+typedef vcg::tri::UpdateTopology<SkeletonMesh> SkeletonMeshTopology;
+typedef vcg::tri::Allocator<CMeshO>            CMeshOAllocator;
+typedef vcg::tri::Allocator<SkeletonMesh>      SkeletonAllocator;
+typedef vcg::tri::Append<SkeletonMesh, SkeletonMesh> SkeletonToSkeletonOAppend;
+typedef vcg::tri::Append<SkeletonMesh, CMeshO> CMeshOToSkeletonAppend;
+
+void generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index, Scalarm min_edge_size)
+{
+	if (root_index < 0 || root_index >= skeleton.vert.size())
+		throw MLException("Given index does not represent any valid vertex on the selected mesh.");
+
+	SkeletonMesh converted_skeleton;
+	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
+	SkeletonMeshTopology::VertexEdge(converted_skeleton);
+
+	if (!isMeshConnected(converted_skeleton))
+		throw MLException("Given graph mesh must be connected.");
+	collapseTwoConnectedVertices(converted_skeleton);
+	collapseShortEdges(converted_skeleton, root_index, min_edge_size);
+	collapseTwoConnectedVertices(converted_skeleton);
+
+	SkeletonToSkeletonOAppend::MeshCopyConst(tree, converted_skeleton);
+	SkeletonMeshTopology::VertexEdge(tree);
+}
 
 void SkeletonTreeBuilder::checkSkeletonTree(CMeshO const& skeleton)
 {
