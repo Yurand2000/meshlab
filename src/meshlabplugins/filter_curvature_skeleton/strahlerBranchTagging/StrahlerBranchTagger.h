@@ -35,31 +35,8 @@ namespace curvatureSkeleton
 {
 
 void calculateStrahlerNumbers(SkeletonMesh& tree, int root_index);
-
-class StrahlerBranchTagger
-{
-public:
-	typedef SkeletonTreeBuilder::SkeletonTreeNode     SkeletonTreeNode;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranch   SkeletonTreeBranch;
-	typedef SkeletonTreeBuilder::SkeletonTreeNodes    SkeletonTreeNodes;
-	typedef SkeletonTreeBuilder::SkeletonTreeBranches SkeletonTreeBranches;
-
-	typedef CMeshO::ConstPerVertexAttributeHandle<uint> StrahlerVertexNumbers;
-	typedef StrahlerVertexNumbers                       StrahlerNodeNumbers;
-	typedef CMeshO::ConstPerEdgeAttributeHandle<uint>   StrahlerBranchNumbers;
-
-public:
-	static void calculateStrahlerNumbers(CMeshO& original_mesh, CMeshO& skeleton_mesh, CMeshO& tree_mesh);
-
-	static StrahlerNodeNumbers getNodeNumbers(CMeshO const& tree_mesh);
-	static StrahlerBranchNumbers getBranchNumbers(CMeshO const& tree_mesh);
-
-	static StrahlerVertexNumbers getStrahlerNumbers(CMeshO const& mesh);
-	static void strahlerNumberToQuality(CMeshO& mesh);
-
-private:
-	StrahlerBranchTagger() = delete;
-};
+void strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int root_index);
+void strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& skeleton);
 
 }
 

@@ -22,9 +22,9 @@
  ****************************************************************************/
 
 #include "SkeletonTreeBuilder.h"
-#include "SkeletonTreeBuilder_private.h"
 
 #include "simplifySkeleton/SimplifySkeleton.h"
+#include <common/mlexception.h>
 
 namespace curvatureSkeleton
 {
@@ -32,7 +32,7 @@ namespace curvatureSkeleton
 typedef vcg::tri::UpdateTopology<SkeletonMesh> SkeletonMeshTopology;
 typedef vcg::tri::Allocator<CMeshO>            CMeshOAllocator;
 typedef vcg::tri::Allocator<SkeletonMesh>      SkeletonAllocator;
-typedef vcg::tri::Append<SkeletonMesh, SkeletonMesh> SkeletonToSkeletonOAppend;
+typedef vcg::tri::Append<SkeletonMesh, SkeletonMesh> SkeletonToSkeletonAppend;
 typedef vcg::tri::Append<SkeletonMesh, CMeshO> CMeshOToSkeletonAppend;
 
 void generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index, Scalarm min_edge_size)
@@ -50,56 +50,8 @@ void generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index
 	collapseShortEdges(converted_skeleton, root_index, min_edge_size);
 	collapseTwoConnectedVertices(converted_skeleton);
 
-	SkeletonToSkeletonOAppend::MeshCopyConst(tree, converted_skeleton);
+	SkeletonToSkeletonAppend::MeshCopyConst(tree, converted_skeleton);
 	SkeletonMeshTopology::VertexEdge(tree);
-}
-
-void SkeletonTreeBuilder::checkSkeletonTree(CMeshO const& skeleton)
-{
-	auto neighbors = TreeConnectivity().findConnectedVertices(skeleton);
-	if (neighbors.size() != skeleton.vert.size())
-		throw MLException("Cannot generate tree structure: could not determine the correct vertex graph. Has skeleton mesh been generated through the Skeletonization filter?");
-
-	size_t visitedNodes = 0;
-	bool isTree       = IsGraphATree(neighbors).isGraphATree(0, visitedNodes);
-	bool isConnected  = visitedNodes == skeleton.vert.size();
-	if (!isTree)
-		throw MLException("Cannot generate tree structure: given skeleton has loops.");
-	if (!isConnected)
-		throw MLException("Cannot generate tree structure: given skeleton graph is not connected.");
-}
-
-void SkeletonTreeBuilder::generateTree(CMeshO& tree, CMeshO const& skeleton, uint root_index)
-{
-	auto neighbors = TreeConnectivity().findConnectedVertices(skeleton);
-	if (neighbors.size() != skeleton.vert.size())
-		throw MLException(
-			"Cannot generate tree structure: could not determine the correct vertex graph. "
-			"Has the skeleton mesh been generated through the Skeletonization filter?");
-
-	try
-	{
-		TreeBuilder(tree, skeleton, neighbors).generateTree(root_index);
-	}
-	catch (std::exception e)
-	{
-		throw MLException( QString("Cannot generate tree structure: ") + e.what() );
-	}
-}
-
-SkeletonTreeBuilder::SkeletonTreeNodes SkeletonTreeBuilder::getTreeNodes(CMeshO const& tree)
-{
-	return TreeBuilder::getTreeNodes(tree);
-}
-
-SkeletonTreeBuilder::SkeletonTreeBranches SkeletonTreeBuilder::getTreeBranches(CMeshO const& tree)
-{
-	return TreeBuilder::getTreeBranches(tree);
-}
-
-bool SkeletonTreeBuilder::SkeletonTreeNode::isRoot()
-{
-	return !previous_branch.has_value();
 }
 
 }

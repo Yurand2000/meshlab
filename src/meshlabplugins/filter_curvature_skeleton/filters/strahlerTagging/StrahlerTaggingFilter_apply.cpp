@@ -26,19 +26,17 @@
 #include "strahlerBranchTagging/StrahlerBranchTagger.h"
 #include <vcg/complex/algorithms/update/color.h>
 
+namespace curvatureSkeleton
+{
 
-namespace curvatureSkeleton {
-
-typedef vcg::tri::Allocator<CMeshO>            Allocator;
+typedef vcg::tri::Allocator<CMeshO>            CMeshOAllocator;
+typedef vcg::tri::Allocator<SkeletonMesh>      SkeletonAllocator;
 typedef vcg::tri::Append<CMeshO, SkeletonMesh> SkeletonToCMeshOAppend;
 typedef vcg::tri::UpdateColor<CMeshO>          UpdateColor;
 typedef vcg::Color4b                           Color;
 
-static std::vector<Color> makeStrahlerColors(CMeshO const& tree_mesh);
+static std::vector<Color> makeStrahlerColors(SkeletonMesh const& tree_mesh);
 static void strahlerNumberToVertexColor(CMeshO& mesh, std::vector<Color> const& colors);
-static void strahlerNumberToVertexColor(
-	StrahlerBranchTagger::StrahlerVertexNumbers const& numbers,
-	CMeshO& mesh, std::vector<Color> const& colors);
 
 std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 	FilterPlugin const&      plugin,
@@ -69,8 +67,10 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 	}
 
 	calculateStrahlerNumbers(tree, tree_root_index);
+	strahlerNumbersToSkeleton(skeleton->cm, tree, root_index);
+	strahlerNumbersToOriginalMesh(original->cm, skeleton->cm);
 
-	/*if (save_to_color)
+	if (save_to_color)
 	{
 		auto colors = makeStrahlerColors(tree);
 
@@ -79,31 +79,23 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 
 		skeleton->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
 		strahlerNumberToVertexColor(skeleton->cm, colors);
-
-		tree->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-		auto tree_numbers = StrahlerBranchTagger::getNodeNumbers(tree->cm);
-		strahlerNumberToVertexColor(tree_numbers, tree->cm, colors);
-	}*/
+	}
 
 	if (save_gen_tree)
 	{
 		CMeshO tree_mesh;
-		auto numbers = Allocator::AddPerVertexAttribute<uint>(tree_mesh, ATTRIBUTE_STRAHLER_NUMBER);
+		auto numbers = CMeshOAllocator::AddPerVertexAttribute<uint>(tree_mesh, ATTRIBUTE_STRAHLER_NUMBER);
 		SkeletonToCMeshOAppend::MeshCopyConst(tree_mesh, tree);
-		for (int i = 0; i < tree_mesh.VN(); i++)
-		{
-			auto& vert = tree_mesh.vert[i];
-			vert.Q()   = numbers[i];
-		}
 		auto mesh = document.addNewMesh(tree_mesh, "Tree-" + original->label(), false);
+		mesh->clearDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
 	}
 
 	return {};
 }
 
-std::vector<Color> makeStrahlerColors(CMeshO const& tree_mesh)
+std::vector<Color> makeStrahlerColors(SkeletonMesh const& tree_mesh)
 {
-	auto tree_numbers = StrahlerBranchTagger::getNodeNumbers(tree_mesh);
+	auto tree_numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(tree_mesh, ATTRIBUTE_STRAHLER_NUMBER);
 
 	uint min = 1, max = 1;
 	for (int i = 0; i < tree_mesh.VN(); i++)
@@ -124,18 +116,11 @@ std::vector<Color> makeStrahlerColors(CMeshO const& tree_mesh)
 
 void strahlerNumberToVertexColor(CMeshO& mesh, std::vector<Color> const& colors)
 {
-	auto numbers = StrahlerBranchTagger::getStrahlerNumbers(mesh);
-	strahlerNumberToVertexColor(numbers, mesh, colors);
-}
-
-void strahlerNumberToVertexColor(
-	StrahlerBranchTagger::StrahlerVertexNumbers const& numbers,
-	CMeshO& mesh, std::vector<Color> const& colors)
-{
+	auto numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(mesh, ATTRIBUTE_STRAHLER_NUMBER);
 	for (int i = 0; i < mesh.VN(); i++)
 	{
 		auto& vertex = mesh.vert[i];
-		vertex.C() = colors[ numbers[i] ];
+		vertex.C()   = colors[numbers[i]];
 	}
 }
 

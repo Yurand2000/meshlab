@@ -39,40 +39,6 @@ void generateTreeMesh(
 	int           root_index,
 	Scalarm       min_edge_size);
 
-class SkeletonTreeBuilder
-{
-public:
-	struct SkeletonTreeNode
-	{
-		uint                  skeleton_vertex;
-		boost::optional<uint> previous_branch;
-		std::vector<uint>     next_branches;
-
-		bool isRoot();
-	};
-
-	struct SkeletonTreeBranch
-	{
-		std::vector<uint> skeleton_vertices;
-		uint              previous_node;
-		uint              next_node;
-	};
-
-	typedef CMeshO::ConstPerVertexAttributeHandle<SkeletonTreeNode> SkeletonTreeNodes;
-	typedef CMeshO::ConstPerEdgeAttributeHandle<SkeletonTreeBranch> SkeletonTreeBranches;
-
-public:
-	static void checkSkeletonTree(CMeshO const& skeleton);
-
-	static void generateTree(CMeshO& tree, CMeshO const& skeleton, uint root_index);
-
-	static SkeletonTreeNodes    getTreeNodes(CMeshO const& tree);
-	static SkeletonTreeBranches getTreeBranches(CMeshO const& tree);
-
-private:
-	SkeletonTreeBuilder() = delete;
-};
-
 }
 
 #endif //FILTERCURVATURESKELETON_SKELETON_TREE_BUILDER
