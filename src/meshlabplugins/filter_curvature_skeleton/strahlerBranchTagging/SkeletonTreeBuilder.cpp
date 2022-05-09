@@ -25,6 +25,7 @@
 
 #include "simplifySkeleton/SimplifySkeleton.h"
 #include <common/mlexception.h>
+#include <vector>
 
 namespace curvatureSkeleton
 {
@@ -35,7 +36,7 @@ typedef vcg::tri::Allocator<SkeletonMesh>      SkeletonAllocator;
 typedef vcg::tri::Append<SkeletonMesh, SkeletonMesh> SkeletonToSkeletonAppend;
 typedef vcg::tri::Append<SkeletonMesh, CMeshO> CMeshOToSkeletonAppend;
 
-void generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index, Scalarm min_edge_size)
+void generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index, Scalarm percentile)
 {
 	if (root_index < 0 || root_index >= skeleton.vert.size())
 		throw MLException("Given index does not represent any valid vertex on the selected mesh.");
@@ -46,12 +47,30 @@ void generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index
 
 	if (!isMeshConnected(converted_skeleton))
 		throw MLException("Given graph mesh must be connected.");
+
 	collapseTwoConnectedVertices(converted_skeleton);
-	collapseShortEdges(converted_skeleton, root_index, min_edge_size);
+	auto percentile_length = calculateEdgeLengthPercentile(converted_skeleton, percentile);
+	collapseShortEdges(converted_skeleton, root_index, percentile_length);
 	collapseTwoConnectedVertices(converted_skeleton);
 
 	SkeletonToSkeletonAppend::MeshCopyConst(tree, converted_skeleton);
 	SkeletonMeshTopology::VertexEdge(tree);
+}
+
+Scalarm calculateEdgeLengthPercentile(SkeletonMesh const& mesh, Scalarm percentile)
+{
+	std::vector<Scalarm> lengths;
+	lengths.reserve( mesh.EN() );
+
+	for (auto& edge : mesh.edge)
+	{
+		if ( !edge.IsD() )
+			lengths.push_back( (edge.V(0)->cP() - edge.V(1)->cP()).SquaredNorm() );
+	}
+
+	std::sort(lengths.begin(), lengths.end());
+	uint percentile_pos = static_cast<uint>(  std::ceil( (lengths.size() - 1) * percentile / 100.f )  );
+	return std::sqrt( lengths[percentile_pos] );
 }
 
 }

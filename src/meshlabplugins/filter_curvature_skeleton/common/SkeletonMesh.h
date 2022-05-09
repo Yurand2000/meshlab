@@ -41,6 +41,7 @@ namespace curvatureSkeleton
 	{ };
 
 	class SkeletonVertex : public vcg::Vertex<SkeletonUsedTypes,
+			vcg::vertex::InfoOcf,
 			vcg::vertex::Coord3m,
 			vcg::vertex::Normal3m,
 			vcg::vertex::Qualitym,
@@ -58,7 +59,10 @@ namespace curvatureSkeleton
 		>
 	{ };
 
-	typedef vcg::tri::TriMesh<std::vector<SkeletonVertex>, std::vector<SkeletonEdge>> SkeletonMesh;
+	typedef vcg::tri::TriMesh<
+		vcg::vertex::vector_ocf<SkeletonVertex>,
+		std::vector<SkeletonEdge>
+	> SkeletonMesh;
 }
 
 #endif //SKELETON_MESH

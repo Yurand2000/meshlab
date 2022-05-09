@@ -30,6 +30,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <vcg/complex/complex.h>
+#include <common/mlexception.h>
 
 namespace curvatureSkeleton
 {
@@ -40,9 +41,9 @@ typedef vcg::tri::Allocator<SkeletonMesh>            SkeletonAllocator;
 typedef vcg::tri::Append<CMeshO, SkeletonMesh>       SkeletonToCMeshOAppend;
 typedef vcg::tri::Append<SkeletonMesh, CMeshO>       CMeshOToSkeletonAppend;
 
-static std::unordered_map<SkeletonVertex const*, int> verticesToIndices(SkeletonMesh const& skeleton);
-static int getVertexIndexInMesh(vcg::Point3<Scalarm> point, SkeletonMesh const& mesh);
-static bool isVertexInMesh(vcg::Point3<Scalarm> point, SkeletonMesh const& mesh);
+template <typename MESH> static int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
+template <typename MESH> static bool isVertexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
+static std::unordered_set<SkeletonVertex const*> findPath(SkeletonMesh const& mesh, int start, int end);
 
 void calculateStrahlerNumbers(SkeletonMesh& tree, int root_index)
 {
@@ -59,7 +60,6 @@ void calculateStrahlerNumbers(SkeletonMesh& tree, int root_index)
 
 	std::queue<int> frontier;
 	std::unordered_set<int> visited;
-	auto skelton_to_index = verticesToIndices(tree);
 	frontier.push(root_index);
 	do
 	{
@@ -73,7 +73,7 @@ void calculateStrahlerNumbers(SkeletonMesh& tree, int root_index)
 
 		for (auto* vert : verts)
 		{
-			auto v_index = skelton_to_index[vert];
+			auto v_index = vert->Index();
 			if (visited.count(v_index) == 0)
 			{
 				tree_reverse.push({v_index, index});
@@ -103,54 +103,71 @@ void strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int r
 	SkeletonMeshTopology::VertexEdge(converted_skeleton);
 	auto numbers = SkeletonAllocator::AddPerVertexAttribute<uint>(converted_skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 	auto tree_numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(tree, ATTRIBUTE_STRAHLER_NUMBER);
-
-	auto skelton_to_index = verticesToIndices(converted_skeleton);
-
-	auto* root = &converted_skeleton.vert[root_index];
-	std::unordered_set<SkeletonVertex*> visited;
-
-	typedef std::pair<int, uint> queue_pair;
-	auto less_fun = [](std::pair<int, uint> const& l, std::pair<int, uint> const& r) -> bool
+	
+	std::unordered_map<int, int> tree_to_skeleton_map;
+	for (auto& vertex : tree.vert)
 	{
-		return r.second < l.second;
+		tree_to_skeleton_map.emplace( vertex.Index(), getVertexIndexInMesh(vertex.P(), skeleton));
+	}
+
+	struct BranchToColor
+	{
+		int start;
+		int end;
+		uint number;
 	};
-	auto frontier = std::priority_queue<queue_pair, std::vector<queue_pair>, decltype(less_fun)>(less_fun);
-	for (int i = 0; i < converted_skeleton.vert.size(); i++)
+	std::vector<BranchToColor> branches_to_color;
+	branches_to_color.reserve( tree.EN() );
+	for (auto& edge : tree.edge)
 	{
-		auto* vert = &converted_skeleton.vert[i];
-		if (vcg::edge::VEDegree<SkeletonEdge>(vert) == 1 && root != vert && isVertexInMesh(vert->P(), tree))
-			frontier.emplace(i, 1);
+		auto vert0 = tree_to_skeleton_map[edge.V(0)->Index()];
+		auto vert1 = tree_to_skeleton_map[edge.V(1)->Index()];
+		uint num0  = tree_numbers[edge.V(0)->Index()];
+		uint num1  = tree_numbers[edge.V(1)->Index()];
+		if (num0 < num1)
+			branches_to_color.push_back( {vert0, vert1, num0} );
+		else
+			branches_to_color.push_back( {vert1, vert0, num1} );
+	}
+
+	for (auto& branch : branches_to_color)
+	{
+		auto path = findPath(converted_skeleton, branch.start, branch.end);
+		for (auto* vertex : path)
+		{
+			auto& number = numbers[vertex->Index()];
+			if (number < branch.number)
+				number = branch.number;
+		}
+	}
+
+	std::stack<SkeletonVertex const*> flood_frontier;
+	for (auto& vertex : converted_skeleton.vert)
+	{
+		if ( numbers[vertex.Index()] != 0 )
+			flood_frontier.push(&vertex);
 	}
 
 	do
 	{
-		auto  index  = frontier.top().first;
-		auto* vert   = &converted_skeleton.vert[index];
-		auto  number = frontier.top().second;
-		frontier.pop();
-		if (visited.count(vert) == 1)
-			continue;
+		auto* vertex = flood_frontier.top();
+		flood_frontier.pop();
 
-		visited.insert(vert);
+		std::vector<SkeletonVertex*> star;
+		vcg::edge::VVStarVE(vertex, star);
 
-		std::vector<SkeletonVertex*> adj_verts;
-		vcg::edge::VVStarVE(vert, adj_verts);
-		if (adj_verts.size() > 2)
+		auto current_number = numbers[vertex->Index()];
+		for (auto* adj : star)
 		{
-			auto tree_index = getVertexIndexInMesh(vert->P(), tree);
-			if (tree_index != -1)
-				number = tree_numbers[tree_index];
+			auto& number = numbers[adj->Index()];
+			if ( number == 0 )
+			{
+				number = current_number;
+				flood_frontier.push(adj);
+			}
 		}
-
-		for (auto* adj : adj_verts)
-		{
-			if (visited.count(adj) == 0)
-				frontier.emplace(skelton_to_index[adj], number);
-		}
-
-		numbers[index] = number;
 	}
-	while ( !frontier.empty() );
+	while ( !flood_frontier.empty() );
 
 	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 	SkeletonToCMeshOAppend::MeshCopyConst(skeleton, converted_skeleton);
@@ -167,18 +184,8 @@ void strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& skeleton)
 	}
 }
 
-std::unordered_map<SkeletonVertex const*, int> verticesToIndices(SkeletonMesh const& skeleton)
-{
-	std::unordered_map<SkeletonVertex const*, int> skelton_to_index;
-	for (int i = 0; i < skeleton.vert.size(); i++)
-	{
-		auto* vertex = &skeleton.vert[i];
-		skelton_to_index.emplace(vertex, i);
-	}
-	return skelton_to_index;
-}
-
-int getVertexIndexInMesh(vcg::Point3<Scalarm> point, SkeletonMesh const& mesh)
+template<typename MESH>
+int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
 {
 	for (int i = 0; i < mesh.vert.size(); i++)
 	{
@@ -188,10 +195,66 @@ int getVertexIndexInMesh(vcg::Point3<Scalarm> point, SkeletonMesh const& mesh)
 	}
 	return -1;
 }
-
-bool isVertexInMesh(vcg::Point3<Scalarm> point, SkeletonMesh const& mesh)
+template<typename MESH>
+bool isVertexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
 {
-	return getVertexIndexInMesh(point, mesh) != -1;
+	return getVertexIndexInMesh<MESH>(point, mesh) != -1;
+}
+
+std::unordered_set<SkeletonVertex const*> findPath(SkeletonMesh const& mesh, int start, int end)
+{
+	int current = start;
+	std::stack<int> parent;
+	parent.push(start);
+	std::stack<int> last_pos;
+	last_pos.push(0);
+
+	do
+	{
+		if (current == end)
+		{
+			parent.push(end);
+		}
+		else
+		{			
+			auto* vert = &mesh.vert[current];
+			std::vector<SkeletonVertex*> star;
+			vcg::edge::VVStarVE(vert, star);
+
+			auto last = last_pos.top();
+			if (last == star.size())
+			{
+				if (parent.empty())
+					throw MLException("Mesh is not connected!");
+
+				current = parent.top();
+				parent.pop();
+				last_pos.pop();
+			}
+			else
+			{
+				auto next = star[last]->Index();
+				last_pos.top()++;
+				if (next != parent.top())
+				{
+					parent.push(current);
+					current = next;
+					last_pos.push(0);
+				}
+			}
+		}
+	}
+	while ( parent.top() != end );
+
+	std::unordered_set<SkeletonVertex const*> path;
+	do
+	{
+		path.insert( &mesh.vert[parent.top()] );
+		parent.pop();
+	}
+	while( !parent.empty() );
+
+	return path;
 }
 
 }

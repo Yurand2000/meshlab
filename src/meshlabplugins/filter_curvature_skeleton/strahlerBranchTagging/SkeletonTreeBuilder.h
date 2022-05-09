@@ -24,20 +24,19 @@
 #ifndef FILTERCURVATURESKELETON_SKELETON_TREE_BUILDER
 #define FILTERCURVATURESKELETON_SKELETON_TREE_BUILDER
 
-#include <vector>
 #include "common/SkeletonMesh.h"
 #include <common/ml_document/mesh_document.h>
-#include <vcg/complex/allocate.h>
-#include <boost/optional.hpp>
 
 namespace curvatureSkeleton
 {
+
+Scalarm calculateEdgeLengthPercentile(SkeletonMesh const& mesh, Scalarm percentile);
 
 void generateTreeMesh(
 	SkeletonMesh& tree,
 	CMeshO const& skeleton,
 	int           root_index,
-	Scalarm       min_edge_size);
+	Scalarm       percentile);
 
 }
 
