@@ -23,7 +23,7 @@
 
 #include "ExtendBranchesFilter.h"
 
-#include "branchExtender/BranchExtender.h"
+#include "common/BranchExtender.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -42,7 +42,7 @@ std::map<std::string, QVariant> ExtendBranchesFilter::applyFilter(
 	auto const& original = document.getMesh( params.getMeshId(PARAM_ORIGINAL_MESH) )->cm;
 	auto cone_angle = (params.getDynamicFloat(PARAM_CONE_ANGLE) * Scalarm(M_PI)) / Scalarm(180.0);
 
-	extendLeafBranches(original, skeleton, cone_angle);
+	BranchExtender::extendLeafs(original, skeleton, cone_angle);
 
 	return {};
 }

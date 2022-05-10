@@ -47,6 +47,7 @@ namespace curvatureSkeleton
 			vcg::vertex::Qualitym,
 			vcg::vertex::Color4b,
 			vcg::vertex::VEAdj,
+		    vcg::vertex::Mark,
 			vcg::vertex::BitFlags
 		>
 	{ };
@@ -55,6 +56,7 @@ namespace curvatureSkeleton
 			vcg::edge::VEAdj,
 			vcg::edge::EVAdj,
 			vcg::edge::EEAdj,
+			vcg::edge::Mark,
 			vcg::edge::BitFlags
 		>
 	{ };

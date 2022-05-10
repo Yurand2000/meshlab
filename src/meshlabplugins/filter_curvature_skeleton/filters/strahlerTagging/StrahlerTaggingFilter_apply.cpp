@@ -23,7 +23,7 @@
 
 #include "StrahlerTaggingFilter.h"
 
-#include "strahlerBranchTagging/StrahlerBranchTagger.h"
+#include "common/StrahlerBranchTagger.h"
 #include <vcg/complex/algorithms/update/color.h>
 
 namespace curvatureSkeleton
@@ -35,6 +35,7 @@ typedef vcg::tri::Append<CMeshO, SkeletonMesh> SkeletonToCMeshOAppend;
 typedef vcg::tri::UpdateColor<CMeshO>          UpdateColor;
 typedef vcg::Color4b                           Color;
 
+static int findRootIndex(SkeletonMesh const& tree, vcg::Point3<Scalarm> root_pos);
 static std::vector<Color> makeStrahlerColors(SkeletonMesh const& tree_mesh);
 static void strahlerNumberToVertexColor(CMeshO& mesh, std::vector<Color> const& colors);
 
@@ -53,22 +54,16 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 	auto min_edge_size = params.getFloat(PARAM_MIN_EDGE_SIZE);
 
 	SkeletonMesh tree;
-	generateTreeMesh(tree, skeleton->cm, root_index, min_edge_size);
+	StrahlerBranchTagger::generateTreeMesh(tree, skeleton->cm, root_index, min_edge_size);
+	vcg::tri::InitVertexIMark(tree);
+	vcg::tri::InitEdgeIMark(tree);
 
 	auto root_pos = skeleton->cm.vert[root_index].cP();
-	int tree_root_index = 0;
-	for (int i = 0; i < tree.vert.size(); i++)
-	{
-		if ( (tree.vert[i].cP() - root_pos).SquaredNorm() < 0.0001f )
-		{
-			tree_root_index = i;
-			break;
-		}
-	}
+	int  tree_root_index = findRootIndex(tree, root_pos);
 
-	calculateStrahlerNumbers(tree, tree_root_index);
-	strahlerNumbersToSkeleton(skeleton->cm, tree, root_index);
-	strahlerNumbersToOriginalMesh(original->cm, skeleton->cm);
+	StrahlerBranchTagger::calculateStrahlerNumbers(tree, tree_root_index);
+	StrahlerBranchTagger::strahlerNumbersToSkeleton(skeleton->cm, tree, root_index);
+	StrahlerBranchTagger::strahlerNumbersToOriginalMesh(original->cm, skeleton->cm);
 
 	if (save_to_color)
 	{
@@ -91,6 +86,18 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 	}
 
 	return {};
+}
+
+int findRootIndex(SkeletonMesh const& tree, vcg::Point3<Scalarm> root_pos)
+{
+	for (int i = 0; i < tree.vert.size(); i++)
+	{
+		if ( (tree.vert[i].cP() - root_pos).SquaredNorm() < 0.0001f )
+		{
+			return i;
+		}
+	}
+	return 0;
 }
 
 std::vector<Color> makeStrahlerColors(SkeletonMesh const& tree_mesh)

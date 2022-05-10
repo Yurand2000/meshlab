@@ -17,9 +17,6 @@ else()
 	add_subdirectory(common)
 	add_subdirectory(filters)
 	add_subdirectory(cgalAdapter)
-	add_subdirectory(branchExtender)
-	add_subdirectory(strahlerBranchTagging)
-	add_subdirectory(simplifySkeleton)
 endif()
 
 

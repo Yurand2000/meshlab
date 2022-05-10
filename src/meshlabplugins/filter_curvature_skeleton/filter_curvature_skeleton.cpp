@@ -25,7 +25,6 @@
 
 #include "filters/skeletonize/SkeletonizeFilter.h"
 #include "filters/extendBranches/ExtendBranchesFilter.h"
-#include "filters/branchesCalculator/BranchesCalculatorFilter.h"
 #include "filters/strahlerTagging/StrahlerTaggingFilter.h"
 
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
@@ -37,13 +36,11 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 {
 	filters.push_back( std::make_unique<SkeletonizeFilter>() );
 	filters.push_back( std::make_unique<ExtendBranchesFilter>() );
-	filters.push_back( std::make_unique<BranchesCalculatorFilter>() );
 	filters.push_back( std::make_unique<StrahlerTaggingFilter>() );
 
 	typeList = {
 		SKELETONIZE,
 		EXTEND_BRANCHES,
-		CALCULATE_BRANCHES,
 		CALCULATE_STRAHLER_NUMBERS
 	};
 

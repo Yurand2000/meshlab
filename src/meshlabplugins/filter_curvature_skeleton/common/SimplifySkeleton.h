@@ -21,23 +21,25 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
-#define FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#ifndef FILTERCURVATURESKELETON_SIMPLIFY_SKELETON
+#define FILTERCURVATURESKELETON_SIMPLIFY_SKELETON
 
-#include "SkeletonTreeBuilder.h"
-
-#include "common/SkeletonMesh.h"
-#include <common/ml_document/mesh_document.h>
-
-#define ATTRIBUTE_STRAHLER_NUMBER "strahler_number"
+#include "SkeletonMesh.h"
 
 namespace curvatureSkeleton
 {
 
-void calculateStrahlerNumbers(SkeletonMesh& tree, int root_index);
-void strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int root_index);
-void strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& skeleton);
+class SimplifySkeleton
+{
+public:
+	static bool isMeshConnected(SkeletonMesh const& skeleton);
+	static void collapseTwoConnectedVertices(SkeletonMesh& skeleton);
+	static void collapseShortEdges(SkeletonMesh& skeleton, int root_node, Scalarm min_length);
+
+private:
+	~SimplifySkeleton() = delete;
+};
 
 }
 
-#endif // FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#endif // FILTERCURVATURESKELETON_SIMPLIFY_SKELETON

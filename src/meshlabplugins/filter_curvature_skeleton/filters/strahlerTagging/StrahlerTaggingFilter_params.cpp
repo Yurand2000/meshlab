@@ -36,8 +36,8 @@
 							   "else you might need to find the vertex index.\nTUTORIAL: You can get this index by using the \'Get Info\' tool, "\
 							   "switching to \'Select Vertices\' mode, selecting the root vertex and logging its information to the console. "\
 							   "Then copy the index number here."
-#define MIN_EDGE_SIZE_DISPLAYNAME "Minimum branch size."
-#define MIN_EDGE_SIZE_DESCRIPTION "When generating the intermediate tree, branches or leafs shorter than the given size will be collapsed."
+#define MIN_EDGE_SIZE_DISPLAYNAME "Percentile of branches to crop."
+#define MIN_EDGE_SIZE_DESCRIPTION "When generating the intermediate tree, branches or leafs belonging to the given percentile on the lengths of the branches will be collapsed."
 #define STRAHLER_TO_COLOR_DISPLAYNAME "Colorize by the Strahler number"
 #define STRAHLER_TO_COLOR_DESCRIPTION "The meshes' vertices will be colorized by their Strahler number. "\
 									  "You may need to toggle on and off the visualization to update the displayed colors."
@@ -58,7 +58,7 @@ RichParameterList StrahlerTaggingFilter::initParameterList(FilterPlugin const& p
 	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, 0, &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
 	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, getSelectedMeshIndex(m), &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
 	parlst.addParam(RichInt(PARAM_ROOT_INDEX, findLowestVertexIndexOnY(m.mm()->cm), ROOT_INDEX_DISPLAYNAME, ROOT_INDEX_DESCRIPTION, false, PARAMETER_CATEGORY));
-	parlst.addParam(RichFloat(PARAM_MIN_EDGE_SIZE, 5.f, MIN_EDGE_SIZE_DISPLAYNAME, MIN_EDGE_SIZE_DESCRIPTION, false, PARAMETER_CATEGORY));
+	parlst.addParam(RichFloat(PARAM_MIN_EDGE_SIZE, 10.f, MIN_EDGE_SIZE_DISPLAYNAME, MIN_EDGE_SIZE_DESCRIPTION, false, PARAMETER_CATEGORY));
 	parlst.addParam(RichBool(PARAM_STRAHLER_NUMBERS_TO_COLOR, true, STRAHLER_TO_COLOR_DISPLAYNAME, STRAHLER_TO_COLOR_DESCRIPTION, false, PARAMETER_CATEGORY));
 	parlst.addParam(RichBool(PARAM_SAVE_GENERATED_TREE, false, SAVE_GENERATED_TREE_DISPLAYNAME, SAVE_GENERATED_TREE_DESCRIPTION, false, MISCELLANEOUS_CATEGORY));
 	return parlst;

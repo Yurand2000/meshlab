@@ -28,7 +28,16 @@
 
 namespace curvatureSkeleton
 {
-	void extendLeafBranches(CMeshO const& mesh, CMeshO& skeleton, float angle);
+
+class BranchExtender
+{
+public:
+	static void extendLeafs(CMeshO const& mesh, CMeshO& skeleton, float angle);
+
+private:
+	~BranchExtender() = delete;
+};
+
 }
 
 #endif //FILTERCURVATURESKELETON_BRANCH_EXTENDER

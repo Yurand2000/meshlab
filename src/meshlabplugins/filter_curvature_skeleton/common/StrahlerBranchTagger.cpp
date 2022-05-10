@@ -23,13 +23,15 @@
 
 #include "StrahlerBranchTagger.h"
 
-#include "common/additionalAttributeNames.h"
+#include "additionalAttributeNames.h"
+#include "SimplifySkeleton.h"
 
 #include <queue>
+#include <stack>
 #include <vector>
-#include <unordered_set>
 #include <unordered_map>
 #include <vcg/complex/complex.h>
+#include <vcg/complex/algorithms/stat.h>
 #include <common/mlexception.h>
 
 namespace curvatureSkeleton
@@ -40,44 +42,67 @@ typedef vcg::tri::Allocator<CMeshO>                  CMeshOAllocator;
 typedef vcg::tri::Allocator<SkeletonMesh>            SkeletonAllocator;
 typedef vcg::tri::Append<CMeshO, SkeletonMesh>       SkeletonToCMeshOAppend;
 typedef vcg::tri::Append<SkeletonMesh, CMeshO>       CMeshOToSkeletonAppend;
+typedef vcg::tri::Append<SkeletonMesh, SkeletonMesh> SkeletonToSkeletonAppend;
 
 template <typename MESH> static int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
 template <typename MESH> static bool isVertexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
-static std::unordered_set<SkeletonVertex const*> findPath(SkeletonMesh const& mesh, int start, int end);
+static std::vector<SkeletonVertex const*> findPath(SkeletonMesh const& mesh, int start, int end);
 
-void calculateStrahlerNumbers(SkeletonMesh& tree, int root_index)
+void StrahlerBranchTagger::generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index, Scalarm percentile)
+{
+	if (root_index < 0 || root_index >= skeleton.vert.size())
+		throw MLException("Given index does not represent any valid vertex on the selected mesh.");
+
+	SkeletonMesh converted_skeleton;
+	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
+	SkeletonMeshTopology::VertexEdge(converted_skeleton);
+
+	if (!SimplifySkeleton::isMeshConnected(converted_skeleton))
+		throw MLException("Given graph mesh must be connected.");
+
+	SimplifySkeleton::collapseTwoConnectedVertices(converted_skeleton);
+
+	vcg::Histogram<Scalarm> histogram;
+	vcg::tri::Stat<SkeletonMesh>::ComputeEdgeLengthHistogram(converted_skeleton, histogram);
+	SimplifySkeleton::collapseShortEdges(converted_skeleton, root_index, histogram.Percentile(percentile / 100.f));
+
+	SimplifySkeleton::collapseTwoConnectedVertices(converted_skeleton);
+
+	SkeletonToSkeletonAppend::MeshCopyConst(tree, converted_skeleton);
+	SkeletonMeshTopology::VertexEdge(tree);
+}
+
+void StrahlerBranchTagger::calculateStrahlerNumbers(SkeletonMesh& tree, int root_index)
 {
 	auto attribute = SkeletonAllocator::GetPerVertexAttribute<uint>(tree, ATTRIBUTE_STRAHLER_NUMBER);
-	for (int i = 0; i < tree.vert.size(); i++)
+	for (int i = 0; i < tree.VN(); i++)
 		attribute[i] = 1;
 
 	struct StrahlerNode
 	{
-		int node;
-		int parent;
+		SkeletonVertex* node;
+		SkeletonVertex* parent;
 	};
 	std::stack<StrahlerNode> tree_reverse;
 
-	std::queue<int> frontier;
-	std::unordered_set<int> visited;
-	frontier.push(root_index);
+	std::queue<SkeletonVertex*> frontier;
+	vcg::tri::UnMarkAll(tree);
+	frontier.push(&tree.vert[root_index]);
 	do
 	{
-		auto index = frontier.front();
-		visited.insert(index);
+		auto* vertex = frontier.front();
+		vcg::tri::Mark(tree, vertex);
 		frontier.pop();
 
-		auto* vertex = &tree.vert[index];
 		std::vector<SkeletonVertex*> verts;
 		vcg::edge::VVStarVE(vertex, verts);
 
-		for (auto* vert : verts)
+		for (auto* adj : verts)
 		{
-			auto v_index = vert->Index();
-			if (visited.count(v_index) == 0)
+			if (!vcg::tri::IsMarked(tree, adj))
 			{
-				tree_reverse.push({v_index, index});
-				frontier.push(v_index);
+				tree_reverse.push({adj, vertex});
+				frontier.push(adj);
 			}
 		}
 	}
@@ -96,7 +121,7 @@ void calculateStrahlerNumbers(SkeletonMesh& tree, int root_index)
 	while ( !tree_reverse.empty() );
 }
 
-void strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int root_index)
+void StrahlerBranchTagger::strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int root_index)
 {
 	SkeletonMesh converted_skeleton;
 	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
@@ -130,22 +155,17 @@ void strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int r
 			branches_to_color.push_back( {vert1, vert0, num1} );
 	}
 
+	std::stack<SkeletonVertex const*> flood_frontier;
 	for (auto& branch : branches_to_color)
 	{
 		auto path = findPath(converted_skeleton, branch.start, branch.end);
 		for (auto* vertex : path)
 		{
+			flood_frontier.push(vertex);
 			auto& number = numbers[vertex->Index()];
 			if (number < branch.number)
 				number = branch.number;
 		}
-	}
-
-	std::stack<SkeletonVertex const*> flood_frontier;
-	for (auto& vertex : converted_skeleton.vert)
-	{
-		if ( numbers[vertex.Index()] != 0 )
-			flood_frontier.push(&vertex);
 	}
 
 	do
@@ -173,7 +193,7 @@ void strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int r
 	SkeletonToCMeshOAppend::MeshCopyConst(skeleton, converted_skeleton);
 }
 
-void strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& skeleton)
+void StrahlerBranchTagger::strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& skeleton)
 {
 	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 	auto original_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(mesh, ATTRIBUTE_STRAHLER_NUMBER);
@@ -201,7 +221,7 @@ bool isVertexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
 	return getVertexIndexInMesh<MESH>(point, mesh) != -1;
 }
 
-std::unordered_set<SkeletonVertex const*> findPath(SkeletonMesh const& mesh, int start, int end)
+std::vector<SkeletonVertex const*> findPath(SkeletonMesh const& mesh, int start, int end)
 {
 	int current = start;
 	std::stack<int> parent;
@@ -246,10 +266,10 @@ std::unordered_set<SkeletonVertex const*> findPath(SkeletonMesh const& mesh, int
 	}
 	while ( parent.top() != end );
 
-	std::unordered_set<SkeletonVertex const*> path;
+	std::vector<SkeletonVertex const*> path;
 	do
 	{
-		path.insert( &mesh.vert[parent.top()] );
+		path.push_back( &mesh.vert[parent.top()] );
 		parent.pop();
 	}
 	while( !parent.empty() );

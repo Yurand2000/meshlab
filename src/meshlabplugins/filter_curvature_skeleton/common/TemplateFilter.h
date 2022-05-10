@@ -26,6 +26,8 @@
 
 #include "common/plugins/interfaces/filter_plugin.h"
 
+namespace curvatureSkeleton {
+
 class TemplateFilter
 {
 public:
@@ -73,5 +75,7 @@ private:
 	int                         preconditions;
 	int                         postconditions;
 };
+
+}
 
 #endif

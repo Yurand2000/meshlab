@@ -1,6 +1,6 @@
 [submodule "src/vcglib"]
 	path = src/vcglib
-	url = https://github.com/cnr-isti-vclab/vcglib
+	url = https://github.com/Yurand2000/vcglib
 	branch = devel
 [submodule "src/external/nexus"]
 	path = src/external/nexus

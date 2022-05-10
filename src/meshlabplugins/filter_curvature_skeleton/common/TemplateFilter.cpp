@@ -23,6 +23,9 @@
 
 #include "TemplateFilter.h"
 
+namespace curvatureSkeleton
+{
+
 TemplateFilter::TemplateFilter(MeshLabPlugin::ActionIDType id, const char* dn, const char* dd,
 	FilterPlugin::FilterClass cat, const char* pn, FilterPlugin::FilterArity ar, int pre, int post)
 		: filter_id(id), display_name(dn), description(dd), category(cat),
@@ -55,4 +58,6 @@ std::map<std::string, QVariant> TemplateFilter::applyFilter(
 	FilterPlugin const&, RichParameterList const&, MeshDocument&, unsigned int&, vcg::CallBackPos*)
 {
 	return std::map<std::string, QVariant>();
+}
+
 }

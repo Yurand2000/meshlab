@@ -23,8 +23,8 @@
 
 #include "BranchExtender.h"
 
-#include "common/additionalAttributeNames.h"
-#include "common/SkeletonMesh.h"
+#include "additionalAttributeNames.h"
+#include "SkeletonMesh.h"
 
 #include <vector>
 #include <common/plugins/interfaces/filter_plugin.h>
@@ -51,7 +51,7 @@ struct SkeletonLeaf
 static std::vector<SkeletonLeaf> findSkeletonLeafs(SkeletonMesh const& skeleton);
 static void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle);
 
-void extendLeafBranches(CMeshO const& mesh, CMeshO& skeleton, float angle)
+void BranchExtender::extendLeafs(CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
 	SkeletonMesh converted_skeleton;
 	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
