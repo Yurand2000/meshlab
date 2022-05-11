@@ -44,21 +44,25 @@ typedef vcg::tri::Append<CMeshO, SkeletonMesh>       SkeletonToCMeshOAppend;
 typedef vcg::tri::Append<SkeletonMesh, CMeshO>       CMeshOToSkeletonAppend;
 typedef vcg::tri::Append<SkeletonMesh, SkeletonMesh> SkeletonToSkeletonAppend;
 
-template <typename MESH> static int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
-template <typename MESH> static bool isVertexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
-static std::vector<SkeletonVertex const*> findPath(SkeletonMesh const& mesh, int start, int end);
+
 
 void StrahlerBranchTagger::generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index, Scalarm percentile)
 {
 	if (root_index < 0 || root_index >= skeleton.vert.size())
 		throw MLException("Given index does not represent any valid vertex on the selected mesh.");
 
+	//convert skeleton to SkeletonMesh
 	SkeletonMesh converted_skeleton;
 	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
 	SkeletonMeshTopology::VertexEdge(converted_skeleton);
 
+	//simplify skeleton
 	if (!SimplifySkeleton::isMeshConnected(converted_skeleton))
 		throw MLException("Given graph mesh must be connected.");
+
+	if ( vcg::edge::VEDegree<SkeletonEdge>(&converted_skeleton.vert[root_index]) != 1 )
+		throw MLException("Given root node must be a border vertex.");
+
 
 	SimplifySkeleton::collapseTwoConnectedVertices(converted_skeleton);
 
@@ -68,9 +72,21 @@ void StrahlerBranchTagger::generateTreeMesh(SkeletonMesh& tree, CMeshO const& sk
 
 	SimplifySkeleton::collapseTwoConnectedVertices(converted_skeleton);
 
+	//if everything went allright, copy to the given tree mesh
 	SkeletonToSkeletonAppend::MeshCopyConst(tree, converted_skeleton);
 	SkeletonMeshTopology::VertexEdge(tree);
 }
+
+
+
+
+
+struct StrahlerNode
+{
+	SkeletonVertex* node;
+	SkeletonVertex* parent;
+};
+static std::stack<StrahlerNode> getTreeHierarchyReversed(SkeletonMesh& tree, int root_index);
 
 void StrahlerBranchTagger::calculateStrahlerNumbers(SkeletonMesh& tree, int root_index)
 {
@@ -78,11 +94,23 @@ void StrahlerBranchTagger::calculateStrahlerNumbers(SkeletonMesh& tree, int root
 	for (int i = 0; i < tree.VN(); i++)
 		attribute[i] = 1;
 
-	struct StrahlerNode
+	auto tree_reverse = getTreeHierarchyReversed(tree, root_index);
+
+	//strahler number assignment from leafs to the root
+	while (!tree_reverse.empty())
 	{
-		SkeletonVertex* node;
-		SkeletonVertex* parent;
-	};
+		auto top = tree_reverse.top();
+		tree_reverse.pop();
+
+		auto curr_num = attribute[top.node];
+		auto& parent_num = attribute[top.parent];
+		if (parent_num < curr_num + 1)
+			parent_num = curr_num + 1;
+	}
+}
+
+std::stack<StrahlerNode> getTreeHierarchyReversed(SkeletonMesh& tree, int root_index)
+{
 	std::stack<StrahlerNode> tree_reverse;
 
 	std::queue<SkeletonVertex*> frontier;
@@ -99,74 +127,174 @@ void StrahlerBranchTagger::calculateStrahlerNumbers(SkeletonMesh& tree, int root
 
 		for (auto* adj : verts)
 		{
-			if (!vcg::tri::IsMarked(tree, adj))
+			if ( !vcg::tri::IsMarked(tree, adj) )
 			{
 				tree_reverse.push({adj, vertex});
 				frontier.push(adj);
 			}
 		}
 	}
-	while ( !frontier.empty() );
+	while (!frontier.empty());
 
-	do
-	{
-		auto top = tree_reverse.top();
-		tree_reverse.pop();
-
-		auto curr_num = attribute[top.node];
-		auto& parent_num = attribute[top.parent];
-		if (parent_num < curr_num + 1)
-			parent_num = curr_num + 1;
-	}
-	while ( !tree_reverse.empty() );
+	return tree_reverse;
 }
+
+
+
+
+
+struct BranchToColor
+{
+	SkeletonVertex* start;
+	SkeletonVertex* end;
+	uint            number;
+};
+
+static std::vector<BranchToColor> getBranchesToColor(SkeletonMesh const& tree, SkeletonMesh& skeleton);
+static void paintBranch(SkeletonMesh& skeleton, BranchToColor& branch_to_color);
+static void floodUnpaintedBranches(SkeletonMesh& skeleton);
 
 void StrahlerBranchTagger::strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int root_index)
 {
+	//convert skeleton to SkeletonMesh
 	SkeletonMesh converted_skeleton;
 	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
 	SkeletonMeshTopology::VertexEdge(converted_skeleton);
-	auto numbers = SkeletonAllocator::AddPerVertexAttribute<uint>(converted_skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	vcg::tri::InitVertexIMark(converted_skeleton);
+	vcg::tri::InitEdgeIMark(converted_skeleton);
+	SkeletonAllocator::AddPerVertexAttribute<uint>(converted_skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+
+	//set strahler numbers on vertices
+	auto branches_to_color = getBranchesToColor(tree, converted_skeleton);
+	for (auto& branch : branches_to_color)
+	{
+		paintBranch(converted_skeleton, branch);
+	}
+	floodUnpaintedBranches(converted_skeleton);
+
+	//reconvert the skeleton to CMeshO
+	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	SkeletonToCMeshOAppend::MeshCopyConst(skeleton, converted_skeleton);
+}
+
+static std::unordered_map<int, int> getTreeToSkeletonAssociations(SkeletonMesh const& tree, SkeletonMesh const& skeleton);
+static std::vector<BranchToColor> getBranchesToColor(SkeletonMesh const& tree, SkeletonMesh& skeleton)
+{
+	auto tree_to_skeleton_map = getTreeToSkeletonAssociations(tree, skeleton);
 	auto tree_numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(tree, ATTRIBUTE_STRAHLER_NUMBER);
-	
+
+	std::vector<BranchToColor> branches_to_color;
+	branches_to_color.reserve(tree.EN());
+	for (auto& edge : tree.edge) {
+		auto vert0 = &skeleton.vert[tree_to_skeleton_map[edge.V(0)->Index()]];
+		auto vert1 = &skeleton.vert[tree_to_skeleton_map[edge.V(1)->Index()]];
+		uint num0  = tree_numbers[edge.V(0)];
+		uint num1  = tree_numbers[edge.V(1)];
+		if (num0 < num1)
+			branches_to_color.push_back({vert0, vert1, num0});
+		else
+			branches_to_color.push_back({vert1, vert0, num1});
+	}
+
+	return branches_to_color;
+}
+
+
+
+template <typename MESH> static int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
+std::unordered_map<int, int> getTreeToSkeletonAssociations(SkeletonMesh const& tree, SkeletonMesh const& skeleton)
+{
 	std::unordered_map<int, int> tree_to_skeleton_map;
 	for (auto& vertex : tree.vert)
 	{
-		tree_to_skeleton_map.emplace( vertex.Index(), getVertexIndexInMesh(vertex.P(), skeleton));
+		tree_to_skeleton_map.emplace( vertex.Index(), getVertexIndexInMesh(vertex.P(), skeleton) );
 	}
 
-	struct BranchToColor
-	{
-		int start;
-		int end;
-		uint number;
-	};
-	std::vector<BranchToColor> branches_to_color;
-	branches_to_color.reserve( tree.EN() );
-	for (auto& edge : tree.edge)
-	{
-		auto vert0 = tree_to_skeleton_map[edge.V(0)->Index()];
-		auto vert1 = tree_to_skeleton_map[edge.V(1)->Index()];
-		uint num0  = tree_numbers[edge.V(0)->Index()];
-		uint num1  = tree_numbers[edge.V(1)->Index()];
-		if (num0 < num1)
-			branches_to_color.push_back( {vert0, vert1, num0} );
-		else
-			branches_to_color.push_back( {vert1, vert0, num1} );
-	}
+	return tree_to_skeleton_map;
+}
 
-	std::stack<SkeletonVertex const*> flood_frontier;
-	for (auto& branch : branches_to_color)
+template<typename MESH>
+int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
+{
+	Scalarm min_sqr_dist = std::numeric_limits<Scalarm>::max();
+	int index = -1;
+	for (auto& vertex : mesh.vert)
 	{
-		auto path = findPath(converted_skeleton, branch.start, branch.end);
-		for (auto* vertex : path)
+		auto sqr_dist = (point - vertex.cP()).SquaredNorm();
+		if (sqr_dist < min_sqr_dist)
 		{
-			flood_frontier.push(vertex);
-			auto& number = numbers[vertex->Index()];
-			if (number < branch.number)
-				number = branch.number;
+			min_sqr_dist = sqr_dist;
+			index        = vertex.Index();
 		}
 	}
+	return index;
+}
+
+
+
+static std::vector<SkeletonVertex*> findPath(SkeletonMesh& mesh, SkeletonVertex* start, SkeletonVertex* end);
+void paintBranch(SkeletonMesh& skeleton, BranchToColor& branch_to_color)
+{
+	auto numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	auto path = findPath(skeleton, branch_to_color.start, branch_to_color.end);
+	for (auto* vertex : path)
+	{
+		auto& number = numbers[vertex];
+		if (number < branch_to_color.number)
+			number = branch_to_color.number;
+	}
+}
+
+std::vector<SkeletonVertex*> findPath(SkeletonMesh& mesh, SkeletonVertex* start, SkeletonVertex* end)
+{
+	using StarVector = std::vector<SkeletonVertex*>;
+
+	vcg::tri::UnMarkAll(mesh);
+	std::vector<SkeletonVertex*> parent;
+	std::stack<StarVector>       last_pos;
+
+	parent.push_back(start);
+	last_pos.emplace();
+	vcg::edge::VVStarVE(start, last_pos.top());
+
+	do
+	{
+		auto* current  = parent.back();
+		vcg::tri::Mark(mesh, current);
+		auto& curr_adj = last_pos.top();
+		if (curr_adj.empty())
+		{
+			parent.pop_back();
+			last_pos.pop();
+		}
+		else
+		{
+			auto* next = curr_adj.back();
+			curr_adj.pop_back();
+			if ( !vcg::tri::IsMarked(mesh, next) )
+			{
+				parent.push_back(next);
+				last_pos.emplace();
+				vcg::edge::VVStarVE(next, last_pos.top());
+			}
+		}
+	}
+	while ( !parent.empty() && parent.back() != end );
+
+	if (parent.empty())
+		throw MLException("Mesh is not connected!");
+	
+	parent.push_back(end);
+	return parent;
+}
+
+
+
+static std::stack<SkeletonVertex const*> getFloodFrontier(SkeletonMesh const& skeleton);
+void floodUnpaintedBranches(SkeletonMesh& skeleton)
+{
+	auto numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	auto flood_frontier = getFloodFrontier(skeleton);
 
 	do
 	{
@@ -176,10 +304,10 @@ void StrahlerBranchTagger::strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonM
 		std::vector<SkeletonVertex*> star;
 		vcg::edge::VVStarVE(vertex, star);
 
-		auto current_number = numbers[vertex->Index()];
+		auto current_number = numbers[vertex];
 		for (auto* adj : star)
 		{
-			auto& number = numbers[adj->Index()];
+			auto& number = numbers[adj];
 			if ( number == 0 )
 			{
 				number = current_number;
@@ -188,93 +316,37 @@ void StrahlerBranchTagger::strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonM
 		}
 	}
 	while ( !flood_frontier.empty() );
-
-	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
-	SkeletonToCMeshOAppend::MeshCopyConst(skeleton, converted_skeleton);
 }
+
+std::stack<SkeletonVertex const*> getFloodFrontier(SkeletonMesh const& skeleton)
+{
+	auto numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	std::stack<SkeletonVertex const*> frontier;
+	for (auto& vertex : skeleton.vert)
+	{
+		if ( (numbers[vertex] != 0) && (vcg::edge::VEDegree<SkeletonEdge>(&vertex) > 2) )
+		{
+			frontier.push(&vertex);
+		}
+	}
+
+	return frontier;
+}
+
+
+
+
 
 void StrahlerBranchTagger::strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& skeleton)
 {
 	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 	auto original_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(mesh, ATTRIBUTE_STRAHLER_NUMBER);
 	auto original_to_skeleton = CMeshOAllocator::GetPerVertexAttribute<uint>(mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
+
 	for (int i = 0; i < mesh.VN(); i++)
 	{
 		original_numbers[i] = skeleton_numbers[ original_to_skeleton[i] ];
 	}
-}
-
-template<typename MESH>
-int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
-{
-	for (int i = 0; i < mesh.vert.size(); i++)
-	{
-		auto& node = mesh.vert[i];
-		if ((point - node.cP()).SquaredNorm() < 0.0001f)
-			return i;
-	}
-	return -1;
-}
-template<typename MESH>
-bool isVertexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
-{
-	return getVertexIndexInMesh<MESH>(point, mesh) != -1;
-}
-
-std::vector<SkeletonVertex const*> findPath(SkeletonMesh const& mesh, int start, int end)
-{
-	int current = start;
-	std::stack<int> parent;
-	parent.push(start);
-	std::stack<int> last_pos;
-	last_pos.push(0);
-
-	do
-	{
-		if (current == end)
-		{
-			parent.push(end);
-		}
-		else
-		{			
-			auto* vert = &mesh.vert[current];
-			std::vector<SkeletonVertex*> star;
-			vcg::edge::VVStarVE(vert, star);
-
-			auto last = last_pos.top();
-			if (last == star.size())
-			{
-				if (parent.empty())
-					throw MLException("Mesh is not connected!");
-
-				current = parent.top();
-				parent.pop();
-				last_pos.pop();
-			}
-			else
-			{
-				auto next = star[last]->Index();
-				last_pos.top()++;
-				if (next != parent.top())
-				{
-					parent.push(current);
-					current = next;
-					last_pos.push(0);
-				}
-			}
-		}
-	}
-	while ( parent.top() != end );
-
-	std::vector<SkeletonVertex const*> path;
-	do
-	{
-		path.push_back( &mesh.vert[parent.top()] );
-		parent.pop();
-	}
-	while( !parent.empty() );
-
-	return path;
 }
 
 }

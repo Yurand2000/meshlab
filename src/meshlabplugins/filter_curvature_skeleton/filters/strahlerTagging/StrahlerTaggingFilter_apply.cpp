@@ -69,11 +69,11 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 	{
 		auto colors = makeStrahlerColors(tree);
 
-		original->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-		strahlerNumberToVertexColor(original->cm, colors);
-
 		skeleton->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
 		strahlerNumberToVertexColor(skeleton->cm, colors);
+
+		original->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
+		strahlerNumberToVertexColor(original->cm, colors);
 	}
 
 	if (save_gen_tree)
