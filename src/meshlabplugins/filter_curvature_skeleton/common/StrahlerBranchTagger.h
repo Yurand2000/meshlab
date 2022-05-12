@@ -36,7 +36,6 @@ class StrahlerBranchTagger
 {
 public:
 	static void generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index, Scalarm percentile);
-	static void calculateStrahlerNumbers(SkeletonMesh& tree, int root_index);
 	static void strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int root_index);
 	static void strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& skeleton);
 

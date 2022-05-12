@@ -22,7 +22,7 @@
 ****************************************************************************/
 
 #include "SkeletonizeFilter.h"
-#include "cgalAdapter/MeshSkeletonizer.h"
+#include "cgalAdapter/CGALMeshConverter.h"
 #include "AlgorithmSkeletonize.h"
 
 #define _USE_MATH_DEFINES

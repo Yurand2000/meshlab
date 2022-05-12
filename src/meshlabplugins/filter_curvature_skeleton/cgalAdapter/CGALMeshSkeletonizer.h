@@ -24,60 +24,77 @@
 #ifndef FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
 #define FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
 
-#include "typedefs.h"
-#include <common/ml_document/mesh_document.h>
+#include <common/ml_document/base_types.h>
+#include <CGAL/Mean_curvature_flow_skeletonization.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
 
-#include <unordered_map>
-
-namespace curvatureSkeleton { namespace CGalAdapter
+namespace curvatureSkeleton
 {
 
-struct MeshSkeletonizerParameters;
-
-class MeshSkeletonizer
+class CGALMeshSkeletonizer
 {
 public:
-	typedef std::unordered_map<uint, uint> MeshToSkeletonVertices;
+	struct Parameters;
+
+	typedef CGAL::Simple_cartesian<Scalarm> Kernel;
+	typedef Kernel::Point_3                 Point;
+	typedef CGAL::Surface_mesh<Point>       Mesh;
+	typedef CGAL::SM_Vertex_index           VertexIndex;
+
+	typedef CGAL::Mean_curvature_flow_skeletonization<Mesh> Skeletonizer;
+	typedef Skeletonizer::Skeleton                          Skeleton;
+	typedef Skeletonizer::Meso_skeleton                     MesoSkeleton;
+	typedef std::unordered_map<int, int> MeshToSkeletonVertices;
 
 public:
-	MeshSkeletonizer(CMeshO const& input);
-	MeshSkeletonizer(CMeshO const& input, MeshSkeletonizerParameters const& params);
-	~MeshSkeletonizer();
+	CGALMeshSkeletonizer(Mesh const& input);
+	CGALMeshSkeletonizer(Mesh const& input, Parameters const& params);
 
-	MeshSkeletonizer(MeshSkeletonizer& copy) = delete;
-	MeshSkeletonizer& operator=(MeshSkeletonizer& copy) = delete;
+	CGALMeshSkeletonizer(CGALMeshSkeletonizer& copy) = delete;
+	CGALMeshSkeletonizer& operator=(CGALMeshSkeletonizer& copy) = delete;
 
-	void   computeStep();
-	bool   hasConverged();
-	CMeshO getMesoSkeleton();
-	CMeshO getSkeleton();
+	void computeStep();
+	bool hasConverged();
+	MesoSkeleton getMesoSkeleton();
+	Skeleton getSkeleton();
 	MeshToSkeletonVertices getSkeletonVertexAssociations();
 
 private:
-	CGALSkeletonizer* skeletonizer;
-	double            delta_area_threshold;
+	Skeletonizer skeletonizer;
 
-	double            original_area;
-	double            last_area;
-
-	CGALSkeleton	  skeleton;
-
-	void setSkeletonizerParameters(MeshSkeletonizerParameters const& params);
-	void generateSkeleton();
-};
-
-struct MeshSkeletonizerParameters
-{
-	double max_triangle_angle;
-	double min_edge_length;
-	double quality_speed_tradeoff;
-	double medially_centering_speed_tradeoff;
 	double delta_area_threshold;
+	double original_area;
+	double last_area;
 
-	MeshSkeletonizerParameters();
-	MeshSkeletonizerParameters(CMeshO const&);
+	Skeleton skeleton;
+
+	void setSkeletonizerParameters(Parameters const& params);
+	void generateSkeleton();
+
+public:
+	struct Parameters
+	{
+		/* All parameters are ignored if set to negative values.
+		 * They will use the default values from the CGAL library.
+		 */
+
+		double max_triangle_angle                = 110;
+		double min_edge_length                   = -1;
+		double quality_speed_tradeoff            = 20;
+		double medially_centering_speed_tradeoff = 40;
+		double delta_area_threshold              = 0.0001;
+
+		Parameters() = default;
+
+		template <typename MYMESH>
+		Parameters(MYMESH const& mesh)
+		{
+			min_edge_length = mesh.trBB().Diag() * 0.002; 
+		}
+	};
 };
 
-} } //FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER
+}
 
-#endif
+#endif //FILTERCURVATURESKELETON_CGAL_MESH_SKELETONIZER

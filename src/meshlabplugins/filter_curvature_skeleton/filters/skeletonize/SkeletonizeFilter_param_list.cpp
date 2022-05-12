@@ -22,7 +22,7 @@
 ****************************************************************************/
 
 #include "SkeletonizeFilter.h"
-#include "cgalAdapter/MeshSkeletonizer.h"
+#include "cgalAdapter/CGALMeshSkeletonizer.h"
 
 // default values
 #define MAX_ITERATIONS_DEFAULT 100
@@ -66,7 +66,7 @@ RichParameterList SkeletonizeFilter::initParameterList(FilterPlugin const&, Mesh
 {
 	RichParameterList parlst;
 
-	auto defaults = CGalAdapter::MeshSkeletonizerParameters(m.cm);
+	auto defaults = CGALMeshSkeletonizer::Parameters(m.cm);
 	parlst.addParam(RichInt(PARAM_MAX_ITERATIONS, MAX_ITERATIONS_DEFAULT, MAX_ITERATIONS_DISPLAYNAME, MAX_ITERATIONS_DESCRIPTION, false, GENERIC_CATEGORY));
 	parlst.addParam(RichDynamicFloat(PARAM_DELTA_AREA_TERMINATION, defaults.delta_area_threshold, 0, 1, DELTA_AREA_TERMINATION_DISPLAYNAME, DELTA_AREA_TERMINATION_DESCRIPTION, false, GENERIC_CATEGORY));
 	parlst.addParam(RichBool(PARAM_GENERATE_INTERMEDIATE_MESHES, GENERATE_INTERMEDIATE_MESHES_DEFAULT, GENERATE_INTERMEDIATE_MESHES_DISPLAYNAME, GENERATE_INTERMEDIATE_MESHES_DESCRIPTION, false, GENERIC_CATEGORY));

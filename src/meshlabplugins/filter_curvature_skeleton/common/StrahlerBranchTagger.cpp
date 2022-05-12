@@ -81,68 +81,6 @@ void StrahlerBranchTagger::generateTreeMesh(SkeletonMesh& tree, CMeshO const& sk
 
 
 
-struct StrahlerNode
-{
-	SkeletonVertex* node;
-	SkeletonVertex* parent;
-};
-static std::stack<StrahlerNode> getTreeHierarchyReversed(SkeletonMesh& tree, int root_index);
-
-void StrahlerBranchTagger::calculateStrahlerNumbers(SkeletonMesh& tree, int root_index)
-{
-	auto attribute = SkeletonAllocator::GetPerVertexAttribute<uint>(tree, ATTRIBUTE_STRAHLER_NUMBER);
-	for (int i = 0; i < tree.VN(); i++)
-		attribute[i] = 1;
-
-	auto tree_reverse = getTreeHierarchyReversed(tree, root_index);
-
-	//strahler number assignment from leafs to the root
-	while (!tree_reverse.empty())
-	{
-		auto top = tree_reverse.top();
-		tree_reverse.pop();
-
-		auto curr_num = attribute[top.node];
-		auto& parent_num = attribute[top.parent];
-		if (parent_num < curr_num + 1)
-			parent_num = curr_num + 1;
-	}
-}
-
-std::stack<StrahlerNode> getTreeHierarchyReversed(SkeletonMesh& tree, int root_index)
-{
-	std::stack<StrahlerNode> tree_reverse;
-
-	std::queue<SkeletonVertex*> frontier;
-	vcg::tri::UnMarkAll(tree);
-	frontier.push(&tree.vert[root_index]);
-	do
-	{
-		auto* vertex = frontier.front();
-		vcg::tri::Mark(tree, vertex);
-		frontier.pop();
-
-		std::vector<SkeletonVertex*> verts;
-		vcg::edge::VVStarVE(vertex, verts);
-
-		for (auto* adj : verts)
-		{
-			if ( !vcg::tri::IsMarked(tree, adj) )
-			{
-				tree_reverse.push({adj, vertex});
-				frontier.push(adj);
-			}
-		}
-	}
-	while (!frontier.empty());
-
-	return tree_reverse;
-}
-
-
-
-
-
 struct BranchToColor
 {
 	SkeletonVertex* start;
@@ -162,7 +100,7 @@ void StrahlerBranchTagger::strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonM
 	SkeletonMeshTopology::VertexEdge(converted_skeleton);
 	vcg::tri::InitVertexIMark(converted_skeleton);
 	vcg::tri::InitEdgeIMark(converted_skeleton);
-	SkeletonAllocator::AddPerVertexAttribute<uint>(converted_skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	SkeletonAllocator::AddPerVertexAttribute<Scalarm>(converted_skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 
 	//set strahler numbers on vertices
 	auto branches_to_color = getBranchesToColor(tree, converted_skeleton);
@@ -173,7 +111,7 @@ void StrahlerBranchTagger::strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonM
 	floodUnpaintedBranches(converted_skeleton);
 
 	//reconvert the skeleton to CMeshO
-	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 	SkeletonToCMeshOAppend::MeshCopyConst(skeleton, converted_skeleton);
 }
 
@@ -181,7 +119,7 @@ static std::unordered_map<int, int> getTreeToSkeletonAssociations(SkeletonMesh c
 static std::vector<BranchToColor> getBranchesToColor(SkeletonMesh const& tree, SkeletonMesh& skeleton)
 {
 	auto tree_to_skeleton_map = getTreeToSkeletonAssociations(tree, skeleton);
-	auto tree_numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(tree, ATTRIBUTE_STRAHLER_NUMBER);
+	auto tree_numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(tree, ATTRIBUTE_STRAHLER_NUMBER);
 
 	std::vector<BranchToColor> branches_to_color;
 	branches_to_color.reserve(tree.EN());
@@ -235,7 +173,7 @@ int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
 static std::vector<SkeletonVertex*> findPath(SkeletonMesh& mesh, SkeletonVertex* start, SkeletonVertex* end);
 void paintBranch(SkeletonMesh& skeleton, BranchToColor& branch_to_color)
 {
-	auto numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	auto numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 	auto path = findPath(skeleton, branch_to_color.start, branch_to_color.end);
 	for (auto* vertex : path)
 	{
@@ -293,7 +231,7 @@ std::vector<SkeletonVertex*> findPath(SkeletonMesh& mesh, SkeletonVertex* start,
 static std::stack<SkeletonVertex const*> getFloodFrontier(SkeletonMesh const& skeleton);
 void floodUnpaintedBranches(SkeletonMesh& skeleton)
 {
-	auto numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	auto numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 	auto flood_frontier = getFloodFrontier(skeleton);
 
 	do
@@ -320,7 +258,7 @@ void floodUnpaintedBranches(SkeletonMesh& skeleton)
 
 std::stack<SkeletonVertex const*> getFloodFrontier(SkeletonMesh const& skeleton)
 {
-	auto numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	auto numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 	std::stack<SkeletonVertex const*> frontier;
 	for (auto& vertex : skeleton.vert)
 	{
@@ -339,8 +277,8 @@ std::stack<SkeletonVertex const*> getFloodFrontier(SkeletonMesh const& skeleton)
 
 void StrahlerBranchTagger::strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& skeleton)
 {
-	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
-	auto original_numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(mesh, ATTRIBUTE_STRAHLER_NUMBER);
+	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	auto original_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(mesh, ATTRIBUTE_STRAHLER_NUMBER);
 	auto original_to_skeleton = CMeshOAllocator::GetPerVertexAttribute<uint>(mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
 
 	for (int i = 0; i < mesh.VN(); i++)

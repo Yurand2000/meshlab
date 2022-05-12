@@ -31,8 +31,8 @@
 #define SKELETON_MESH_DESCRIPTION "The skeleton mesh."
 #define PARAMETER_CATEGORY "Parameters"
 #define ROOT_INDEX_DISPLAYNAME "Root Vertex Index"
-#define ROOT_INDEX_DESCRIPTION "The index of the root vertex of the skeleton tree, which defaults to the lowest point of the skeleton "\
-							   "on the Y axis. If your model is aligned with the Y axis as the up direction, you probably don't need to change this value, "\
+#define ROOT_INDEX_DESCRIPTION "The index of the root vertex of the skeleton tree. Defaults to -1 meaning that the algorithm will use the lowest point "\
+							   "on the Y axis of the skeleton. If your model is aligned with the Y axis as the up direction, you probably don't need to change this value, "\
 							   "else you might need to find the vertex index.\nTUTORIAL: You can get this index by using the \'Get Info\' tool, "\
 							   "switching to \'Select Vertices\' mode, selecting the root vertex and logging its information to the console. "\
 							   "Then copy the index number here."
@@ -49,7 +49,6 @@ namespace curvatureSkeleton
 {
 
 static uint getSelectedMeshIndex(MeshDocument const&);
-static uint findLowestVertexIndexOnY(CMeshO const& mesh);
 
 RichParameterList StrahlerTaggingFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
 {
@@ -57,10 +56,10 @@ RichParameterList StrahlerTaggingFilter::initParameterList(FilterPlugin const& p
 
 	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, 0, &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
 	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, getSelectedMeshIndex(m), &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
-	parlst.addParam(RichInt(PARAM_ROOT_INDEX, findLowestVertexIndexOnY(m.mm()->cm), ROOT_INDEX_DISPLAYNAME, ROOT_INDEX_DESCRIPTION, false, PARAMETER_CATEGORY));
+	parlst.addParam(RichInt(PARAM_ROOT_INDEX, -1, ROOT_INDEX_DISPLAYNAME, ROOT_INDEX_DESCRIPTION, false, PARAMETER_CATEGORY));
 	parlst.addParam(RichFloat(PARAM_MIN_EDGE_SIZE, 10.f, MIN_EDGE_SIZE_DISPLAYNAME, MIN_EDGE_SIZE_DESCRIPTION, false, PARAMETER_CATEGORY));
 	parlst.addParam(RichBool(PARAM_STRAHLER_NUMBERS_TO_COLOR, true, STRAHLER_TO_COLOR_DISPLAYNAME, STRAHLER_TO_COLOR_DESCRIPTION, false, PARAMETER_CATEGORY));
-	parlst.addParam(RichBool(PARAM_SAVE_GENERATED_TREE, false, SAVE_GENERATED_TREE_DISPLAYNAME, SAVE_GENERATED_TREE_DESCRIPTION, false, MISCELLANEOUS_CATEGORY));
+	parlst.addParam(RichBool(PARAM_SAVE_GENERATED_TREE, true, SAVE_GENERATED_TREE_DISPLAYNAME, SAVE_GENERATED_TREE_DESCRIPTION, false, MISCELLANEOUS_CATEGORY));
 	return parlst;
 }
 
@@ -73,21 +72,6 @@ uint getSelectedMeshIndex(MeshDocument const& m)
 			return i;
 	}
 	return 0;
-}
-
-uint findLowestVertexIndexOnY(CMeshO const& mesh)
-{
-	uint    min_index = 0;
-	Scalarm min_y     = std::numeric_limits<Scalarm>::max();
-	for (uint i = 0; i < mesh.vert.size(); i++) {
-		auto vert_y = mesh.vert[i].P().Y();
-		if (vert_y < min_y) {
-			min_y     = vert_y;
-			min_index = i;
-		}
-	}
-
-	return min_index;
 }
 
 }

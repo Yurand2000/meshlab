@@ -51,7 +51,7 @@ std::map<std::string, QVariant> AlgorithmSkeletonize::apply(
 	bool skeleton_distance_in_mesh_quality)
 {
 	checkSelectedMesh();
-	skeletonizer         = std::make_unique<Skeletonizer>(mesh, parameters);
+	skeletonizer         = std::make_unique<Skeletonizer>( Converter::toCGALMesh(mesh), parameters);
 	int total_iterations = skeletonize(max_iterations, generate_intermediate_meshes);
 	generateSkeleton(skeleton_distance_in_mesh_quality);
 	addNewMeshes();
@@ -96,7 +96,7 @@ bool AlgorithmSkeletonize::computeIteration()
 
 void AlgorithmSkeletonize::generateIntermediateMesh(int iteration_num)
 {
-	auto mesoSkeleton = skeletonizer->getMesoSkeleton();
+	auto mesoSkeleton = Converter::CGALMesoSkeletonToMesh(skeletonizer->getMesoSkeleton());
 	new_meshes.push_back(
 		std::make_pair(
 			mesoSkeleton,
@@ -108,7 +108,7 @@ void AlgorithmSkeletonize::generateSkeleton(bool skeleton_distance_in_mesh_quali
 {
 	callback_pos(98, "Generating skeleton...");
 
-	auto skeleton         = skeletonizer->getSkeleton();
+	auto skeleton         = Converter::CGALSkeletonToMesh(skeletonizer->getSkeleton());
 	auto mesh_to_skeleton = skeletonizer->getSkeletonVertexAssociations();
 
 	document.mm()->setMeshModified(true);

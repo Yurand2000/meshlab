@@ -26,7 +26,7 @@
 
 #define F_FILTERID	  FilterCurvatureSkeleton::SKELETONIZE
 #define F_DISPLAYNAME "Skeletonize"
-#define F_DESCRIPTION "Perform the skeletonization of the given mesh. Some of the parameters can be adjusted to get finer or faster results."\
+#define F_DESCRIPTION "Perform the skeletonization of the given mesh."\
 " The most important parameters are edge collapsing length, which determines the overall resolution of the resulting skeleton and"\
 " the quality speed and medially centering tradeoff values, which control the convergence speed at the cost of the quality of the resulting skeleton.<br /><br />"\
 " The parameters referenced in the paper are <b>Omega_L, Omega_H, Omega_M, and Epsilon</b>. The <b>Omega_L</b> parameter is considered always as 1 and it is not needed"\

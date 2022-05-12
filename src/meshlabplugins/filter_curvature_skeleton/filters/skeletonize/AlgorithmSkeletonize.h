@@ -26,7 +26,8 @@
 
 #include <memory>
 #include <common/plugins/interfaces/filter_plugin.h>
-#include "cgalAdapter/MeshSkeletonizer.h"
+#include "cgalAdapter/CGALMeshConverter.h"
+#include "cgalAdapter/CGALMeshSkeletonizer.h"
 
 namespace curvatureSkeleton
 {
@@ -34,8 +35,10 @@ namespace curvatureSkeleton
 class AlgorithmSkeletonize
 {
 public:
-	typedef CGalAdapter::MeshSkeletonizer           Skeletonizer;
-	typedef CGalAdapter::MeshSkeletonizerParameters Parameters;
+	typedef CGALMeshConverter<CMeshO>            Converter;
+	typedef CGALMeshSkeletonizer                 Skeletonizer;
+	typedef Skeletonizer::Parameters             Parameters;
+	typedef Skeletonizer::MeshToSkeletonVertices MeshToSkeletonVertices;
 
 private:
 	typedef std::vector<std::pair<CMeshO, QString>> NewMeshVector;
@@ -61,10 +64,11 @@ private:
 	bool computeIteration();
 	void generateIntermediateMesh(int current_iteration);
 
-	void saveMeshToSkeletonIndex(Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton);
+	void saveMeshToSkeletonIndex(MeshToSkeletonVertices const& mesh_to_skeleton);
 	void saveMeshToSkeletonDistance(
-		bool skeleton_distance_in_mesh_quality, CMeshO const& skeleton,
-		Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton);
+		bool skeleton_distance_in_mesh_quality,
+		CMeshO const& skeleton,
+		MeshToSkeletonVertices const& mesh_to_skeleton);
 
 private:
 	MeshDocument& document;

@@ -25,6 +25,7 @@
 
 #include "common/StrahlerBranchTagger.h"
 #include <vcg/complex/algorithms/update/color.h>
+#include <vcg/complex/algorithms/stat.h>
 
 namespace curvatureSkeleton
 {
@@ -52,16 +53,30 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 	auto save_gen_tree = params.getBool(PARAM_SAVE_GENERATED_TREE);
 	auto root_index    = params.getInt(PARAM_ROOT_INDEX);
 	auto min_edge_size = params.getFloat(PARAM_MIN_EDGE_SIZE);
+	
+    //get the lowest point on the Y axis
+    if (root_index < 0)
+    {
+		Scalarm min_y = std::numeric_limits<Scalarm>::max();
+		for (auto& vert : skeleton->cm.vert)
+		{
+			if (vert.P().Y() < min_y)
+			{
+				min_y      = vert.P().Y();
+				root_index = vert.Index();
+			}
+		}
+    }
 
 	SkeletonMesh tree;
 	StrahlerBranchTagger::generateTreeMesh(tree, skeleton->cm, root_index, min_edge_size);
 	vcg::tri::InitVertexIMark(tree);
 	vcg::tri::InitEdgeIMark(tree);
 
-	auto root_pos = skeleton->cm.vert[root_index].cP();
+	auto root_pos        = skeleton->cm.vert[root_index].cP();
 	int  tree_root_index = findRootIndex(tree, root_pos);
 
-	StrahlerBranchTagger::calculateStrahlerNumbers(tree, tree_root_index);
+	vcg::tri::Stat<SkeletonMesh>::CalculateStrahlerNumbers(tree, tree_root_index);
 	StrahlerBranchTagger::strahlerNumbersToSkeleton(skeleton->cm, tree, root_index);
 	StrahlerBranchTagger::strahlerNumbersToOriginalMesh(original->cm, skeleton->cm);
 
@@ -79,7 +94,7 @@ std::map<std::string, QVariant> StrahlerTaggingFilter::applyFilter(
 	if (save_gen_tree)
 	{
 		CMeshO tree_mesh;
-		auto numbers = CMeshOAllocator::AddPerVertexAttribute<uint>(tree_mesh, ATTRIBUTE_STRAHLER_NUMBER);
+		auto numbers = CMeshOAllocator::AddPerVertexAttribute<Scalarm>(tree_mesh, ATTRIBUTE_STRAHLER_NUMBER);
 		SkeletonToCMeshOAppend::MeshCopyConst(tree_mesh, tree);
 		auto mesh = document.addNewMesh(tree_mesh, "Tree-" + original->label(), false);
 		mesh->clearDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
@@ -102,7 +117,7 @@ int findRootIndex(SkeletonMesh const& tree, vcg::Point3<Scalarm> root_pos)
 
 std::vector<Color> makeStrahlerColors(SkeletonMesh const& tree_mesh)
 {
-	auto tree_numbers = SkeletonAllocator::GetPerVertexAttribute<uint>(tree_mesh, ATTRIBUTE_STRAHLER_NUMBER);
+	auto tree_numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(tree_mesh, ATTRIBUTE_STRAHLER_NUMBER);
 
 	uint min = 1, max = 1;
 	for (int i = 0; i < tree_mesh.VN(); i++)
@@ -123,7 +138,7 @@ std::vector<Color> makeStrahlerColors(SkeletonMesh const& tree_mesh)
 
 void strahlerNumberToVertexColor(CMeshO& mesh, std::vector<Color> const& colors)
 {
-	auto numbers = CMeshOAllocator::GetPerVertexAttribute<uint>(mesh, ATTRIBUTE_STRAHLER_NUMBER);
+	auto numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(mesh, ATTRIBUTE_STRAHLER_NUMBER);
 	for (int i = 0; i < mesh.VN(); i++)
 	{
 		auto& vertex = mesh.vert[i];
