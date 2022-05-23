@@ -23,7 +23,6 @@
 
 #include "StrahlerBranchTagger.h"
 
-#include "additionalAttributeNames.h"
 #include "SimplifySkeleton.h"
 
 #include <queue>
@@ -33,6 +32,8 @@
 #include <vcg/complex/complex.h>
 #include <vcg/complex/algorithms/stat.h>
 #include <common/mlexception.h>
+
+#define ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME "skeleton_index"
 
 namespace curvatureSkeleton
 {

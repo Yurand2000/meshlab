@@ -24,7 +24,6 @@
 #ifndef FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
 #define FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
 
-#include <memory>
 #include <common/plugins/interfaces/filter_plugin.h>
 #include "cgalAdapter/CGALMeshConverter.h"
 #include "cgalAdapter/CGALMeshSkeletonizer.h"
@@ -37,8 +36,16 @@ class AlgorithmSkeletonize
 public:
 	typedef CGALMeshConverter<CMeshO>            Converter;
 	typedef CGALMeshSkeletonizer                 Skeletonizer;
-	typedef Skeletonizer::Parameters             Parameters;
-	typedef Skeletonizer::MeshToSkeletonVertices MeshToSkeletonVertices;
+	typedef Skeletonizer::MeshToSkeletonVertices MeshToSkeleton;
+
+	struct Parameters
+	{
+		Skeletonizer::Parameters skeletonizer_params;
+		int                      max_iterations;
+		bool                     save_mesoskeletons;
+		bool                     extend_branches;
+		Scalarm                  extend_branches_angle;
+	};
 
 private:
 	typedef std::vector<std::pair<CMeshO, QString>> NewMeshVector;
@@ -46,40 +53,34 @@ private:
 public:
 	AlgorithmSkeletonize(
 		MeshDocument&              document,
-		Parameters&				   parameters,
+		Parameters				   parameters,
 		vcg::CallBackPos&		   callback_pos,
 		MeshLabPluginLogger const& logger);
 
-	std::map<std::string, QVariant> apply(
-		int  max_iterations,
-		bool generate_intermediate_meshes,
-		bool skeleton_distance_in_mesh_quality);
+	std::map<std::string, QVariant> apply();
 
 private:
 	void checkSelectedMesh() const;
-	int  skeletonize(int max_iterations, bool generate_intermediate_meshes);
-	void generateSkeleton(bool skeleton_distance_in_mesh_quality);
+	int  skeletonize(Skeletonizer& skeletonizer);
+	void generateSkeleton(Skeletonizer& skeletonizer);
 	void addNewMeshes();
 
-	bool computeIteration();
-	void generateIntermediateMesh(int current_iteration);
+	void generateIntermediateMesh(Skeletonizer& skeletonizer, int current_iteration);
 
-	void saveMeshToSkeletonIndex(MeshToSkeletonVertices const& mesh_to_skeleton);
+	void saveMeshToSkeletonIndex(MeshToSkeleton const& mesh_to_skeleton);
 	void saveMeshToSkeletonDistance(
-		bool skeleton_distance_in_mesh_quality,
-		CMeshO const& skeleton,
-		MeshToSkeletonVertices const& mesh_to_skeleton);
+		CMeshO const& skeleton, MeshToSkeleton const& mesh_to_skeleton);
+
+	CMeshO& getMesh() const;
+	QString getMeshName() const;
 
 private:
-	MeshDocument& document;
-	vcg::CallBackPos& callback_pos;
+	MeshDocument&              document;
+	vcg::CallBackPos&          callback_pos;
 	MeshLabPluginLogger const& logger;
-	Parameters& parameters;
-	CMeshO& mesh;
+	Parameters                 parameters;
 
-	QString       mesh_name;
-	std::unique_ptr<Skeletonizer> skeletonizer;
-	NewMeshVector new_meshes;
+	NewMeshVector                 new_meshes;
 };
 
 }

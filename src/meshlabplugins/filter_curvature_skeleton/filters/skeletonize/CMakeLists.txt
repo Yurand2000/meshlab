@@ -1,13 +1,11 @@
 #filter_curvature_skeleton/filters/skeletonize
 set (SOURCES
-	"AlgorithmSkeletonize.cpp"
 	"SkeletonizeFilter.cpp"
 	"SkeletonizeFilter_apply.cpp"
 	"SkeletonizeFilter_param_list.cpp"
 )
 
 set (HEADERS
-	"AlgorithmSkeletonize.h"
 	"SkeletonizeFilter.h"
 )
 

@@ -23,7 +23,6 @@
 
 #include "BranchExtender.h"
 
-#include "additionalAttributeNames.h"
 #include "SkeletonMesh.h"
 
 #include <vector>
@@ -31,6 +30,8 @@
 #include <common/plugins/interfaces/filter_plugin.h>
 #include <vcg/complex/complex.h>
 #include <vcg/complex/append.h>
+
+#define ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME "skeleton_index"
 
 namespace curvatureSkeleton
 {

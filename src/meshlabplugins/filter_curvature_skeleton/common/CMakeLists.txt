@@ -1,17 +1,18 @@
 #filter_curvature_skeleton/common
 set (SOURCES
 	"TemplateFilter.cpp"
-
+	
+	"AlgorithmSkeletonize.cpp"
 	"BranchExtender.cpp"
 	"SimplifySkeleton.cpp"
 	"StrahlerBranchTagger.cpp"
 )
 
 set (HEADERS
-	"additionalAttributeNames.h"
 	"TemplateFilter.h"
 	"SkeletonMesh.h"
-
+	
+	"AlgorithmSkeletonize.h"
 	"BranchExtender.h"
 	"SimplifySkeleton.h"
 	"StrahlerBranchTagger.h"

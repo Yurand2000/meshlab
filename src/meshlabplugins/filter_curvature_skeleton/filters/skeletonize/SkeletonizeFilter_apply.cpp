@@ -22,38 +22,35 @@
 ****************************************************************************/
 
 #include "SkeletonizeFilter.h"
-#include "cgalAdapter/CGALMeshConverter.h"
-#include "AlgorithmSkeletonize.h"
 
-#define _USE_MATH_DEFINES
-#include <cmath>
 #include <string>
+#include <vcg/math/base.h>
+
+#include "cgalAdapter/CGALMeshConverter.h"
+#include "common/AlgorithmSkeletonize.h"
 
 namespace curvatureSkeleton
 {
 
-static AlgorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList const& params);
-static int getIterationCount(RichParameterList const& params);
-static bool getGenerateIntermediateMeshes(RichParameterList const& params);
-static bool getSaveSkeletonDistance(RichParameterList const& params);
+typedef CGALMeshConverter<CMeshO>            Converter;
+typedef CGALMeshSkeletonizer                 Skeletonizer;
+typedef Skeletonizer::MeshToSkeletonVertices MeshToSkeletonVertices;
+
+static AlgorithmSkeletonize::Parameters getParameters(RichParameterList const& params);
 
 std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 	FilterPlugin const&      plugin,
-	RichParameterList const& params,
+	RichParameterList const& rich_params,
 	MeshDocument&            document,
 	unsigned int&,
 	vcg::CallBackPos* callback)
 {
 	try {
 		auto& selected_mesh = document.mm()->cm;
-		checkParameters(params, *callback);
+		checkParameters(rich_params, *callback);
 
-		auto skel_params   = getSkeletonizerParameters(params);
-		int  iterations    = getIterationCount(params);
-		bool gen_meshes    = getGenerateIntermediateMeshes(params);
-		bool skel_distance = getSaveSkeletonDistance(params);
-		return AlgorithmSkeletonize(document, skel_params, *callback, plugin)
-			.apply(iterations, gen_meshes, skel_distance);
+		auto params = getParameters(rich_params);
+		return AlgorithmSkeletonize(document, params, *callback, plugin).apply();
 	}
 	catch (MLException e) {
 		throw e;
@@ -64,23 +61,13 @@ std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 }
 
 
+
 void SkeletonizeFilter::checkParameters(RichParameterList const& params, vcg::CallBackPos& callback)
 {
 	callback(0, "Setup: Checking Parameters...");
 	if (params.getInt(PARAM_MAX_ITERATIONS) < 1)
 	{
 		throw MLException("Number of iterations cannot be less than 1.");
-	}
-
-	if (params.getDynamicFloat(PARAM_DELTA_AREA_TERMINATION) <= 0) {
-		throw MLException("Delta area convergence cannot be zero or negative.");
-	}
-
-	if (params.getDynamicFloat(PARAM_MAX_ANGLE) < (90)) {
-		throw MLException("Max triangle angle cannot be less than 90 degrees.");
-	}
-	if (params.getDynamicFloat(PARAM_MAX_ANGLE) >= (180)) {
-		throw MLException("Max triangle angle cannot be greater than 180 degrees.");
 	}
 
 	if (params.getAbsPerc(PARAM_MIN_EDGE_LENGTH) <= 0)
@@ -100,9 +87,25 @@ void SkeletonizeFilter::checkParameters(RichParameterList const& params, vcg::Ca
 	}
 }
 
-AlgorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList const& params)
+static Skeletonizer::Parameters getSkeletonizerParameters(RichParameterList const& params);
+
+static AlgorithmSkeletonize::Parameters getParameters(RichParameterList const& rich_params)
 {
-	AlgorithmSkeletonize::Parameters skel_params = {};
+	AlgorithmSkeletonize::Parameters params;
+	params.skeletonizer_params   = getSkeletonizerParameters(rich_params);
+
+	params.max_iterations        = rich_params.getInt(PARAM_MAX_ITERATIONS);
+	params.save_mesoskeletons    = rich_params.getBool(PARAM_GENERATE_INTERMEDIATE_MESHES);
+
+	params.extend_branches       = rich_params.getBool(PARAM_DO_EXTEND_BRANCHES);
+	params.extend_branches_angle = vcg::math::ToRad( rich_params.getDynamicFloat(PARAM_EXTENSION_CONE_ANGLE) ); 
+
+	return params;
+}
+
+Skeletonizer::Parameters getSkeletonizerParameters(RichParameterList const& params)
+{
+	Skeletonizer::Parameters skel_params = {};
 
 	skel_params.delta_area_threshold   = params.getDynamicFloat(PARAM_DELTA_AREA_TERMINATION);
 	skel_params.max_triangle_angle     = params.getDynamicFloat(PARAM_MAX_ANGLE);
@@ -114,21 +117,6 @@ AlgorithmSkeletonize::Parameters getSkeletonizerParameters(RichParameterList con
 			params.getFloat(PARAM_MEDIALLY_CENTERING_TRADEOFF);
 
 	return skel_params;
-}
-
-int getIterationCount(RichParameterList const& params)
-{
-	return params.getInt(PARAM_MAX_ITERATIONS);
-}
-
-bool getGenerateIntermediateMeshes(RichParameterList const& params)
-{
-	return params.getBool(PARAM_GENERATE_INTERMEDIATE_MESHES);
-}
-
-bool getSaveSkeletonDistance(RichParameterList const& params)
-{
-	return params.getBool(PARAM_SAVE_SKELETAL_DISTANCE_TO_MESH_QUALITY);
 }
 
 }
