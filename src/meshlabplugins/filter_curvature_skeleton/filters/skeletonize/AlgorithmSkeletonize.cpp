@@ -131,16 +131,19 @@ void AlgorithmSkeletonize::addNewMeshes()
 
 void AlgorithmSkeletonize::saveMeshToSkeletonIndex(Skeletonizer::MeshToSkeletonVertices const& mesh_to_skeleton)
 {
-	auto iterator = vcg::tri::Allocator<CMeshO>::GetPerVertexAttribute<uint>(
+	auto iterator = vcg::tri::Allocator<CMeshO>::GetPerVertexAttribute<Scalarm>(
 		mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
 
-	for (uint i = 0; i < mesh.vert.size(); i++)
+	for (auto& vertex : mesh.vert)
 	{
-		auto it = mesh_to_skeleton.find(i);
+		auto it = mesh_to_skeleton.find(vertex.Index());
 		if (it != mesh_to_skeleton.end())
 		{
-			uint skel_index = it->second;
-			iterator[i]     = skel_index;
+			iterator[vertex] = it->second;
+		}
+		else
+		{
+			iterator[vertex] = -1;
 		}
 	}
 }

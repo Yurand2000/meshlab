@@ -279,7 +279,7 @@ void StrahlerBranchTagger::strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& s
 {
 	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
 	auto original_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(mesh, ATTRIBUTE_STRAHLER_NUMBER);
-	auto original_to_skeleton = CMeshOAllocator::GetPerVertexAttribute<uint>(mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
+	auto original_to_skeleton = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
 
 	for (int i = 0; i < mesh.VN(); i++)
 	{
