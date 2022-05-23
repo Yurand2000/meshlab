@@ -44,7 +44,6 @@ public:
 	// possible filters
 	enum {
 		SKELETONIZE,
-		EXTEND_BRANCHES,
 		CALCULATE_STRAHLER_NUMBERS
 	};
 

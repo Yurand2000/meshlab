@@ -10,5 +10,4 @@ list(TRANSFORM HEADERS PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 target_sources(${FILTER_NAME} PRIVATE ${SOURCES} ${HEADERS})
 
 add_subdirectory(skeletonize)
-add_subdirectory(extendBranches)
 add_subdirectory(strahlerTagging)
