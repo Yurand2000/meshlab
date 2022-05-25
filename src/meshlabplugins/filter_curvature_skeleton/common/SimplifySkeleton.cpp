@@ -80,8 +80,8 @@ void SimplifySkeleton::collapseShortEdges(SkeletonMesh& skeleton, int root_node,
 			auto  root_idx  = (edge->V(0) == vertex) ? 0 : 1;
 			auto  child_idx = 1 - root_idx;
 
-			//delete edge if it is too short and does not contain the root node
-			if ( !vcg::tri::IsMarked(skeleton, edge) && edge->V(0) != root_vertex && edge->V(1) != root_vertex )
+			//delete edge if it is too short and the root node is never collapsed on any other vertex
+			if ( !vcg::tri::IsMarked(skeleton, edge) && edge->V(child_idx) != root_vertex )
 			{
 				auto sqr_length = (edge->P(0) - edge->P(1)).SquaredNorm();
 				if (sqr_length <= min_length)
