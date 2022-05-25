@@ -32,7 +32,23 @@
 namespace curvatureSkeleton
 {
 
-typedef std::pair<SkeletonEdge*, int>          EdgeToCollapse;
+struct EdgeToCollapse
+{
+	SkeletonEdge* edge;
+	int           vertex_to_collapse_onto; // can only be 0 or 1
+	Scalarm       edge_lenght_sqr;
+
+	EdgeToCollapse() = default;
+	EdgeToCollapse(SkeletonEdge* edge, int vertex_to_collapse_onto);
+
+	struct less
+	{
+		bool operator()(EdgeToCollapse const& lhs, EdgeToCollapse const& rhs) const;
+	};
+};
+
+Scalarm getEdgeLengthSqr(SkeletonEdge const* edge);
+
 typedef vcg::tri::UpdateTopology<SkeletonMesh> MeshTopology;
 typedef vcg::tri::Allocator<SkeletonMesh>      Allocator;
 
@@ -49,13 +65,20 @@ bool SimplifySkeleton::isMeshConnected(SkeletonMesh const& skeleton)
 	return true;
 }
 
+static void collapseTwoConnectedVertex(SkeletonMesh& skeleton, SkeletonVertex& vertex, int root_node);
+
 void SimplifySkeleton::collapseTwoConnectedVertices(SkeletonMesh& skeleton, int root_node)
 {
 	for (auto& vertex : skeleton.vert)
 	{
-		if (!vertex.IsD() && vertex.Index() != root_node)
-			vcg::edge::VEEdgeCollapse<SkeletonMesh>(skeleton, &vertex);
+		collapseTwoConnectedVertex(skeleton, vertex, root_node);
 	}
+}
+
+static void collapseTwoConnectedVertex(SkeletonMesh& skeleton, SkeletonVertex& vertex, int root_node)
+{
+	if ( !vertex.IsD() && vertex.Index() != root_node )
+		vcg::edge::VEEdgeCollapse<SkeletonMesh>(skeleton, &vertex);
 }
 
 void SimplifySkeleton::collapseShortEdges(SkeletonMesh& skeleton, int root_node, Scalarm min_length)
@@ -67,6 +90,7 @@ void SimplifySkeleton::collapseShortEdges(SkeletonMesh& skeleton, int root_node,
 	vcg::tri::UnMarkAll(skeleton);
 	auto root_vertex = &skeleton.vert[root_node];
 	frontier.push(root_vertex);
+
 	do
 	{
 		auto*  vertex  = frontier.front();
@@ -83,7 +107,7 @@ void SimplifySkeleton::collapseShortEdges(SkeletonMesh& skeleton, int root_node,
 			//delete edge if it is too short and the root node is never collapsed on any other vertex
 			if ( !vcg::tri::IsMarked(skeleton, edge) && edge->V(child_idx) != root_vertex )
 			{
-				auto sqr_length = (edge->P(0) - edge->P(1)).SquaredNorm();
+				auto sqr_length = getEdgeLengthSqr(edge); 
 				if (sqr_length <= min_length)
 					edges_to_collapse.emplace_back(edge, root_idx);
 
@@ -100,12 +124,37 @@ void SimplifySkeleton::collapseShortEdges(SkeletonMesh& skeleton, int root_node,
 	}
 	while (!frontier.empty());
 
-	for (auto& edge : edges_to_collapse)
+	std::sort(edges_to_collapse.begin(), edges_to_collapse.end(), EdgeToCollapse::less());
+	for (auto& edge_data : edges_to_collapse)
 	{
+		if ( !edge_data.edge->IsD() )
+		{
+			auto updated_length = getEdgeLengthSqr(edge_data.edge);
+			if (updated_length <= min_length) {
+				auto& collapsing_vertex = *edge_data.edge->V(edge_data.vertex_to_collapse_onto);
+				vcg::edge::VEEdgeCollapseNonManifold<SkeletonMesh>(
+					skeleton, edge_data.edge, edge_data.vertex_to_collapse_onto);
 
-		vcg::edge::VEEdgeCollapseNonManifold<SkeletonMesh>(
-			skeleton, edge.first, edge.second);
+				collapseTwoConnectedVertex(skeleton, collapsing_vertex, root_node);
+			}
+		}
 	}
+}
+
+EdgeToCollapse::EdgeToCollapse(SkeletonEdge* edge, int vertex_to_collapse_onto) :
+	edge( edge ),
+	vertex_to_collapse_onto( vertex_to_collapse_onto ),
+	edge_lenght_sqr( getEdgeLengthSqr(edge) )
+{ }
+
+bool EdgeToCollapse::less::operator()(EdgeToCollapse const& lhs, EdgeToCollapse const& rhs) const
+{
+	return lhs.edge_lenght_sqr < rhs.edge_lenght_sqr;
+}
+
+Scalarm getEdgeLengthSqr(SkeletonEdge const* edge)
+{
+	return vcg::SquaredDistance(edge->P(0), edge->P(1));
 }
 
 }

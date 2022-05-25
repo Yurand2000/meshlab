@@ -67,8 +67,6 @@ void StrahlerBranchTagger::generateTreeMesh(SkeletonMesh& tree, CMeshO const& sk
 	vcg::tri::Stat<SkeletonMesh>::ComputeEdgeLengthHistogram(converted_skeleton, histogram);
 	SimplifySkeleton::collapseShortEdges(converted_skeleton, root_index, histogram.Percentile(percentile / 100.f));
 
-	SimplifySkeleton::collapseTwoConnectedVertices(converted_skeleton, root_index);
-
 	//if everything went allright, copy to the given tree mesh
 	SkeletonToSkeletonAppend::MeshCopyConst(tree, converted_skeleton);
 	SkeletonMeshTopology::VertexEdge(tree);
