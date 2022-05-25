@@ -49,11 +49,11 @@ bool SimplifySkeleton::isMeshConnected(SkeletonMesh const& skeleton)
 	return true;
 }
 
-void SimplifySkeleton::collapseTwoConnectedVertices(SkeletonMesh& skeleton)
+void SimplifySkeleton::collapseTwoConnectedVertices(SkeletonMesh& skeleton, int root_node)
 {
 	for (auto& vertex : skeleton.vert)
 	{
-		if ( !vertex.IsD() )
+		if (!vertex.IsD() && vertex.Index() != root_node)
 			vcg::edge::VEEdgeCollapse<SkeletonMesh>(skeleton, &vertex);
 	}
 }
@@ -65,7 +65,8 @@ void SimplifySkeleton::collapseShortEdges(SkeletonMesh& skeleton, int root_node,
 
 	std::queue<SkeletonVertex*> frontier;
 	vcg::tri::UnMarkAll(skeleton);
-	frontier.push(&skeleton.vert[root_node]);
+	auto root_vertex = &skeleton.vert[root_node];
+	frontier.push(root_vertex);
 	do
 	{
 		auto*  vertex  = frontier.front();
@@ -79,8 +80,8 @@ void SimplifySkeleton::collapseShortEdges(SkeletonMesh& skeleton, int root_node,
 			auto  root_idx  = (edge->V(0) == vertex) ? 0 : 1;
 			auto  child_idx = 1 - root_idx;
 
-			//delete edge if it is too short
-			if ( !vcg::tri::IsMarked(skeleton, edge) )
+			//delete edge if it is too short and does not contain the root node
+			if ( !vcg::tri::IsMarked(skeleton, edge) && edge->V(0) != root_vertex && edge->V(1) != root_vertex )
 			{
 				auto sqr_length = (edge->P(0) - edge->P(1)).SquaredNorm();
 				if (sqr_length <= min_length)
@@ -101,6 +102,7 @@ void SimplifySkeleton::collapseShortEdges(SkeletonMesh& skeleton, int root_node,
 
 	for (auto& edge : edges_to_collapse)
 	{
+
 		vcg::edge::VEEdgeCollapseNonManifold<SkeletonMesh>(
 			skeleton, edge.first, edge.second);
 	}

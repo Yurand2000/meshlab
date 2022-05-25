@@ -61,17 +61,13 @@ void StrahlerBranchTagger::generateTreeMesh(SkeletonMesh& tree, CMeshO const& sk
 	if (!SimplifySkeleton::isMeshConnected(converted_skeleton))
 		throw MLException("Given graph mesh must be connected.");
 
-	if ( vcg::edge::VEDegree<SkeletonEdge>(&converted_skeleton.vert[root_index]) != 1 )
-		throw MLException("Given root node must be a border vertex.");
-
-
-	SimplifySkeleton::collapseTwoConnectedVertices(converted_skeleton);
+	SimplifySkeleton::collapseTwoConnectedVertices(converted_skeleton, root_index);
 
 	vcg::Histogram<Scalarm> histogram;
 	vcg::tri::Stat<SkeletonMesh>::ComputeEdgeLengthHistogram(converted_skeleton, histogram);
 	SimplifySkeleton::collapseShortEdges(converted_skeleton, root_index, histogram.Percentile(percentile / 100.f));
 
-	SimplifySkeleton::collapseTwoConnectedVertices(converted_skeleton);
+	SimplifySkeleton::collapseTwoConnectedVertices(converted_skeleton, root_index);
 
 	//if everything went allright, copy to the given tree mesh
 	SkeletonToSkeletonAppend::MeshCopyConst(tree, converted_skeleton);

@@ -33,7 +33,7 @@ class SimplifySkeleton
 {
 public:
 	static bool isMeshConnected(SkeletonMesh const& skeleton);
-	static void collapseTwoConnectedVertices(SkeletonMesh& skeleton);
+	static void collapseTwoConnectedVertices(SkeletonMesh& skeleton, int root_node);
 	static void collapseShortEdges(SkeletonMesh& skeleton, int root_node, Scalarm min_length);
 
 private:
