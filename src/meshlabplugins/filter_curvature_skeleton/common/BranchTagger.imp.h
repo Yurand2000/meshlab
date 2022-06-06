@@ -82,7 +82,7 @@ void BranchTagger<MESH>::generateTreeMesh(MESH& tree, MESH const& skeleton, int 
 	SimplifySkeleton<MESH>::collapseTwoConnectedVertices(converted_skeleton, root_index);
 
 	vcg::Histogram<Scalarm> histogram;
-	vcg::tri::Stat<SkeletonMesh>::ComputeEdgeLengthHistogram(converted_skeleton, histogram);
+	vcg::tri::Stat<MESH>::ComputeEdgeLengthHistogram(converted_skeleton, histogram);
 	SimplifySkeleton<MESH>::collapseShortEdges(converted_skeleton, root_index, histogram.Percentile(percentile / 100.f));
 
 	//if everything went allright, copy to the given tree mesh
@@ -102,7 +102,7 @@ void BranchTagger<MESH>::treeScalarAttributeToSkeleton(MESH& skeleton, MESH cons
 	vcg::tri::InitEdgeIMark(skeleton);
 
 	//prepare attribute
-	auto numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
+	auto numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
 	for (auto& vertex : skeleton.vert)
 	{
 		if (prioritize_small_values)
@@ -124,7 +124,7 @@ template<typename MESH>
 std::vector<detail::BranchToColor<MESH>> detail::getBranchesToColor<MESH>(MESH const& tree, MESH& skeleton, std::string attribute_name, bool prioritize_small_values)
 {
 	auto tree_to_skeleton_map = detail::getTreeToSkeletonAssociations(tree, skeleton);
-	auto tree_numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(tree, attribute_name);
+	auto tree_numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(tree, attribute_name);
 
 	std::function<bool(Scalarm const&, Scalarm const&)> less;
 	if (prioritize_small_values)
@@ -188,7 +188,7 @@ void detail::paintBranch<MESH>(MESH& skeleton, BranchToColor<MESH>& branch_to_co
 	else
 		less = std::greater<Scalarm>();
 
-	auto numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
+	auto numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
 	auto path = findPath(skeleton, branch_to_color.start, branch_to_color.end);
 	for (auto* vertex : path)
 	{
@@ -248,7 +248,7 @@ void detail::floodUnpaintedBranches(MESH& skeleton, std::string attribute_name, 
 {
 	auto null_number = (prioritize_small_values) ? 0 : std::numeric_limits<Scalarm>::max();
 
-	auto numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
+	auto numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
 	auto flood_frontier = detail::getFloodFrontier(skeleton, attribute_name);
 
 	while ( !flood_frontier.empty() )
@@ -275,11 +275,11 @@ void detail::floodUnpaintedBranches(MESH& skeleton, std::string attribute_name, 
 template<typename MESH>
 std::stack<typename MESH::VertexType const*> detail::getFloodFrontier(MESH const& skeleton, std::string attribute_name)
 {
-	auto numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
+	auto numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
 	std::stack<typename MESH::VertexType const*> frontier;
 	for (auto& vertex : skeleton.vert)
 	{
-		if ( (numbers[vertex] != 0) && (vcg::edge::VEDegree<MESH::EdgeType>(&vertex) > 2) )
+		if ( (numbers[vertex] != 0) && (vcg::edge::VEDegree<typename MESH::EdgeType>(&vertex) > 2) )
 		{
 			frontier.push(&vertex);
 		}
@@ -294,9 +294,9 @@ std::stack<typename MESH::VertexType const*> detail::getFloodFrontier(MESH const
 template<typename MESH>
 void BranchTagger<MESH>::skeletonScalarAttributeToOriginalMesh(MESH& mesh, MESH& skeleton, std::string attribute_name)
 {
-	auto skeleton_numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
-	auto original_numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(mesh, attribute_name);
-	auto original_to_skeleton = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
+	auto skeleton_numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
+	auto original_numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(mesh, attribute_name);
+	auto original_to_skeleton = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
 
 	for (auto& vert : mesh.vert)
 	{
@@ -309,7 +309,7 @@ void BranchTagger<MESH>::skeletonScalarAttributeToOriginalMesh(MESH& mesh, MESH&
 template<typename MESH>
 std::vector<typename BranchTagger<MESH>::Color> BranchTagger<MESH>::generateColorsFromAttribute(MESH const& mesh, std::string attribute_name)
 {
-	auto tree_numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(mesh, attribute_name);
+	auto tree_numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(mesh, attribute_name);
 
 	uint min = 1, max = 1;
 	for (int i = 0; i < mesh.VN(); i++)
@@ -331,7 +331,7 @@ std::vector<typename BranchTagger<MESH>::Color> BranchTagger<MESH>::generateColo
 template<typename MESH>
 void BranchTagger<MESH>::colorizeByAttribute(MESH& mesh, std::vector<Color> const& colors, std::string attribute_name)
 {
-	auto numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(mesh, attribute_name);
+	auto numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(mesh, attribute_name);
 	for (int i = 0; i < mesh.VN(); i++)
 	{
 		auto& vertex = mesh.vert[i];

@@ -65,7 +65,7 @@ bool SimplifySkeleton<MESH>::isMeshConnected(MESH const& skeleton)
 	{
 		if ( !vertex.IsD() )
 		{
-			if ( vcg::edge::VEDegree<MESH::EdgeType>(&vertex) == 0 )
+			if ( vcg::edge::VEDegree<typename MESH::EdgeType>(&vertex) == 0 )
 				return false;
 		}
 	}
@@ -94,7 +94,7 @@ void SimplifySkeleton<MESH>::collapseShortEdges(MESH& skeleton, int root_node, S
 	std::vector<detail::EdgeToCollapse<MESH>> edges_to_collapse;
 	min_length = min_length * min_length;
 
-	std::queue<MESH::VertexType*> frontier;
+	std::queue<typename MESH::VertexType*> frontier;
 	vcg::tri::UnMarkAll(skeleton);
 	auto root_vertex = &skeleton.vert[root_node];
 	frontier.push(root_vertex);
@@ -105,7 +105,7 @@ void SimplifySkeleton<MESH>::collapseShortEdges(MESH& skeleton, int root_node, S
 		vcg::tri::Mark(skeleton, vertex);
 		frontier.pop();
 
-		auto it = vcg::edge::VEIterator<MESH::EdgeType>(vertex);
+		auto it = vcg::edge::VEIterator<typename MESH::EdgeType>(vertex);
 		while (!it.End())
 		{
 			auto* edge      = it.E();
