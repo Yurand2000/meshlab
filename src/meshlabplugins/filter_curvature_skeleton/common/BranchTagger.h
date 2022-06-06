@@ -21,28 +21,34 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
-#define FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#ifndef FILTERCURVATURESKELETON_BRANCH_TAGGER
+#define FILTERCURVATURESKELETON_BRANCH_TAGGER
 
-#include "SkeletonMesh.h"
 #include <common/ml_document/cmesh.h>
-
-#define ATTRIBUTE_STRAHLER_NUMBER "strahler_number"
+#include <vector>
 
 namespace curvatureSkeleton
 {
 
-class StrahlerBranchTagger
+template<typename MESH>
+class BranchTagger
 {
 public:
-	static void generateTreeMesh(SkeletonMesh& tree, CMeshO const& skeleton, int root_index, Scalarm percentile);
-	static void strahlerNumbersToSkeleton(CMeshO& skeleton, SkeletonMesh const& tree, int root_index);
-	static void strahlerNumbersToOriginalMesh(CMeshO& mesh, CMeshO& skeleton);
+	typedef vcg::Color4b Color;
+
+	static void generateTreeMesh(MESH& tree, MESH const& skeleton, int root_index, Scalarm percentile);
+	static void treeScalarAttributeToSkeleton(MESH& skeleton, MESH const& tree, std::string attribute_name);
+	static void skeletonScalarAttributeToOriginalMesh(MESH& mesh, MESH& skeleton, std::string attribute_name);
+
+	static std::vector<Color> generateColorsFromAttribute(MESH const& mesh, std::string attribute_name);
+	static void colorizeByAttribute(MESH& mesh, std::vector<Color> const& colors, std::string attribute_name);
 
 private:
-	~StrahlerBranchTagger() = delete;
+	~BranchTagger() = delete;
 };
 
 }
 
-#endif // FILTERCURVATURESKELETON_STRAHLER_BRANCH_TAGGER
+#include "BranchTagger.imp.h"
+
+#endif // FILTERCURVATURESKELETON_BRANCH_TAGGER

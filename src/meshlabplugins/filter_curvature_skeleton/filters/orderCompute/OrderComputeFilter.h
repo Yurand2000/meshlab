@@ -21,8 +21,8 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_FILTER_STRAHLER_TAGGING
-#define FILTERCURVATURESKELETON_FILTER_STRAHLER_TAGGING
+#ifndef FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE
+#define FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE
 
 #include "common/TemplateFilter.h"
 
@@ -38,10 +38,10 @@
 namespace curvatureSkeleton
 {
 
-class StrahlerTaggingFilter : public TemplateFilter
+class OrderComputeFilter : public TemplateFilter
 {
 public:
-	StrahlerTaggingFilter();
+	OrderComputeFilter();
 
 	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
 	virtual std::map<std::string, QVariant> applyFilter(
@@ -54,4 +54,4 @@ public:
 
 }
 
-#endif //FILTERCURVATURESKELETON_FILTER_STRAHLER_TAGGING
+#endif //FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE

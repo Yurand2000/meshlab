@@ -1,12 +1,12 @@
-#filter_curvature_skeleton/filters/strahlerTagging
+#filter_curvature_skeleton/filters/orderCompute
 set (SOURCES
-	"StrahlerTaggingFilter.cpp"
-	"StrahlerTaggingFilter_apply.cpp"
-	"StrahlerTaggingFilter_params.cpp"
+	"OrderComputeFilter.cpp"
+	"OrderComputeFilter_apply.cpp"
+	"OrderComputeFilter_params.cpp"
 )
 
 set (HEADERS
-	"StrahlerTaggingFilter.h"
+	"OrderComputeFilter.h"
 )
 
 list(TRANSFORM SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")

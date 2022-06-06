@@ -4,8 +4,6 @@ set (SOURCES
 	
 	"AlgorithmSkeletonize.cpp"
 	"BranchExtender.cpp"
-	"SimplifySkeleton.cpp"
-	"StrahlerBranchTagger.cpp"
 )
 
 set (HEADERS
@@ -14,8 +12,12 @@ set (HEADERS
 	
 	"AlgorithmSkeletonize.h"
 	"BranchExtender.h"
+
+	"BranchTagger.h"
+	"BranchTagger.imp.h"
+	
 	"SimplifySkeleton.h"
-	"StrahlerBranchTagger.h"
+	"SimplifySkeleton.imp.h"
 )
 
 list(TRANSFORM SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")

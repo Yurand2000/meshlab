@@ -21,7 +21,7 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "StrahlerTaggingFilter.h"
+#include "OrderComputeFilter.h"
 
 // displayed strings
 #define MESH_CATEGORY "Meshes"
@@ -50,7 +50,7 @@ namespace curvatureSkeleton
 
 static uint getSelectedMeshIndex(MeshDocument const&);
 
-RichParameterList StrahlerTaggingFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
+RichParameterList OrderComputeFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
 {
 	RichParameterList parlst;
 

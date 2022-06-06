@@ -24,22 +24,23 @@
 #ifndef FILTERCURVATURESKELETON_SIMPLIFY_SKELETON
 #define FILTERCURVATURESKELETON_SIMPLIFY_SKELETON
 
-#include "SkeletonMesh.h"
-
 namespace curvatureSkeleton
 {
 
+template <typename MESH>
 class SimplifySkeleton
 {
 public:
-	static bool isMeshConnected(SkeletonMesh const& skeleton);
-	static void collapseTwoConnectedVertices(SkeletonMesh& skeleton, int root_node);
-	static void collapseShortEdges(SkeletonMesh& skeleton, int root_node, Scalarm min_length);
+	static bool isMeshConnected(MESH const& skeleton);
+	static void collapseTwoConnectedVertices(MESH& skeleton, int root_node);
+	static void collapseShortEdges(MESH& skeleton, int root_node, Scalarm min_length);
 
 private:
 	~SimplifySkeleton() = delete;
 };
 
 }
+
+#include "SimplifySkeleton.imp.h"
 
 #endif // FILTERCURVATURESKELETON_SIMPLIFY_SKELETON

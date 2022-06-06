@@ -44,7 +44,7 @@ public:
 	// possible filters
 	enum {
 		SKELETONIZE,
-		CALCULATE_STRAHLER_NUMBERS
+		COMPUTE_ORDER_NUMBERS
 	};
 
 	FilterCurvatureSkeleton();

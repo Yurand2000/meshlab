@@ -24,7 +24,7 @@
 #include "filter_curvature_skeleton.h"
 
 #include "filters/skeletonize/SkeletonizeFilter.h"
-#include "filters/strahlerTagging/StrahlerTaggingFilter.h"
+#include "filters/orderCompute/OrderComputeFilter.h"
 
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
 
@@ -34,11 +34,11 @@ namespace curvatureSkeleton
 FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 {
 	filters.push_back( std::make_unique<SkeletonizeFilter>() );
-	filters.push_back( std::make_unique<StrahlerTaggingFilter>() );
+	filters.push_back( std::make_unique<OrderComputeFilter>() );
 
 	typeList = {
 		SKELETONIZE,
-		CALCULATE_STRAHLER_NUMBERS
+		COMPUTE_ORDER_NUMBERS,
 	};
 
 	for(ActionIDType tt : types())
