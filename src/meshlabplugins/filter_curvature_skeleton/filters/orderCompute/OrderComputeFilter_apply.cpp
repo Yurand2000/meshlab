@@ -29,6 +29,7 @@
 #include <vcg/complex/algorithms/stat.h>
 
 #define ATTRIBUTE_STRAHLER_NUMBER "strahler_number"
+#define ATTRIBUTE_HACK_ORDER_NUMBER "hack_order_number"
 
 namespace curvatureSkeleton
 {
@@ -54,7 +55,7 @@ std::map<std::string, QVariant> OrderComputeFilter::applyFilter(
 	auto& original      = original_mm->cm;
 	auto  skeleton_mm   = document.getMesh(params.getMeshId(PARAM_SKELETON_MESH));
 	auto& skeleton      = skeleton_mm->cm;
-	auto  save_to_color = params.getBool(PARAM_STRAHLER_NUMBERS_TO_COLOR);
+	auto  save_to_color = params.getEnum(PARAM_ATTRIBUTE_TO_COLOR);
 	auto  save_gen_tree = params.getBool(PARAM_SAVE_GENERATED_TREE);
 	auto  root_index    = params.getInt(PARAM_ROOT_INDEX);
 	auto  min_edge_size = params.getFloat(PARAM_MIN_EDGE_SIZE);
@@ -73,43 +74,61 @@ std::map<std::string, QVariant> OrderComputeFilter::applyFilter(
 	//compute numbers
 	auto root_pos        = skeleton.vert[root_index].cP();
 	int  tree_root_index = findRootIndex(converted_tree, root_pos);
-
-	vcg::tri::Stat<SkeletonMesh>::CalculateStrahlerNumbers(converted_tree, tree_root_index);
+	
+	vcg::tri::Stat<SkeletonMesh>::ComputeStrahlerNumbers(converted_tree, tree_root_index, ATTRIBUTE_STRAHLER_NUMBER);
+	vcg::tri::Stat<SkeletonMesh>::ComputeHackOrderNumbers(converted_tree, tree_root_index, ATTRIBUTE_HACK_ORDER_NUMBER);
 
 	//generate tree mesh
 	CMeshO tree;
 	{
-		auto numbers = CMeshOAllocator::AddPerVertexAttribute<Scalarm>(tree, ATTRIBUTE_STRAHLER_NUMBER);
+		CMeshOAllocator::AddPerVertexAttribute<Scalarm>(tree, ATTRIBUTE_STRAHLER_NUMBER);
+		CMeshOAllocator::AddPerVertexAttribute<Scalarm>(tree, ATTRIBUTE_HACK_ORDER_NUMBER);
 		SkeletonToCMeshOAppend::MeshCopyConst(tree, converted_tree);
 	}
 
 	//save attributes back to the original meshes
-	BranchTagger<SkeletonMesh>::treeScalarAttributeToSkeleton(converted_skeleton, converted_tree, ATTRIBUTE_STRAHLER_NUMBER);
+	BranchTagger<SkeletonMesh>::treeScalarAttributeToSkeleton(converted_skeleton, converted_tree, ATTRIBUTE_STRAHLER_NUMBER, true);
+	BranchTagger<SkeletonMesh>::treeScalarAttributeToSkeleton(converted_skeleton, converted_tree, ATTRIBUTE_HACK_ORDER_NUMBER, false);
 
 	{
-		auto numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
-		auto converted_numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(converted_skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+		auto strahler_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+		auto hack_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_HACK_ORDER_NUMBER);
+		auto converted_strahler_numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(converted_skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+		auto converted_hack_numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(converted_skeleton, ATTRIBUTE_HACK_ORDER_NUMBER);
 		for (int i = 0; i < skeleton.VN(); i++)
-			numbers[i] = converted_numbers[i];
+		{
+			strahler_numbers[i] = converted_strahler_numbers[i];
+			hack_numbers[i]     = converted_hack_numbers[i];
+		}
 	}
 
 	BranchTagger<CMeshO>::skeletonScalarAttributeToOriginalMesh(original, skeleton, ATTRIBUTE_STRAHLER_NUMBER);
+	BranchTagger<CMeshO>::skeletonScalarAttributeToOriginalMesh(original, skeleton, ATTRIBUTE_HACK_ORDER_NUMBER);
 
-	if (save_to_color)
+	auto color_attrib = (save_to_color == 1) ? ATTRIBUTE_HACK_ORDER_NUMBER : ATTRIBUTE_STRAHLER_NUMBER;
+
+	if (save_to_color > 0)
 	{
-		auto colors = BranchTagger<CMeshO>::generateColorsFromAttribute(tree, ATTRIBUTE_STRAHLER_NUMBER);
+		auto colors = BranchTagger<CMeshO>::generateColorsFromAttribute(tree, color_attrib);
+
+		BranchTagger<CMeshO>::colorizeByAttribute(tree, colors, color_attrib);
 
 		skeleton_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-		BranchTagger<CMeshO>::colorizeByAttribute(skeleton, colors, ATTRIBUTE_STRAHLER_NUMBER);
+		BranchTagger<CMeshO>::colorizeByAttribute(skeleton, colors, color_attrib);
 
 		original_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-		BranchTagger<CMeshO>::colorizeByAttribute(original, colors, ATTRIBUTE_STRAHLER_NUMBER);
+		BranchTagger<CMeshO>::colorizeByAttribute(original, colors, color_attrib);
 	}
 
 	if (save_gen_tree)
 	{
 		auto mesh = document.addNewMesh(tree, "Tree-" + original_mm->label(), false);
 		mesh->clearDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
+
+		if (save_to_color > 0)
+		{
+			mesh->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
+		}
 	}
 
 	return {};

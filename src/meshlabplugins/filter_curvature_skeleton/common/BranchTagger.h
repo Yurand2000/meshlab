@@ -37,7 +37,7 @@ public:
 	typedef vcg::Color4b Color;
 
 	static void generateTreeMesh(MESH& tree, MESH const& skeleton, int root_index, Scalarm percentile);
-	static void treeScalarAttributeToSkeleton(MESH& skeleton, MESH const& tree, std::string attribute_name);
+	static void treeScalarAttributeToSkeleton(MESH& skeleton, MESH const& tree, std::string attribute_name, bool prioritize_small_values = true);
 	static void skeletonScalarAttributeToOriginalMesh(MESH& mesh, MESH& skeleton, std::string attribute_name);
 
 	static std::vector<Color> generateColorsFromAttribute(MESH const& mesh, std::string attribute_name);

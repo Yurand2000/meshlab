@@ -38,9 +38,11 @@
 							   "Then copy the index number here."
 #define MIN_EDGE_SIZE_DISPLAYNAME "Percentile of branches to crop."
 #define MIN_EDGE_SIZE_DESCRIPTION "When generating the intermediate tree, branches or leafs belonging to the given percentile on the lengths of the branches will be collapsed."
-#define STRAHLER_TO_COLOR_DISPLAYNAME "Colorize by the Strahler number"
-#define STRAHLER_TO_COLOR_DESCRIPTION "The meshes' vertices will be colorized by their Strahler number. "\
-									  "You may need to toggle on and off the visualization to update the displayed colors."
+
+#define ATTRIBUTE_TO_COLOR_DISPLAYNAME "Colorize by the chosen ordering"
+#define ATTRIBUTE_TO_COLOR_DESCRIPTION "The meshes' vertices will be colorized by the chosen ordering. "\
+									   "You may need to toggle on and off the visualization to update the displayed colors."
+#define ATTRIBUTE_TO_COLOR_ENUM { "None", "Hack ordering", "Strahler ordering" }
 #define MISCELLANEOUS_CATEGORY "Miscellaneous"
 #define SAVE_GENERATED_TREE_DISPLAYNAME "Save generated tree"
 #define SAVE_GENERATED_TREE_DESCRIPTION "Save the intermediate tree mesh used to calculate the Strahler Numbers."
@@ -58,7 +60,7 @@ RichParameterList OrderComputeFilter::initParameterList(FilterPlugin const& p, M
 	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, getSelectedMeshIndex(m), &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
 	parlst.addParam(RichInt(PARAM_ROOT_INDEX, -1, ROOT_INDEX_DISPLAYNAME, ROOT_INDEX_DESCRIPTION, false, PARAMETER_CATEGORY));
 	parlst.addParam(RichFloat(PARAM_MIN_EDGE_SIZE, 10.f, MIN_EDGE_SIZE_DISPLAYNAME, MIN_EDGE_SIZE_DESCRIPTION, false, PARAMETER_CATEGORY));
-	parlst.addParam(RichBool(PARAM_STRAHLER_NUMBERS_TO_COLOR, true, STRAHLER_TO_COLOR_DISPLAYNAME, STRAHLER_TO_COLOR_DESCRIPTION, false, PARAMETER_CATEGORY));
+	parlst.addParam(RichEnum(PARAM_ATTRIBUTE_TO_COLOR, 0, ATTRIBUTE_TO_COLOR_ENUM, ATTRIBUTE_TO_COLOR_DISPLAYNAME, ATTRIBUTE_TO_COLOR_DESCRIPTION, false, PARAMETER_CATEGORY));
 	parlst.addParam(RichBool(PARAM_SAVE_GENERATED_TREE, true, SAVE_GENERATED_TREE_DISPLAYNAME, SAVE_GENERATED_TREE_DESCRIPTION, false, MISCELLANEOUS_CATEGORY));
 	return parlst;
 }

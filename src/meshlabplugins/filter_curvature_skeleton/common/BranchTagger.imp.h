@@ -49,13 +49,13 @@ struct BranchToColor
 
 	VERTEX* start;
 	VERTEX* end;
-	uint    number;
+	Scalarm number;
 };
 
 
-template<typename MESH> std::vector<BranchToColor<MESH>> getBranchesToColor(MESH const& tree, MESH& skeleton, std::string attribute_name);
-template<typename MESH> void paintBranch(MESH& skeleton, BranchToColor<MESH>& branch_to_color, std::string attribute_name);
-template<typename MESH> void floodUnpaintedBranches(MESH& skeleton, std::string attribute_name);
+template<typename MESH> std::vector<BranchToColor<MESH>> getBranchesToColor(MESH const& tree, MESH& skeleton, std::string attribute_name, bool prioritize_small_values);
+template<typename MESH> void paintBranch(MESH& skeleton, BranchToColor<MESH>& branch_to_color, std::string attribute_name, bool prioritize_small_values);
+template<typename MESH> void floodUnpaintedBranches(MESH& skeleton, std::string attribute_name, bool prioritize_small_values);
 
 template<typename MESH> int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
 template<typename MESH> std::unordered_map<int, int> getTreeToSkeletonAssociations(MESH const& tree, MESH const& skeleton);
@@ -95,35 +95,51 @@ void BranchTagger<MESH>::generateTreeMesh(MESH& tree, MESH const& skeleton, int 
 
 
 template<typename MESH>
-void BranchTagger<MESH>::treeScalarAttributeToSkeleton(MESH& skeleton, MESH const& tree, std::string attribute_name)
+void BranchTagger<MESH>::treeScalarAttributeToSkeleton(MESH& skeleton, MESH const& tree, std::string attribute_name, bool prioritize_small_values)
 {
 	vcg::tri::UpdateTopology<MESH>::VertexEdge(skeleton);
 	vcg::tri::InitVertexIMark(skeleton);
 	vcg::tri::InitEdgeIMark(skeleton);
 
+	//prepare attribute
+	auto numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
+	for (auto& vertex : skeleton.vert)
+	{
+		if (prioritize_small_values)
+			numbers[vertex] = 0;
+		else
+			numbers[vertex] = std::numeric_limits<Scalarm>().max();
+	}
+
 	//set strahler numbers on vertices
-	auto branches_to_color = detail::getBranchesToColor(tree, skeleton, attribute_name);
+	auto branches_to_color = detail::getBranchesToColor(tree, skeleton, attribute_name, prioritize_small_values);
 	for (auto& branch : branches_to_color)
 	{
-		detail::paintBranch(skeleton, branch, attribute_name);
+		detail::paintBranch(skeleton, branch, attribute_name, prioritize_small_values);
 	}
-	detail::floodUnpaintedBranches(skeleton, attribute_name);
+	detail::floodUnpaintedBranches(skeleton, attribute_name, prioritize_small_values);
 }
 
 template<typename MESH>
-std::vector<detail::BranchToColor<MESH>> detail::getBranchesToColor<MESH>(MESH const& tree, MESH& skeleton, std::string attribute_name)
+std::vector<detail::BranchToColor<MESH>> detail::getBranchesToColor<MESH>(MESH const& tree, MESH& skeleton, std::string attribute_name, bool prioritize_small_values)
 {
 	auto tree_to_skeleton_map = detail::getTreeToSkeletonAssociations(tree, skeleton);
 	auto tree_numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(tree, attribute_name);
+
+	std::function<bool(Scalarm const&, Scalarm const&)> less;
+	if (prioritize_small_values)
+		less = std::less<Scalarm>();
+	else
+		less = std::greater<Scalarm>();
 
 	std::vector<BranchToColor<MESH>> branches_to_color;
 	branches_to_color.reserve(tree.EN());
 	for (auto& edge : tree.edge) {
 		auto vert0 = &skeleton.vert[tree_to_skeleton_map[edge.V(0)->Index()]];
 		auto vert1 = &skeleton.vert[tree_to_skeleton_map[edge.V(1)->Index()]];
-		uint num0  = tree_numbers[edge.V(0)];
-		uint num1  = tree_numbers[edge.V(1)];
-		if (num0 < num1)
+		Scalarm num0  = tree_numbers[edge.V(0)];
+		Scalarm num1  = tree_numbers[edge.V(1)];
+		if ( less(num0, num1) )
 			branches_to_color.push_back({vert0, vert1, num0});
 		else
 			branches_to_color.push_back({vert1, vert0, num1});
@@ -164,14 +180,20 @@ int detail::getVertexIndexInMesh<MESH>(vcg::Point3<Scalarm> point, MESH const& m
 
 
 template<typename MESH>
-void detail::paintBranch<MESH>(MESH& skeleton, BranchToColor<MESH>& branch_to_color, std::string attribute_name)
+void detail::paintBranch<MESH>(MESH& skeleton, BranchToColor<MESH>& branch_to_color, std::string attribute_name, bool prioritize_small_values)
 {
+	std::function<bool(Scalarm const&, Scalarm const&)> less;
+	if (prioritize_small_values)
+		less = std::less<Scalarm>();
+	else
+		less = std::greater<Scalarm>();
+
 	auto numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
 	auto path = findPath(skeleton, branch_to_color.start, branch_to_color.end);
 	for (auto* vertex : path)
 	{
 		auto& number = numbers[vertex];
-		if (number < branch_to_color.number)
+		if ( less(number, branch_to_color.number) )
 			number = branch_to_color.number;
 	}
 }
@@ -222,12 +244,14 @@ std::vector<typename MESH::VertexType*> detail::findPath(MESH& mesh, typename ME
 
 
 template<typename MESH>
-void detail::floodUnpaintedBranches(MESH& skeleton, std::string attribute_name)
+void detail::floodUnpaintedBranches(MESH& skeleton, std::string attribute_name, bool prioritize_small_values)
 {
+	auto null_number = (prioritize_small_values) ? 0 : std::numeric_limits<Scalarm>::max();
+
 	auto numbers = vcg::tri::Allocator<MESH>::GetPerVertexAttribute<Scalarm>(skeleton, attribute_name);
 	auto flood_frontier = detail::getFloodFrontier(skeleton, attribute_name);
 
-	do
+	while ( !flood_frontier.empty() )
 	{
 		auto* vertex = flood_frontier.top();
 		flood_frontier.pop();
@@ -239,14 +263,13 @@ void detail::floodUnpaintedBranches(MESH& skeleton, std::string attribute_name)
 		for (auto* adj : star)
 		{
 			auto& number = numbers[adj];
-			if ( number == 0 )
+			if ( number == null_number )
 			{
 				number = current_number;
 				flood_frontier.push(adj);
 			}
 		}
 	}
-	while ( !flood_frontier.empty() );
 }
 
 template<typename MESH>
@@ -312,7 +335,10 @@ void BranchTagger<MESH>::colorizeByAttribute(MESH& mesh, std::vector<Color> cons
 	for (int i = 0; i < mesh.VN(); i++)
 	{
 		auto& vertex = mesh.vert[i];
-		vertex.C()   = colors[numbers[i]];
+		auto  number = numbers[i];
+
+		if (number < colors.size())
+			vertex.C() = colors[number];
 	}
 }
 
