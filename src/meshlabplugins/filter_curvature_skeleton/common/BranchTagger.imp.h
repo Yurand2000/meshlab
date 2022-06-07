@@ -121,7 +121,7 @@ void BranchTagger<MESH>::treeScalarAttributeToSkeleton(MESH& skeleton, MESH cons
 }
 
 template<typename MESH>
-std::vector<detail::BranchToColor<MESH>> detail::getBranchesToColor<MESH>(MESH const& tree, MESH& skeleton, std::string attribute_name, bool prioritize_small_values)
+std::vector<detail::BranchToColor<MESH>> detail::getBranchesToColor(MESH const& tree, MESH& skeleton, std::string attribute_name, bool prioritize_small_values)
 {
 	auto tree_to_skeleton_map = detail::getTreeToSkeletonAssociations(tree, skeleton);
 	auto tree_numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(tree, attribute_name);
@@ -150,7 +150,7 @@ std::vector<detail::BranchToColor<MESH>> detail::getBranchesToColor<MESH>(MESH c
 
 
 template<typename MESH>
-std::unordered_map<int, int> detail::getTreeToSkeletonAssociations<MESH>(MESH const& tree, MESH const& skeleton)
+std::unordered_map<int, int> detail::getTreeToSkeletonAssociations(MESH const& tree, MESH const& skeleton)
 {
 	std::unordered_map<int, int> tree_to_skeleton_map;
 	for (auto& vertex : tree.vert)
@@ -162,7 +162,7 @@ std::unordered_map<int, int> detail::getTreeToSkeletonAssociations<MESH>(MESH co
 }
 
 template<typename MESH>
-int detail::getVertexIndexInMesh<MESH>(vcg::Point3<Scalarm> point, MESH const& mesh)
+int detail::getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
 {
 	Scalarm min_sqr_dist = std::numeric_limits<Scalarm>::max();
 	int index = -1;
@@ -180,7 +180,7 @@ int detail::getVertexIndexInMesh<MESH>(vcg::Point3<Scalarm> point, MESH const& m
 
 
 template<typename MESH>
-void detail::paintBranch<MESH>(MESH& skeleton, BranchToColor<MESH>& branch_to_color, std::string attribute_name, bool prioritize_small_values)
+void detail::paintBranch(MESH& skeleton, BranchToColor<MESH>& branch_to_color, std::string attribute_name, bool prioritize_small_values)
 {
 	std::function<bool(Scalarm const&, Scalarm const&)> less;
 	if (prioritize_small_values)

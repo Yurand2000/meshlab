@@ -82,7 +82,7 @@ void SimplifySkeleton<MESH>::collapseTwoConnectedVertices(MESH& skeleton, int ro
 }
 
 template<typename MESH>
-void detail::collapseTwoConnectedVertex<MESH>(MESH& skeleton, typename MESH::VertexType& vertex, int root_node)
+void detail::collapseTwoConnectedVertex(MESH& skeleton, typename MESH::VertexType& vertex, int root_node)
 {
 	if ( !vertex.IsD() && vertex.Index() != root_node )
 		vcg::edge::VEEdgeCollapse<MESH>(skeleton, &vertex);
@@ -132,7 +132,7 @@ void SimplifySkeleton<MESH>::collapseShortEdges(MESH& skeleton, int root_node, S
 	}
 	while (!frontier.empty());
 
-	std::sort(edges_to_collapse.begin(), edges_to_collapse.end(), detail::EdgeToCollapse<MESH>::less());
+	std::sort(edges_to_collapse.begin(), edges_to_collapse.end(), typename detail::EdgeToCollapse<MESH>::less());
 	for (auto& edge_data : edges_to_collapse)
 	{
 		if ( !edge_data.edge->IsD() )
@@ -163,7 +163,7 @@ bool detail::EdgeToCollapse<MESH>::less::operator()(EdgeToCollapse<MESH> const& 
 }
 
 template <typename MESH>
-Scalarm detail::getEdgeLengthSqr<MESH>(typename MESH::EdgeType const* edge)
+Scalarm detail::getEdgeLengthSqr(typename MESH::EdgeType const* edge)
 {
 	return vcg::SquaredDistance(edge->P(0), edge->P(1));
 }
