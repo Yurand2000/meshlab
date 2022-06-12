@@ -30,6 +30,9 @@
 
 #define ATTRIBUTE_STRAHLER_NUMBER "strahler_number"
 #define ATTRIBUTE_HACK_ORDER_NUMBER "hack_order_number"
+#define ATTRIBUTE_ROOT_INDEX "root_index"
+#define ATTRIBUTE_SKELETON_TO_TREE "tree_index"
+#define ATTRIBUTE_MESH_TO_SKELETON "skeleton_index"
 
 namespace curvatureSkeleton
 {
@@ -56,61 +59,57 @@ std::map<std::string, QVariant> OrderComputeFilter::applyFilter(
 	auto  skeleton_mm   = document.getMesh(params.getMeshId(PARAM_SKELETON_MESH));
 	auto& skeleton      = skeleton_mm->cm;
 	auto  save_to_color = params.getEnum(PARAM_ATTRIBUTE_TO_COLOR);
-	auto  save_gen_tree = params.getBool(PARAM_SAVE_GENERATED_TREE);
 	auto  root_index    = params.getInt(PARAM_ROOT_INDEX);
-	auto  min_edge_size = params.getFloat(PARAM_MIN_EDGE_SIZE);
+	auto  min_edge_size = params.getAbsPerc(PARAM_MIN_EDGE_SIZE);
+	auto  min_edge_perc = params.getDynamicFloat(PARAM_MIN_EDGE_PERCENTILE);
 	
     //if root_index is not defined, get the lowest point on the Y axis
-	if (root_index < 0)
+	if ( root_index < 0 || root_index > skeleton.vert.size() || skeleton.vert[root_index].IsD() )
 		root_index = getLowestPointOnYAxis(skeleton);
 
 	//generate the logical tree
 	SkeletonMesh converted_tree, converted_skeleton;
 	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
-	BranchTagger<SkeletonMesh>::generateTreeMesh(converted_tree, converted_skeleton, root_index, min_edge_size);
+	BranchTagger<SkeletonMesh>::generateTreeMesh(converted_tree, converted_skeleton, root_index, min_edge_size, min_edge_perc);
 	vcg::tri::InitVertexIMark(converted_tree);
 	vcg::tri::InitEdgeIMark(converted_tree);
 
-	//compute numbers
 	auto root_pos        = skeleton.vert[root_index].cP();
 	int  tree_root_index = findRootIndex(converted_tree, root_pos);
-	
+
+	//compute numbers
 	vcg::tri::Stat<SkeletonMesh>::ComputeStrahlerNumbers(converted_tree, tree_root_index, ATTRIBUTE_STRAHLER_NUMBER);
 	vcg::tri::Stat<SkeletonMesh>::ComputeHackOrderNumbers(converted_tree, tree_root_index, ATTRIBUTE_HACK_ORDER_NUMBER);
 
 	//generate tree mesh
-	CMeshO tree;
+	auto  temp = CMeshO();
+	auto  tree_mm = document.addNewMesh(temp, original_mm->label() + "-tree", false);
+	tree_mm->clearDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
+	auto& tree = tree_mm->cm;
 	{
 		CMeshOAllocator::AddPerVertexAttribute<Scalarm>(tree, ATTRIBUTE_STRAHLER_NUMBER);
 		CMeshOAllocator::AddPerVertexAttribute<Scalarm>(tree, ATTRIBUTE_HACK_ORDER_NUMBER);
 		SkeletonToCMeshOAppend::MeshCopyConst(tree, converted_tree);
 	}
 
+	//save root index attribute
+	CMeshOAllocator::GetPerMeshAttribute<Scalarm>(tree, ATTRIBUTE_ROOT_INDEX)() = tree_root_index;
+	CMeshOAllocator::GetPerMeshAttribute<Scalarm>(skeleton, ATTRIBUTE_ROOT_INDEX)() = root_index;
+
 	//save attributes back to the original meshes
-	BranchTagger<SkeletonMesh>::treeScalarAttributeToSkeleton(converted_skeleton, converted_tree, ATTRIBUTE_STRAHLER_NUMBER, true);
-	BranchTagger<SkeletonMesh>::treeScalarAttributeToSkeleton(converted_skeleton, converted_tree, ATTRIBUTE_HACK_ORDER_NUMBER, false);
+	BranchTagger<CMeshO>::copyAttributeTreeToSkeleton(skeleton, tree, tree_root_index, ATTRIBUTE_STRAHLER_NUMBER, true);
+	BranchTagger<CMeshO>::copyAttributeTreeToSkeleton(skeleton, tree, tree_root_index, ATTRIBUTE_HACK_ORDER_NUMBER, false);
 
-	{
-		auto strahler_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_STRAHLER_NUMBER);
-		auto hack_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_HACK_ORDER_NUMBER);
-		auto converted_strahler_numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(converted_skeleton, ATTRIBUTE_STRAHLER_NUMBER);
-		auto converted_hack_numbers = SkeletonAllocator::GetPerVertexAttribute<Scalarm>(converted_skeleton, ATTRIBUTE_HACK_ORDER_NUMBER);
-		for (int i = 0; i < skeleton.VN(); i++)
-		{
-			strahler_numbers[i] = converted_strahler_numbers[i];
-			hack_numbers[i]     = converted_hack_numbers[i];
-		}
-	}
+	BranchTagger<CMeshO>::copyAttributeUsingAdjacency(skeleton, original, ATTRIBUTE_STRAHLER_NUMBER, ATTRIBUTE_MESH_TO_SKELETON);
+	BranchTagger<CMeshO>::copyAttributeUsingAdjacency(skeleton, original, ATTRIBUTE_HACK_ORDER_NUMBER, ATTRIBUTE_MESH_TO_SKELETON);
 
-	BranchTagger<CMeshO>::skeletonScalarAttributeToOriginalMesh(original, skeleton, ATTRIBUTE_STRAHLER_NUMBER);
-	BranchTagger<CMeshO>::skeletonScalarAttributeToOriginalMesh(original, skeleton, ATTRIBUTE_HACK_ORDER_NUMBER);
-
+	//colorize
 	auto color_attrib = (save_to_color == 1) ? ATTRIBUTE_HACK_ORDER_NUMBER : ATTRIBUTE_STRAHLER_NUMBER;
-
 	if (save_to_color > 0)
 	{
 		auto colors = BranchTagger<CMeshO>::generateColorsFromAttribute(tree, color_attrib);
 
+		tree_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
 		BranchTagger<CMeshO>::colorizeByAttribute(tree, colors, color_attrib);
 
 		skeleton_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
@@ -120,17 +119,6 @@ std::map<std::string, QVariant> OrderComputeFilter::applyFilter(
 		BranchTagger<CMeshO>::colorizeByAttribute(original, colors, color_attrib);
 	}
 
-	if (save_gen_tree)
-	{
-		auto mesh = document.addNewMesh(tree, "Tree-" + original_mm->label(), false);
-		mesh->clearDataMask(MeshModel::MeshElement::MM_VERTQUALITY);
-
-		if (save_to_color > 0)
-		{
-			mesh->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-		}
-	}
-
 	return {};
 }
 
@@ -138,7 +126,8 @@ int findRootIndex(SkeletonMesh const& tree, vcg::Point3<Scalarm> root_pos)
 {
 	for (int i = 0; i < tree.vert.size(); i++)
 	{
-		if ( (tree.vert[i].cP() - root_pos).SquaredNorm() < 0.0001f )
+		auto& vertex = tree.vert[i];
+		if ( !vertex.IsD() && ( vcg::SquaredDistance(vertex.cP(), root_pos) < 0.0001f ) )
 		{
 			return i;
 		}
@@ -153,7 +142,7 @@ int getLowestPointOnYAxis(CMeshO const& mesh)
 	Scalarm min_y = std::numeric_limits<Scalarm>::max();
 	for (auto& vert : mesh.vert)
 	{
-		if (vert.P().Y() < min_y)
+		if ( !vert.IsD() && vert.P().Y() < min_y )
 		{
 			min_y = vert.P().Y();
 			index = vert.Index();

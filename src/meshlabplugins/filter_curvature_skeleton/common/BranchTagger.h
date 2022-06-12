@@ -36,12 +36,12 @@ class BranchTagger
 public:
 	typedef vcg::Color4b Color;
 
-	static void generateTreeMesh(MESH& tree, MESH const& skeleton, int root_index, Scalarm percentile);
-	static void treeScalarAttributeToSkeleton(MESH& skeleton, MESH const& tree, std::string attribute_name, bool prioritize_small_values = true);
-	static void skeletonScalarAttributeToOriginalMesh(MESH& mesh, MESH& skeleton, std::string attribute_name);
+	static void generateTreeMesh(MESH& tree, MESH const& skeleton, int root_index, Scalarm min_length, Scalarm percentile);
+	static void copyAttributeTreeToSkeleton(MESH& skeleton, MESH& tree, int tree_root_index, std::string const& attribute_name, bool ascending);
+	static void copyAttributeUsingAdjacency(MESH& start, MESH& end, std::string const& attribute_name, std::string const& adjacency_attribute_name);
 
-	static std::vector<Color> generateColorsFromAttribute(MESH const& mesh, std::string attribute_name);
-	static void colorizeByAttribute(MESH& mesh, std::vector<Color> const& colors, std::string attribute_name);
+	static std::vector<Color> generateColorsFromAttribute(MESH const& mesh, std::string const& attribute_name);
+	static void colorizeByAttribute(MESH& mesh, std::vector<Color> const& colors, std::string const& attribute_name);
 
 private:
 	~BranchTagger() = delete;

@@ -110,10 +110,9 @@ void SimplifySkeleton<MESH>::collapseShortEdges(MESH& skeleton, int root_node, S
 		{
 			auto* edge      = it.E();
 			auto  root_idx  = (edge->V(0) == vertex) ? 0 : 1;
-			auto  child_idx = 1 - root_idx;
 
 			//delete edge if it is too short and the root node is never collapsed on any other vertex
-			if ( !vcg::tri::IsMarked(skeleton, edge) && edge->V(child_idx) != root_vertex )
+			if ( !vcg::tri::IsMarked(skeleton, edge) && edge->V1(root_idx) != root_vertex )
 			{
 				auto sqr_length = detail::getEdgeLengthSqr<MESH>(edge); 
 				if (sqr_length <= min_length)
@@ -123,7 +122,7 @@ void SimplifySkeleton<MESH>::collapseShortEdges(MESH& skeleton, int root_node, S
 			}
 
 			//visit edge children
-			auto* child = edge->V(child_idx);
+			auto* child = edge->V1(root_idx);
 			if ( !vcg::tri::IsMarked(skeleton, child) )
 				frontier.push(child);
 
@@ -138,8 +137,9 @@ void SimplifySkeleton<MESH>::collapseShortEdges(MESH& skeleton, int root_node, S
 		if ( !edge_data.edge->IsD() )
 		{
 			auto updated_length = detail::getEdgeLengthSqr<MESH>(edge_data.edge);
-			if (updated_length <= min_length) {
-				auto& collapsing_vertex = *edge_data.edge->V(edge_data.vertex_to_collapse_onto);
+			if (updated_length <= min_length)
+			{
+				auto& collapsing_vertex = *edge_data.edge->V0(edge_data.vertex_to_collapse_onto);
 				vcg::edge::VEEdgeCollapseNonManifold<MESH>(
 					skeleton, edge_data.edge, edge_data.vertex_to_collapse_onto);
 

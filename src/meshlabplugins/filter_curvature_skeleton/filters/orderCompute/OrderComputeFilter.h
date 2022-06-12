@@ -32,8 +32,8 @@
 #define PARAM_SKELETON_MESH "skeleton_mesh"
 #define PARAM_ROOT_INDEX "root_index"
 #define PARAM_MIN_EDGE_SIZE "min_edge_size"
+#define PARAM_MIN_EDGE_PERCENTILE "min_edge_percentile"
 #define PARAM_ATTRIBUTE_TO_COLOR "attribute_to_color"
-#define PARAM_SAVE_GENERATED_TREE "save_generated_tree"
 
 namespace curvatureSkeleton
 {
