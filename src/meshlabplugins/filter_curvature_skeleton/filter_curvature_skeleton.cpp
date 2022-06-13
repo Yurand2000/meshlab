@@ -25,6 +25,7 @@
 
 #include "filters/skeletonize/SkeletonizeFilter.h"
 #include "filters/orderCompute/OrderComputeFilter.h"
+#include "filters/measuresCompute/MeasuresComputeFilter.h"
 
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
 
@@ -35,10 +36,12 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 {
 	filters.push_back( std::make_unique<SkeletonizeFilter>() );
 	filters.push_back( std::make_unique<OrderComputeFilter>() );
+	filters.push_back( std::make_unique<MeasuresComputeFilter>() );
 
 	typeList = {
 		SKELETONIZE,
 		COMPUTE_ORDER_NUMBERS,
+		COMPUTE_MEASURES
 	};
 
 	for(ActionIDType tt : types())

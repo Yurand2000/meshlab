@@ -164,17 +164,17 @@ void detail::paintEdge(MESH& skeleton, Edge<MESH>& branch_to_color, std::string 
 inline Scalarm detail::getNullValue(bool ascending)
 {
 	if (ascending)
-		return std::numeric_limits<Scalarm>().min();
-	else
 		return std::numeric_limits<Scalarm>().max();
+	else
+		return std::numeric_limits<Scalarm>().min();
 }
 
 inline std::function<bool(Scalarm const&, Scalarm const&)> detail::getCompareFunction(bool ascending)
 {
 	if (ascending)
-		return std::less<Scalarm>();
-	else
 		return std::greater<Scalarm>();
+	else
+		return std::less<Scalarm>();
 }
 
 template<typename MESH>

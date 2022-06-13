@@ -97,8 +97,8 @@ std::map<std::string, QVariant> OrderComputeFilter::applyFilter(
 	CMeshOAllocator::GetPerMeshAttribute<Scalarm>(skeleton, ATTRIBUTE_ROOT_INDEX)() = root_index;
 
 	//save attributes back to the original meshes
-	BranchTagger<CMeshO>::copyAttributeTreeToSkeleton(skeleton, tree, tree_root_index, ATTRIBUTE_STRAHLER_NUMBER, true);
-	BranchTagger<CMeshO>::copyAttributeTreeToSkeleton(skeleton, tree, tree_root_index, ATTRIBUTE_HACK_ORDER_NUMBER, false);
+	BranchTagger<CMeshO>::copyAttributeTreeToSkeleton(skeleton, tree, tree_root_index, ATTRIBUTE_STRAHLER_NUMBER, false);
+	BranchTagger<CMeshO>::copyAttributeTreeToSkeleton(skeleton, tree, tree_root_index, ATTRIBUTE_HACK_ORDER_NUMBER, true);
 
 	BranchTagger<CMeshO>::copyAttributeUsingAdjacency(skeleton, original, ATTRIBUTE_STRAHLER_NUMBER, ATTRIBUTE_MESH_TO_SKELETON);
 	BranchTagger<CMeshO>::copyAttributeUsingAdjacency(skeleton, original, ATTRIBUTE_HACK_ORDER_NUMBER, ATTRIBUTE_MESH_TO_SKELETON);
