@@ -23,6 +23,7 @@
 
 #include "MeasuresComputeFilter.h"
 
+#include <vcg/complex/algorithms/create/platonic.h>
 #include <vector>
 #include <stack>
 #include <algorithm>
@@ -148,16 +149,76 @@ std::map<std::string, QVariant> MeasuresComputeFilter::applyFilter(
 	plugin.log( std::string("** Number of branches: ") + std::to_string(branches.size()) );
 
 	//compute lenghts
+	auto original_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(original, attribute);
+	auto skeleton_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(skeleton, attribute);
+
+	//debug sphere
+	CMeshO sphere;
+	vcg::tri::Sphere<CMeshO>(sphere, 3);
+
+	//make debug sphere mesh
+	auto debug_spheres = document.addNewMesh("", "DebugSpheres", false);
+	debug_spheres->cm.face.EnableFFAdjacency();
+	debug_spheres->updateDataMask(MeshModel::MM_FACEFACETOPO);
+
 	plugin.log("** Branch lengths: ");
-	Scalarm tle = 0.0;
+	plugin.log("*  Smp = Simple lenght; Sph = Sphere radius; Len = Skeleton Lenght  *");
+	Scalarm simple_tle = 0;
+	Scalarm tle = 0;
 	for (int i = 0; i < branches.size(); i++)
 	{
 		auto& branch = branches[i];
-		auto  lenght = vcg::Distance(tree.vert[branch.end_index].P(), tree.vert[branch.start_index].P());
-		tle += lenght;
+		auto  tip_number = order_numbers[branch.end_index];
 
-		plugin.log( "  Branch #" + std::to_string(i) + ": " + std::to_string(lenght) );
+		Scalarm length = 0;
+		auto* skeleton_base = &skeleton.vert[detail::getVertexIndexInMesh(tree.vert[branch.start_index].P(), skeleton)];
+		auto* skeleton_tip = &skeleton.vert[detail::getVertexIndexInMesh(tree.vert[branch.end_index].P(), skeleton)];
+		auto path = detail::findPath(skeleton, skeleton_base, skeleton_tip);
+
+		auto current_end = 0;
+		while ( current_end < (path.size() - 1) && skeleton_numbers[path[current_end]] == tip_number )
+		{
+			length += vcg::Distance(  path[ current_end ]->P(), path[ current_end + 1 ]->P()  );
+			current_end++;
+		}
+
+		Scalarm simple_length = vcg::Distance( path[0]->P(), path[current_end]->P() );
+
+		auto h = vcg::Histogram<Scalarm>();
+		h.Clear();
+		h.SetRange(0, original.bbox.Diag(), 10000);
+
+		auto number     = order_numbers[branch.start_index];
+		auto sph_center = path[current_end]->P();
+		for (auto& vertex : original.vert)
+		{
+			auto vnumber = original_numbers[vertex];
+			if (vnumber == number)
+			{
+				auto distance = vcg::Distance(vertex.P(), sph_center);
+				h.Add(distance);
+			}
+		}
+
+		Scalarm sph_radius = 0;
+		if (i != 0)
+		{
+			sph_radius = h.Percentile(0.005);
+
+			// create debug spheres
+			CMeshO curr_sphere;
+			vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(curr_sphere, sphere);
+			vcg::tri::UpdatePosition<CMeshO>::Scale(curr_sphere, sph_radius);
+			vcg::tri::UpdatePosition<CMeshO>::Translate(curr_sphere, sph_center);
+			vcg::tri::Append<CMeshO, CMeshO>::MeshAppendConst(debug_spheres->cm, curr_sphere);
+		}
+
+		simple_tle += simple_length - sph_radius;
+		tle += length - sph_radius;
+
+		plugin.log("  Branch #" + std::to_string(i) + ": " + std::to_string(simple_length - sph_radius) + ";  [Smp:" + std::to_string(simple_length) + "; Sph: " + std::to_string(sph_radius) + "; Len: " + std::to_string(length) + "]");
 	}
+	plugin.log("  Simple TLE: " + std::to_string(simple_tle));
 	plugin.log("  TLE: " + std::to_string(tle));
 
 	//compute angles
