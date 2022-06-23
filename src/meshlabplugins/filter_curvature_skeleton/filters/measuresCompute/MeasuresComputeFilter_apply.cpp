@@ -29,6 +29,8 @@
 #include <algorithm>
 #include "common/SkeletonMesh.h"
 #include "common/BranchTagger.h"
+#include <meshlabplugins/filter_select/meshselect.h>
+#include <common/plugins/plugin_manager.h>
 
 #define ATTRIBUTE_ROOT_INDEX "root_index"
 #define ATTRIBUTE_BRANCH_NUMBER "branch_number"
@@ -132,19 +134,6 @@ std::map<std::string, QVariant> MeasuresComputeFilter::applyFilter(
 	BranchTagger<CMeshO>::copyAttributeTreeToSkeleton(skeleton, tree, tree_root_index, ATTRIBUTE_BRANCH_NUMBER, true);
 	BranchTagger<CMeshO>::copyAttributeUsingAdjacency(skeleton, original, ATTRIBUTE_BRANCH_NUMBER, ATTRIBUTE_MESH_TO_SKELETON);
 
-	//colorize by branch (temp)
-	auto colors = BranchTagger<CMeshO>::generateColorsFromAttribute(tree, ATTRIBUTE_BRANCH_NUMBER);
-	std::random_shuffle(colors.begin(), colors.end());
-
-	tree_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-	BranchTagger<CMeshO>::colorizeByAttribute(tree, colors, ATTRIBUTE_BRANCH_NUMBER);
-
-	skeleton_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-	BranchTagger<CMeshO>::colorizeByAttribute(skeleton, colors, ATTRIBUTE_BRANCH_NUMBER);
-
-	original_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
-	BranchTagger<CMeshO>::colorizeByAttribute(original, colors, ATTRIBUTE_BRANCH_NUMBER);
-
 	//print number of branches
 	plugin.log( std::string("** Number of branches: ") + std::to_string(branches.size()) );
 
@@ -244,6 +233,81 @@ std::map<std::string, QVariant> MeasuresComputeFilter::applyFilter(
 
 	//compute tickness
 
+	//find select plugin
+	FilterPlugin* select_plugin = nullptr;
+	auto it_range = meshlab::pluginManagerInstance().filterPluginIterator();
+	for (auto it = it_range.begin(); it != it_range.end(); it++)
+	{
+		if ((*it)->pluginName() == "FilterSelect")
+		{
+			select_plugin = *it;
+			break;
+		}
+	}
+
+	if ( select_plugin == nullptr )
+		return {};
+
+	//save individual branches
+	auto* current_mesh = document.mm();
+	for (int i = 0; i < branches.size(); i++)
+	{
+		auto* branch_mm = document.addNewMesh("", "Branch #" + QString::number(i), true);
+		auto& branch    = branch_mm->cm;
+
+		auto branch_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(branch, ATTRIBUTE_BRANCH_NUMBER);
+		vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(branch, original);
+		branch.vert.EnableVFAdjacency();
+		branch.face.EnableVFAdjacency();
+		vcg::tri::UpdateTopology<CMeshO>::VertexFace(branch);
+
+		vcg::tri::UpdateSelection<CMeshO>::VertexClear(branch);
+		for (auto& vertex : branch.vert)
+		{
+			if (!vertex.IsD() && branch_numbers[vertex] == i)
+			{
+				vertex.SetS();
+
+				std::vector<CMeshO::VertexPointer> adjs;
+				vcg::face::VVStarVF<CMeshO::FaceType>(&vertex, adjs);
+
+				for (auto* adj : adjs)
+				{
+					if (!adj->IsD())
+						adj->SetS();
+				}
+			}
+
+		}
+		branch.svn = vcg::tri::UpdateSelection<CMeshO>::VertexInvert(branch);
+		branch.vert.DisableVFAdjacency();
+		branch.face.DisableVFAdjacency();
+
+		//delete vertices via filter
+		uint post_condition_mask;
+		select_plugin->applyFilter(
+			select_plugin->getFilterAction(SelectionFilterPlugin::FP_SELECT_DELETE_VERT),
+			RichParameterList(),
+			document,
+			post_condition_mask,
+			cb
+		);
+	}
+	document.setCurrent(current_mesh);
+
+	// colorize by branch (temp)
+	auto colors = BranchTagger<CMeshO>::generateColorsFromAttribute(tree, ATTRIBUTE_BRANCH_NUMBER);
+	std::random_shuffle(colors.begin(), colors.end());
+
+	tree_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
+	BranchTagger<CMeshO>::colorizeByAttribute(tree, colors, ATTRIBUTE_BRANCH_NUMBER);
+
+	skeleton_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
+	BranchTagger<CMeshO>::colorizeByAttribute(skeleton, colors, ATTRIBUTE_BRANCH_NUMBER);
+
+	original_mm->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
+	BranchTagger<CMeshO>::colorizeByAttribute(original, colors, ATTRIBUTE_BRANCH_NUMBER);
+	
 	return {};
 }
 
