@@ -34,7 +34,7 @@ $Log: stdpardialog.cpp,v $
 #include <QFontMetrics>
 #include <QSettings>
 
-#include <common_gui/rich_parameter/richparameterlistframe.h>
+#include <common_gui/rich_parameter/rich_parameter_list_frame.h>
 
 #include "mainwindow.h"
 #include "ui_layerDialog.h"
@@ -568,11 +568,10 @@ void LayerDialog::showContextMenu(const QPoint& pos)
 	}
 }
 
-void LayerDialog::updateLog(const GLLogStream &log)
+void LayerDialog::updateLog(GLLogStream &log)
 {
 	const QList< pair<int,QString> > &logStringList=log.logStringList();
-	ui->logPlainTextEdit->clear();
-	//ui->logPlainTextEdit->setFont(QFont("Courier",10));
+	//ui->logPlainTextEdit->clear();
 
 	pair<int,QString> logElem;
 #ifdef __APPLE__
@@ -601,6 +600,7 @@ void LayerDialog::updateLog(const GLLogStream &log)
 		logText += "<BR>";
 	}
 	ui->logPlainTextEdit->appendHtml(logText);
+	log.clear();
 }
 
 void LayerDialog::updateTable()
@@ -1330,3 +1330,9 @@ DecoratorParamItem::DecoratorParamItem( QAction* action):
 	QTreeWidgetItem(), act(action)
 {
 }
+
+void LayerDialog::on_cleanLogPushButton_clicked()
+{
+	ui->logPlainTextEdit->clear();
+}
+

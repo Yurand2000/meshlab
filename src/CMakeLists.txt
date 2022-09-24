@@ -76,7 +76,7 @@ if (USE_DEFAULT_BUILD_AND_INSTALL_DIRS) # otherwise, we assume that all these di
 	if (NOT APPLE)
 		set(CMAKE_INSTALL_RPATH $ORIGIN/../${MESHLAB_LIB_INSTALL_DIR};$ORIGIN/../${CMAKE_INSTALL_LIBDIR})
 	else()
-		SET(CMAKE_INSTALL_RPATH $ORIGIN/../Frameworks)
+		SET(CMAKE_INSTALL_RPATH @executable_path/../Frameworks)
 	endif()
 
 	get_directory_property(hasParent PARENT_DIRECTORY)
@@ -165,6 +165,8 @@ if(NOT DEFINED MESHLAB_PLUGINS) # it may be already defined in parent directory
 		meshlabplugins/filter_colorproc
 		meshlabplugins/filter_create
 		meshlabplugins/filter_curvature_skeleton
+		meshlabplugins/filter_cubization
+		meshlabplugins/filter_developability
 		meshlabplugins/filter_dirt
 		meshlabplugins/filter_fractal
 		meshlabplugins/filter_func

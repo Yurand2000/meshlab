@@ -11,7 +11,9 @@
 # After running this script, $INSTALL_PATH/meshlab.app will be a portable meshlab application.
 
 SCRIPTS_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
 INSTALL_PATH=$SCRIPTS_PATH/../../install
+QT_DIR=""
 APPNAME="meshlab.app"
 
 #checking for parameters
@@ -22,34 +24,22 @@ case $i in
         INSTALL_PATH="${i#*=}"
         shift # past argument=value
         ;;
+    -qt=*|--qt_dir=*)
+        QT_DIR=${i#*=}/bin/
+        shift # past argument=value
+        ;;
     *)
         # unknown option
         ;;
 esac
 done
 
-echo "Hopefully I should find " $INSTALL_PATH/$APPNAME
+ARGUMENTS=""
 
-if ! [ -e $INSTALL_PATH/$APPNAME -a -d $INSTALL_PATH/$APPNAME ]
-then
-    echo "Started in the wrong dir: I have not found the meshlab.app"
-    exit -1
-fi
+for plugin in $INSTALL_PATH/$APPNAME/Contents/PlugIns/*.so
+do
+    ARGUMENTS="${ARGUMENTS} -executable=${plugin}"
+done
 
-
-if [ -e $QTDIR/bin/macdeployqt ]
-then
-    MACDEPLOYQT_EXE=$QTDIR/bin/macdeployqt
-else
-    MACDEPLOYQT_EXE=macdeployqt
-fi
-
-${MACDEPLOYQT_EXE} $INSTALL_PATH/$APPNAME \
-    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libedit_align.so \
-    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_csg.so \
-    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_isoparametrization.so \
-    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_mesh_booleans.so \
-    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_screened_poisson.so \
-    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_sketchfab.so \
-    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libio_e57.so \
-    -executable=$INSTALL_PATH/$APPNAME/Contents/PlugIns/libfilter_curvature_skeleton.so
+${QT_DIR}macdeployqt $INSTALL_PATH/$APPNAME \
+    $ARGUMENTS
