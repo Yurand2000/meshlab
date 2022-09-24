@@ -21,36 +21,27 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE
-#define FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE
-
-#include "common/TemplateFilter.h"
-
-#include <common/plugins/interfaces/filter_plugin.h>
-
-#define PARAM_ORIGINAL_MESH "original_mesh"
-#define PARAM_SKELETON_MESH "pruned_skeleton_mesh"
-#define PARAM_TREE_MESH "tree_mesh"
-#define PARAM_ATTRIBUTE "order_attribute"
-#define PARAM_ATTRIBUTE_TO_COLOR "attribute_to_color"
+#ifndef FILTERCURVATURESKELETON_UTILITY_FUNCTIONS_IMPLEMENTATION
+#define FILTERCURVATURESKELETON_UTILITY_FUNCTIONS_IMPLEMENTATION
 
 namespace curvatureSkeleton
 {
-
-class OrderComputeFilter : public TemplateFilter
-{
-public:
-	OrderComputeFilter();
-
-	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
-	virtual std::map<std::string, QVariant> applyFilter(
-		FilterPlugin const&,
-		RichParameterList const&,
-		MeshDocument&,
-		unsigned int&,
-		vcg::CallBackPos*) override;
-};
-
+    template <typename MESH>
+    int Utils<MESH>::getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
+    {
+		Scalarm min_sqr_dist = std::numeric_limits<Scalarm>::max();
+		int index = -1;
+		for (auto& vertex : mesh.vert)
+		{
+			auto sqr_dist = (point - vertex.cP()).SquaredNorm();
+			if (sqr_dist < min_sqr_dist)
+			{
+				min_sqr_dist = sqr_dist;
+				index = vertex.Index();
+			}
+		}
+		return index;
+    }
 }
 
-#endif //FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE
+#endif // FILTERCURVATURESKELETON_UTILITY_FUNCTIONS_IMPLEMENTATION

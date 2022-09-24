@@ -43,8 +43,6 @@ public:
 		Skeletonizer::Parameters skeletonizer_params;
 		int                      max_iterations;
 		bool                     save_mesoskeletons;
-		bool                     extend_branches;
-		Scalarm                  extend_branches_angle;
 	};
 
 private:

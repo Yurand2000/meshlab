@@ -1,12 +1,12 @@
-#filter_curvature_skeleton/filters/measuresCompute
+#filter_curvature_skeleton/filters/pruneExtend
 set (SOURCES
-	"MeasuresComputeFilter.cpp"
-	"MeasuresComputeFilter_apply.cpp"
-	"MeasuresComputeFilter_params.cpp"
+	"PruneExtendFilter.cpp"
+	"PruneExtendFilter_apply.cpp"
+	"PruneExtendFilter_params.cpp"
 )
 
 set (HEADERS
-	"MeasuresComputeFilter.h"
+	"PruneExtendFilter.h"
 )
 
 list(TRANSFORM SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")

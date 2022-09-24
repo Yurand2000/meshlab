@@ -24,7 +24,6 @@
 #include "AlgorithmSkeletonize.h"
 
 #include <vcg/complex/allocate.h>
-#include "BranchExtender.h"
 
 #define ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME "skeleton_index"
 #define ATTRIBUTE_MESH_TO_SKELETON_DISTANCE_NAME "skeleton_distance"
@@ -110,12 +109,6 @@ void AlgorithmSkeletonize::generateSkeleton(Skeletonizer& skeletonizer)
 
 	saveMeshToSkeletonIndex(mesh_to_skeleton);
 	saveMeshToSkeletonDistance(skeleton, mesh_to_skeleton);
-
-	if (parameters.extend_branches)
-	{
-		callback_pos(98, "Extending skeleton branches...");
-		BranchExtender::extendLeafs( getMesh(), skeleton, parameters.extend_branches_angle );
-	}
 
 	new_meshes.push_back({ skeleton, "Skeleton-" + getMeshName() });
 }

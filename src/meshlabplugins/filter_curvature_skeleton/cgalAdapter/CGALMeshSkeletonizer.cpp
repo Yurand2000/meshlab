@@ -47,7 +47,7 @@ CGALMeshSkeletonizer::CGALMeshSkeletonizer(Mesh const& input, Parameters const& 
 void CGALMeshSkeletonizer::setSkeletonizerParameters(Parameters const& params)
 {
 	if (params.max_triangle_angle > 0)
-		skeletonizer.set_max_triangle_angle((params.max_triangle_angle * Scalarm(M_PI)) / Scalarm(180.0));
+		skeletonizer.set_max_triangle_angle(vcg::math::ToRad(params.max_triangle_angle));
 	if (params.min_edge_length > 0)
 		skeletonizer.set_min_edge_length(params.min_edge_length);
 	if (params.quality_speed_tradeoff > 0)

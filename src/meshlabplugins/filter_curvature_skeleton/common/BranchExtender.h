@@ -32,6 +32,7 @@ namespace curvatureSkeleton
 class BranchExtender
 {
 public:
+	static void extendBranch(CMeshO const& mesh, CMeshO& skeleton, int vertex, float angle);
 	static void extendLeafs(CMeshO const& mesh, CMeshO& skeleton, float angle);
 
 private:

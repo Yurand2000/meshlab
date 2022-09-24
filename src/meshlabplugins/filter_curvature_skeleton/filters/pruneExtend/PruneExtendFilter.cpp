@@ -21,36 +21,24 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE
-#define FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE
+#include "PruneExtendFilter.h"
+#include "filter_curvature_skeleton.h"
 
-#include "common/TemplateFilter.h"
-
-#include <common/plugins/interfaces/filter_plugin.h>
-
-#define PARAM_ORIGINAL_MESH "original_mesh"
-#define PARAM_SKELETON_MESH "pruned_skeleton_mesh"
-#define PARAM_TREE_MESH "tree_mesh"
-#define PARAM_ATTRIBUTE "order_attribute"
-#define PARAM_ATTRIBUTE_TO_COLOR "attribute_to_color"
+#define F_FILTERID    FilterCurvatureSkeleton::PRUNE_AND_EXTEND
+#define F_DISPLAYNAME "Prune and Extend Skeleton Branches"
+#define F_DESCRIPTION ""
+#define F_CATEGORY    FilterPlugin::Other
+#define F_PYTHON_NAME "prune_and_extend_skeleton_branches"
+#define F_ARITY       FilterPlugin::FilterArity::FIXED
+#define F_PRECONDS    MeshModel::MM_NONE
+#define F_POSTCONDS   MeshModel::MM_NONE
 
 namespace curvatureSkeleton
 {
 
-class OrderComputeFilter : public TemplateFilter
-{
-public:
-	OrderComputeFilter();
-
-	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
-	virtual std::map<std::string, QVariant> applyFilter(
-		FilterPlugin const&,
-		RichParameterList const&,
-		MeshDocument&,
-		unsigned int&,
-		vcg::CallBackPos*) override;
-};
+PruneExtendFilter::PruneExtendFilter()
+	: TemplateFilter(
+		F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
+		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
 
 }
-
-#endif //FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE

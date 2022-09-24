@@ -97,9 +97,6 @@ static AlgorithmSkeletonize::Parameters getParameters(RichParameterList const& r
 	params.max_iterations        = rich_params.getInt(PARAM_MAX_ITERATIONS);
 	params.save_mesoskeletons    = rich_params.getBool(PARAM_GENERATE_INTERMEDIATE_MESHES);
 
-	params.extend_branches       = rich_params.getBool(PARAM_DO_EXTEND_BRANCHES);
-	params.extend_branches_angle = vcg::math::ToRad( rich_params.getDynamicFloat(PARAM_EXTENSION_CONE_ANGLE) ); 
-
 	return params;
 }
 

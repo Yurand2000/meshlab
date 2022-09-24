@@ -38,8 +38,6 @@
 #define PARAM_QUALITY_TRADEOFF "quality_tradeoff"
 #define PARAM_ENABLE_MEDIALLY_CENTERING "enable_medially_centering"
 #define PARAM_MEDIALLY_CENTERING_TRADEOFF "medially_centering_tradeoff"
-#define PARAM_DO_EXTEND_BRANCHES "extend_branches"
-#define PARAM_EXTENSION_CONE_ANGLE "cone_angle"
 
 namespace curvatureSkeleton
 {

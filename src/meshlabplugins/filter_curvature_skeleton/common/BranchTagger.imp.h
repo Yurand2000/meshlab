@@ -25,6 +25,7 @@
 #define FILTERCURVATURESKELETON_BRANCH_TAGGER_IMP
 
 #include "SimplifySkeleton.h"
+#include "Utils.h"
 
 #include <queue>
 #include <stack>
@@ -58,7 +59,6 @@ template<typename MESH> void floodUnassignedEdges(MESH& skeleton, std::string co
 
 template<typename MESH> std::vector<typename MESH::VertexType*> findPath(MESH& mesh, typename MESH::VertexType* start, typename MESH::VertexType* end);
 
-template<typename MESH> int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
 template<typename MESH> std::unordered_map<int, int> getTreeToSkeletonAssociations(MESH const& tree, MESH const& skeleton);
 
 }
@@ -183,27 +183,10 @@ std::unordered_map<int, int> detail::getTreeToSkeletonAssociations(MESH const& t
 	std::unordered_map<int, int> tree_to_skeleton_map;
 	for (auto& vertex : tree.vert)
 	{
-		tree_to_skeleton_map.emplace( vertex.Index(), detail::getVertexIndexInMesh(vertex.P(), skeleton) );
+		tree_to_skeleton_map.emplace( vertex.Index(), Utils<MESH>::getVertexIndexInMesh(vertex.P(), skeleton) );
 	}
 
 	return tree_to_skeleton_map;
-}
-
-template<typename MESH>
-int detail::getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
-{
-	Scalarm min_sqr_dist = std::numeric_limits<Scalarm>::max();
-	int index = -1;
-	for (auto& vertex : mesh.vert)
-	{
-		auto sqr_dist = (point - vertex.cP()).SquaredNorm();
-		if (sqr_dist < min_sqr_dist)
-		{
-			min_sqr_dist = sqr_dist;
-			index        = vertex.Index();
-		}
-	}
-	return index;
 }
 
 template<typename MESH>

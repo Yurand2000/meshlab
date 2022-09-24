@@ -21,24 +21,37 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "MeasuresComputeFilter.h"
-#include "filter_curvature_skeleton.h"
+#ifndef FILTERCURVATURESKELETON_FILTER_PRUNE_AND_EXTEND
+#define FILTERCURVATURESKELETON_FILTER_PRUNE_AND_EXTEND
 
-#define F_FILTERID    FilterCurvatureSkeleton::COMPUTE_MEASURES
-#define F_DISPLAYNAME "Compute Measures"
-#define F_DESCRIPTION ""
-#define F_CATEGORY    FilterPlugin::Other
-#define F_PYTHON_NAME "compute_measures"
-#define F_ARITY       FilterPlugin::FilterArity::FIXED
-#define F_PRECONDS    MeshModel::MM_NONE
-#define F_POSTCONDS   MeshModel::MM_NONE
+#include "common/TemplateFilter.h"
+
+#include <common/plugins/interfaces/filter_plugin.h>
+
+#define PARAM_ORIGINAL_MESH "original_mesh"
+#define PARAM_SKELETON_MESH "skeleton_mesh"
+#define PARAM_ROOT_INDEX "root_index"
+#define PARAM_MIN_EDGE_SIZE "min_edge_size"
+#define PARAM_MIN_EDGE_PERCENTILE "min_edge_percentile"
+#define PARAM_EXTENSION_CONE_ANGLE "cone_angle"
 
 namespace curvatureSkeleton
 {
 
-MeasuresComputeFilter::MeasuresComputeFilter()
-	: TemplateFilter(
-		F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
-		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
+class PruneExtendFilter : public TemplateFilter
+{
+public:
+	PruneExtendFilter();
+
+	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
+	virtual std::map<std::string, QVariant> applyFilter(
+		FilterPlugin const&,
+		RichParameterList const&,
+		MeshDocument&,
+		unsigned int&,
+		vcg::CallBackPos*) override;
+};
 
 }
+
+#endif //FILTERCURVATURESKELETON_FILTER_ORDER_COMPUTE

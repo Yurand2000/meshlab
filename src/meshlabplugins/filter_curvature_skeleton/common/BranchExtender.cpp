@@ -44,62 +44,99 @@ typedef vcg::tri::Allocator<CMeshO> CMeshOAllocator;
 typedef vcg::tri::Append<CMeshO, SkeletonMesh> SkeletonToCMeshOAppend;
 typedef vcg::tri::Append<SkeletonMesh, CMeshO> CMeshOToSkeletonAppend;
 
-struct SkeletonLeaf
+namespace detail
 {
-	typedef std::unordered_set<int> BranchIndices;
+	struct SkeletonLeaf
+	{
+		typedef std::unordered_set<int> BranchIndices;
 
-	int           leaf_index;
-	BranchIndices branch_indices;
-	Normal        normal;
-};
+		int           leaf_index;
+		BranchIndices branch_indices;
+		Normal        normal;
+	};
 
-static std::vector<SkeletonLeaf> findSkeletonLeafs(SkeletonMesh const& skeleton);
-static void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle);
+	static std::vector<SkeletonLeaf> findSkeletonLeafs(SkeletonMesh const& skeleton);
+	static void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle);
+
+	inline static bool isLeafVertex(SkeletonVertex const& vertex);
+	inline static SkeletonLeaf getSkeletonLeafData(SkeletonVertex const& vertex);
+	static std::vector<SkeletonVertex const*> getNthParents(SkeletonVertex const& vertex, int max_depth = 5);
+	static void getNthParentsRecursive(std::vector<SkeletonVertex const*>& branch, SkeletonVertex const* vertex, SkeletonVertex const* parent, int depth);
+	inline static Normal getVertexNormal(SkeletonVertex const& vertex, std::vector<SkeletonVertex const*> const& parents);
+	inline static SkeletonLeaf::BranchIndices getBranchIndices(std::vector<SkeletonVertex const*> const& parents);
+
+	static std::vector<CVertexO const*> getMeshLeafVertices(SkeletonLeaf::BranchIndices vertices, CMeshO const& mesh);
+	static Point calculateBranchExtension(
+		Point const& leaf_vertex,
+		std::vector<CVertexO const*> const& leaf_vertices,
+		Normal const& leaf_normal,
+		float         angle,
+		bool& valid_new_point);
+	inline static bool isContainedInCone(
+		Point const& origin, Point const& point,
+		Scalarm cone_angle, Normal cone_direction);
+}
+
+void BranchExtender::extendBranch(CMeshO const& mesh, CMeshO& skeleton, int vertex_index, float angle)
+{
+	SkeletonMesh converted_skeleton;
+	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
+	SkeletonMeshTopology::VertexEdge(converted_skeleton);
+
+	auto& vertex = converted_skeleton.vert[vertex_index];
+	if (detail::isLeafVertex(vertex))
+	{
+		detail::extendBranch(
+			detail::getSkeletonLeafData(vertex),
+			mesh, skeleton, angle
+		);
+	}
+}
 
 void BranchExtender::extendLeafs(CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
 	SkeletonMesh converted_skeleton;
 	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
 	SkeletonMeshTopology::VertexEdge(converted_skeleton);
-	auto vertices = findSkeletonLeafs(converted_skeleton);
+	auto vertices = detail::findSkeletonLeafs(converted_skeleton);
 
 	for (auto& leaf : vertices)
 	{
-		extendBranch(leaf, mesh, skeleton, angle);
+		detail::extendBranch(leaf, mesh, skeleton, angle);
 	}
 }
 
-inline static bool   isLeafVertex(SkeletonVertex const& vertex);
-static std::vector<SkeletonVertex const*> getNthParents(SkeletonVertex const& vertex, int max_depth = 5);
-inline static Normal getVertexNormal(SkeletonVertex const& vertex, std::vector<SkeletonVertex const*> const& parents);
-inline static SkeletonLeaf::BranchIndices getBranchIndices(std::vector<SkeletonVertex const*> const& parents);
-
-std::vector<SkeletonLeaf> findSkeletonLeafs(SkeletonMesh const& skeleton)
+std::vector<detail::SkeletonLeaf> detail::findSkeletonLeafs(SkeletonMesh const& skeleton)
 {
-	std::vector<SkeletonLeaf> leafs;
+	std::vector<detail::SkeletonLeaf> leafs;
 	for (auto& vertex : skeleton.vert)
 	{
-		if (isLeafVertex(vertex))
-		{
-			auto parents = getNthParents(vertex);
-
-			leafs.push_back({
-				vertex.Index(),
-				getBranchIndices(parents),
-				getVertexNormal(vertex, parents)
-			});
-		}
+		if (detail::isLeafVertex(vertex))
+			leafs.push_back(
+				detail::getSkeletonLeafData(vertex)
+			);
 	}
 	return leafs;
 }
 
-inline static bool isLeafVertex(SkeletonVertex const& vertex)
+inline static bool detail::isLeafVertex(SkeletonVertex const& vertex)
 {
 	return vcg::edge::VEDegree<SkeletonEdge>(&vertex) == 1;
 }
 
+inline static detail::SkeletonLeaf detail::getSkeletonLeafData(SkeletonVertex const& vertex)
+{
+	auto parents = getNthParents(vertex);
 
-inline static Normal getVertexNormal(SkeletonVertex const& vertex, std::vector<SkeletonVertex const*> const& parents)
+	return {
+		vertex.Index(),
+		detail::getBranchIndices(parents),
+		detail::getVertexNormal(vertex, parents)
+	};
+}
+
+
+inline static Normal detail::getVertexNormal(SkeletonVertex const& vertex, std::vector<SkeletonVertex const*> const& parents)
 {
 	auto& parent = *parents.back();
 	if (&parent == &vertex)
@@ -114,9 +151,9 @@ inline static Normal getVertexNormal(SkeletonVertex const& vertex, std::vector<S
 	}
 }
 
-inline static SkeletonLeaf::BranchIndices getBranchIndices(std::vector<SkeletonVertex const*> const& parents)
+inline static detail::SkeletonLeaf::BranchIndices detail::getBranchIndices(std::vector<SkeletonVertex const*> const& parents)
 {
-	SkeletonLeaf::BranchIndices indices;
+	detail::SkeletonLeaf::BranchIndices indices;
 	for (auto& vertex : parents)
 	{
 		indices.insert(vertex->Index());
@@ -124,15 +161,14 @@ inline static SkeletonLeaf::BranchIndices getBranchIndices(std::vector<SkeletonV
 	return indices;
 }
 
-static void getNthParentsRecursive(std::vector<SkeletonVertex const*>& branch, SkeletonVertex const* vertex, SkeletonVertex const* parent, int depth);
-static std::vector<SkeletonVertex const*> getNthParents(SkeletonVertex const& vertex, int max_depth)
+static std::vector<SkeletonVertex const*> detail::getNthParents(SkeletonVertex const& vertex, int max_depth)
 {
 	std::vector<SkeletonVertex const*> parents;
 	getNthParentsRecursive(parents, &vertex, &vertex, max_depth);
 	return parents;
 }
 
-static void getNthParentsRecursive(std::vector<SkeletonVertex const*>& branch, SkeletonVertex const* vertex, SkeletonVertex const* parent, int depth)
+static void detail::getNthParentsRecursive(std::vector<SkeletonVertex const*>& branch, SkeletonVertex const* vertex, SkeletonVertex const* parent, int depth)
 {
 	if (depth == 0)
 		return;
@@ -145,27 +181,17 @@ static void getNthParentsRecursive(std::vector<SkeletonVertex const*>& branch, S
 	{
 		if (vertices[0] != parent)
 		{
-			getNthParentsRecursive(branch, vertices[0], vertex, depth - 1);
+			detail::getNthParentsRecursive(branch, vertices[0], vertex, depth - 1);
 		}
 	}
 	else if (vertices.size() == 2)
 	{
 		auto next_vertex = (vertices[0] != parent) ? vertices[0] : vertices[1];
-		getNthParentsRecursive(branch, next_vertex, vertex, depth - 1);
+		detail::getNthParentsRecursive(branch, next_vertex, vertex, depth - 1);
 	}
 }
 
-
-
-static std::vector<CVertexO const*> getMeshLeafVertices(SkeletonLeaf::BranchIndices vertices, CMeshO const& mesh);
-static Point calculateBranchExtension(
-	Point const&  leaf_vertex,
-	std::vector<CVertexO const*> const& leaf_vertices,
-	Normal const& leaf_normal,
-	float         angle,
-	bool&		  valid_new_point);
-
-void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle)
+void detail::extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
 	auto leaf_vertices = getMeshLeafVertices(leaf.branch_indices, mesh);
 	bool valid_new_point = false;
@@ -177,7 +203,7 @@ void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton
 	}
 }
 
-std::vector<CVertexO const*> getMeshLeafVertices(SkeletonLeaf::BranchIndices branch_vertices, CMeshO const& mesh)
+std::vector<CVertexO const*> detail::getMeshLeafVertices(detail::SkeletonLeaf::BranchIndices branch_vertices, CMeshO const& mesh)
 {
 	std::vector<CVertexO const*> vertices;
 	auto iterator = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(
@@ -204,11 +230,7 @@ std::vector<CVertexO const*> getMeshLeafVertices(SkeletonLeaf::BranchIndices bra
 	return vertices;
 }
 
-static bool isContainedInCone(
-	Point const& origin, Point const& point,
-	Scalarm cone_angle, Normal cone_direction);
-
-Point calculateBranchExtension(
+Point detail::calculateBranchExtension(
 	Point const& leaf_vertex,
 	std::vector<CVertexO const*> const& leaf_vertices,
 	Normal const& leaf_normal,
@@ -238,7 +260,7 @@ Point calculateBranchExtension(
 	}
 }
 
-bool isContainedInCone(
+bool detail::isContainedInCone(
 	Point const& origin, Point const& point,
 	Scalarm cone_angle, Normal cone_direction)
 {

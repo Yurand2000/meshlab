@@ -130,7 +130,9 @@ if (NOT BUILD_ONLY_MESHLAB_LIBRARIES)
 	set(CMAKE_INSTALL_RPATH)
 endif()
 
-
+#set (MESHLAB_PLUGINS
+#	meshlabplugins/filter_curvature_skeleton
+#)
 
 ### Plugin subdirectories
 if(NOT DEFINED MESHLAB_PLUGINS) # it may be already defined in parent directory

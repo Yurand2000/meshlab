@@ -21,35 +21,22 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_FILTER_MEASURES_COMPUTE
-#define FILTERCURVATURESKELETON_FILTER_MEASURES_COMPUTE
+#ifndef FILTERCURVATURESKELETON_UTILITY_FUNCTIONS
+#define FILTERCURVATURESKELETON_UTILITY_FUNCTIONS
 
-#include "common/TemplateFilter.h"
-
-#include <common/plugins/interfaces/filter_plugin.h>
-
-#define PARAM_ORIGINAL_MESH "original_mesh"
-#define PARAM_SKELETON_MESH "skeleton_mesh"
-#define PARAM_TREE_MESH "tree_mesh"
-#define PARAM_ATTRIBUTE "order_attribute"
+#include <common/ml_document/cmesh.h>
+#include <vector>
 
 namespace curvatureSkeleton
 {
-
-class MeasuresComputeFilter : public TemplateFilter
-{
-public:
-	MeasuresComputeFilter();
-
-	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
-	virtual std::map<std::string, QVariant> applyFilter(
-		FilterPlugin const&,
-		RichParameterList const&,
-		MeshDocument&,
-		unsigned int&,
-		vcg::CallBackPos*) override;
-};
-
+    template <typename MESH>
+    class Utils
+    {
+    public:
+        static int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
+    };
 }
 
-#endif //FILTERCURVATURESKELETON_FILTER_MEASURES_COMPUTE
+#include "Utils.imp.h"
+
+#endif // FILTERCURVATURESKELETON_UTILITY_FUNCTIONS

@@ -44,8 +44,8 @@ public:
 	// possible filters
 	enum {
 		SKELETONIZE,
-		COMPUTE_ORDER_NUMBERS,
-		COMPUTE_MEASURES
+		PRUNE_AND_EXTEND,
+		COMPUTE_ORDER_NUMBERS
 	};
 
 	FilterCurvatureSkeleton();

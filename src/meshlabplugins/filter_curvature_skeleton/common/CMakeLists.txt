@@ -9,6 +9,8 @@ set (SOURCES
 set (HEADERS
 	"TemplateFilter.h"
 	"SkeletonMesh.h"
+	"Utils.h"
+	"Utils.imp.h"
 	
 	"AlgorithmSkeletonize.h"
 	"BranchExtender.h"
