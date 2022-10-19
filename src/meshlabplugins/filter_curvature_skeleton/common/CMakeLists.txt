@@ -9,6 +9,7 @@ set (SOURCES
 set (HEADERS
 	"TemplateFilter.h"
 	"SkeletonMesh.h"
+	"PolylineMesh.h"
 	"Utils.h"
 	"Utils.imp.h"
 	
@@ -20,6 +21,15 @@ set (HEADERS
 	
 	"SimplifySkeleton.h"
 	"SimplifySkeleton.imp.h"
+
+	"ComputeBranches.h"
+	"ComputeBranches.imp.h"
+
+	"EdgeMeshUtils.h"
+	"EdgeMeshUtils.imp.h"
+
+	"MeshBorderPolyline.h"
+	"MeshBorderPolyline.imp.h"
 )
 
 list(TRANSFORM SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")

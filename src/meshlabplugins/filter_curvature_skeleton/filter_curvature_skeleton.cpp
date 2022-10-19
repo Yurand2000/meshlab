@@ -27,6 +27,16 @@
 #include "filters/pruneExtend/PruneExtendFilter.h"
 #include "filters/orderCompute/OrderComputeFilter.h"
 
+#ifdef CURVATURE_SKELETON_TEST
+#include "test_filters/testFilters.h"
+#include "test_filters/findPath/FindPathFilter.h"
+#include "test_filters/findPathFill/FindPathFillFilter.h"
+#include "test_filters/computeBranches/ComputeBranchesFilter.h"
+#include "test_filters/computePolylines/ComputePolylinesFilter.h"
+#include "test_filters/extractPolyline/ExtractPolylineFilter.h"
+#include "test_filters/refinePolyline/RefinePolylineFilter.h"
+#endif
+
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
 
 namespace curvatureSkeleton
@@ -43,6 +53,21 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 		PRUNE_AND_EXTEND,
 		COMPUTE_ORDER_NUMBERS
 	};
+
+#ifdef CURVATURE_SKELETON_TEST
+	filters.push_back( std::make_unique<FindPathTestFilter>() );
+	filters.push_back( std::make_unique<FindPathFillTestFilter>() );
+	filters.push_back( std::make_unique<ComputeBranchesTestFilter>() );
+	filters.push_back( std::make_unique<ExtractPolylineTestFilter>() );
+	filters.push_back( std::make_unique<RefinePolylineTestFilter>() );
+	filters.push_back( std::make_unique<ComputePolylinesTestFilter>() );
+	typeList.push_back(TestFilters::FIND_PATH);
+	typeList.push_back(TestFilters::FIND_PATH_FILL);
+	typeList.push_back(TestFilters::COMPUTE_BRANCHES);
+	typeList.push_back(TestFilters::COMPUTE_POLYLINES);
+	typeList.push_back(TestFilters::EXTRACT_POLYLINE);
+	typeList.push_back(TestFilters::REFINE_POLYLINE);
+#endif
 
 	for(ActionIDType tt : types())
 		actionList.push_back( new QAction(filterName(tt), this) );

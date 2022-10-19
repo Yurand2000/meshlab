@@ -42,7 +42,7 @@ public:
 
 public:
 	// possible filters
-	enum {
+	enum : MeshLabPlugin::ActionIDType {
 		SKELETONIZE,
 		PRUNE_AND_EXTEND,
 		COMPUTE_ORDER_NUMBERS

@@ -373,19 +373,14 @@ void detail::saveIndividualBranches(detail::OrderComputeFilterParameters& params
 		return;
 
 	auto* current_mesh = document.mm();
+	original.vert.EnableVFAdjacency();
+	original.face.EnableVFAdjacency();
+	vcg::tri::UpdateTopology<CMeshO>::VertexFace(original);
+	auto branch_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(original, ATTRIBUTE_BRANCH_NUMBER);
 	for (int i = 0; i < branches.size(); i++)
 	{
-		auto* branch_mm = document.addNewMesh("", "Branch #" + QString::number(i), true);
-		auto& branch = branch_mm->cm;
-
-		auto branch_numbers = CMeshOAllocator::GetPerVertexAttribute<Scalarm>(branch, ATTRIBUTE_BRANCH_NUMBER);
-		vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(branch, original);
-		branch.vert.EnableVFAdjacency();
-		branch.face.EnableVFAdjacency();
-		vcg::tri::UpdateTopology<CMeshO>::VertexFace(branch);
-
-		vcg::tri::UpdateSelection<CMeshO>::VertexClear(branch);
-		for (auto& vertex : branch.vert)
+		vcg::tri::UpdateSelection<CMeshO>::VertexClear(original);
+		for (auto& vertex : original.vert)
 		{
 			if (!vertex.IsD() && branch_numbers[vertex] == i)
 			{
@@ -402,20 +397,17 @@ void detail::saveIndividualBranches(detail::OrderComputeFilterParameters& params
 			}
 
 		}
-		branch.svn = vcg::tri::UpdateSelection<CMeshO>::VertexInvert(branch);
-		branch.vert.DisableVFAdjacency();
-		branch.face.DisableVFAdjacency();
+		vcg::tri::UpdateSelection<CMeshO>::FaceFromVertexLoose(original);
 
-		//delete vertices via filter
-		uint post_condition_mask;
-		select_plugin->applyFilter(
-			select_plugin->getFilterAction(SelectionFilterPlugin::FP_SELECT_DELETE_VERT),
-			RichParameterList(),
-			document,
-			post_condition_mask,
-			cb
-		);
+		auto* branch_mm = document.addNewMesh("", "Branch #" + QString::number(i), true);
+		auto& branch = branch_mm->cm;
+		CMeshOAllocator::AddPerVertexAttribute<Scalarm>(branch, ATTRIBUTE_BRANCH_NUMBER);
+		vcg::tri::Append<CMeshO, CMeshO>::MeshCopy(branch, original, true);
+		vcg::tri::UpdateSelection<CMeshO>::Clear(branch);
 	}
+	vcg::tri::UpdateSelection<CMeshO>::Clear(original);
+	original.vert.DisableVFAdjacency();
+	original.face.DisableVFAdjacency();
 	document.setCurrent(current_mesh);
 }
 
