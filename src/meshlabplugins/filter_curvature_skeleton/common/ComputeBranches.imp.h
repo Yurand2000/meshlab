@@ -39,6 +39,8 @@ namespace curvatureSkeleton
 			std::vector<int> tree_vertices;
 			Scalarm order_number;
 			int parent_branch_index;
+
+			TreeBranch(std::vector<int>, Scalarm, int);
 		};
 
 		template<typename MESH> static std::vector<TreeBranch> computeTreeBranches(
@@ -103,16 +105,16 @@ namespace curvatureSkeleton
 		vcg::tri::InitVertexIMark(converted_tree);
 		vcg::tri::InitEdgeIMark(converted_tree);
 
-		auto order_numbers = Allocator::GetPerVertexAttribute<Scalarm>(tree, attribute);
+		auto order_numbers = Allocator::template GetPerVertexAttribute<Scalarm>(tree, attribute);
 
 		std::vector<Branch> branches;
 		std::stack<std::pair<SkeletonVertex*, int>> frontier;
 
-		branches.push_back( {
+		branches.push_back( Branch(
 			{ tree_root_index },
 			order_numbers[tree_root_index],
 			-1
-		} );
+		) );
 		frontier.push( { &converted_tree.vert[tree_root_index], 0 } );
 
 		vcg::tri::UnMarkAll(converted_tree);
@@ -136,11 +138,11 @@ namespace curvatureSkeleton
 
 					if (less(adj_order_number, order_number))
 					{
-						branches.push_back( {
+						branches.push_back( Branch(
 							{ node->Index(), adj_index },
 							adj_order_number,
 							branch
-						} );
+						) );
 						frontier.push({ adj, branches.size() - 1 });
 					}
 					else
