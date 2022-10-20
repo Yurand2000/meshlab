@@ -28,7 +28,9 @@
 #include "common/EdgeMeshUtils.h"
 #include "common/Utils.h"
 
+#include <unordered_set>
 #include <vcg/complex/complex.h>
+#include <vcg/complex/algorithms/clean.h>
 
 namespace curvatureSkeleton
 {
