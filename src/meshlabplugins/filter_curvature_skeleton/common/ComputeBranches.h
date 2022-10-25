@@ -30,18 +30,31 @@
 namespace curvatureSkeleton
 {
 
-struct SkeletonBranch
+struct MeshBranch
 {
 	std::vector<int> tree_vertices, skeleton_vertices, mesh_vertices;
 	Scalarm order_number;
 	int parent_branch_index;
+
+	MeshBranch() = default;
+	MeshBranch(std::vector<int>, std::vector<int>, std::vector<int>, Scalarm, int);
+};
+
+struct TreeBranch
+{
+	std::vector<int> tree_vertices;
+	Scalarm order_number;
+	int parent_branch_index;
+
+	TreeBranch() = default;
+	TreeBranch(std::vector<int>, Scalarm, int);
 };
 
 template<typename MESH>
 class ComputeBranches
 {
 public:
-	static std::vector<SkeletonBranch> compute(
+	static std::vector<MeshBranch> compute(
 		MESH& original, MESH& skeleton,
 		MESH& tree, int tree_root_index,
 		std::string const& input_attribute_name,
@@ -49,7 +62,7 @@ public:
 		std::string const& adjacency_attribute_name);
 
 	static std::vector<MESH> extractBranches(
-		MESH& original, std::vector<SkeletonBranch>& branches
+		MESH& original, std::vector<MeshBranch>& branches
 	);
 
 private:

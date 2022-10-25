@@ -36,37 +36,28 @@ namespace curvatureSkeleton
 {
 	namespace detail
 	{
-		struct TreeBranch
-		{
-			std::vector<int> tree_vertices;
-			Scalarm order_number;
-			int parent_branch_index;
-
-			TreeBranch(std::vector<int>, Scalarm, int);
-		};
-
 		template<typename MESH> static std::vector<TreeBranch> computeTreeBranches(
 			MESH& tree, int tree_root_index,
 			std::string const& input_attribute_name,
 			std::function<bool(Scalarm const&, Scalarm const&)> input_attribute_compare_function
 		);
 
-		template<typename MESH> static std::vector<SkeletonBranch> computeSkeletonBranches(
-			MESH& skeleton, MESH& tree, std::vector<detail::TreeBranch> tree_branches
+		template<typename MESH> static std::vector<MeshBranch> computeSkeletonBranches(
+			MESH& skeleton, MESH& tree, std::vector<TreeBranch>& tree_branches
 		);
 
 		template<typename MESH> static void computeOriginalBranches(
-			MESH& original, std::vector<SkeletonBranch>& branches,
+			MESH& original, std::vector<MeshBranch>& branches,
 			std::string const& adjacency_attribute_name
 		);
 
 		template<typename MESH> static void extractMesh(
 			MESH& original, MESH& branch,
-			int branch_index, std::vector<SkeletonBranch> const& branches_data
+			int branch_index, std::vector<MeshBranch> const& branches_data
 		);
 
 		template<typename MESH> static void selectFromBranch(
-			MESH& original, int branch_index, std::vector<SkeletonBranch> const& branches_data
+			MESH& original, int branch_index, std::vector<MeshBranch> const& branches_data
 		);
 
 		template<typename MESH> static void selectBiggestConnectedComponent(MESH& branch);
@@ -74,7 +65,7 @@ namespace curvatureSkeleton
 	}
 
 	template<typename MESH>
-	std::vector<SkeletonBranch> ComputeBranches<MESH>::compute(
+	std::vector<MeshBranch> ComputeBranches<MESH>::compute(
 		MESH& original, MESH& skeleton, MESH& tree, int tree_root_index,
 		std::string const& input_attribute_name,
 		std::function<bool(Scalarm const&, Scalarm const&)> input_attribute_compare_function,
@@ -88,12 +79,12 @@ namespace curvatureSkeleton
 	}
 
 	template<typename MESH>
-	std::vector<detail::TreeBranch> detail::computeTreeBranches(
+	std::vector<TreeBranch> detail::computeTreeBranches(
 		MESH& tree, int tree_root_index,
 		std::string const& attribute,
 		std::function<bool(Scalarm const&, Scalarm const&)> less
 	) {
-		using Branch = detail::TreeBranch;
+		using Branch = TreeBranch;
 		using Allocator = vcg::tri::Allocator<MESH>;
 		using ToSkeletonMeshAppend = vcg::tri::Append<SkeletonMesh, MESH>;
 		using FromSkeletonMeshAppend = vcg::tri::Append<MESH, SkeletonMesh>;
@@ -160,12 +151,12 @@ namespace curvatureSkeleton
 	}
 
 	template<typename MESH>
-	std::vector<SkeletonBranch> detail::computeSkeletonBranches(
-		MESH& skeleton, MESH& tree, std::vector<detail::TreeBranch> tree_branches
+	std::vector<MeshBranch> detail::computeSkeletonBranches(
+		MESH& skeleton, MESH& tree, std::vector<TreeBranch>& tree_branches
 	) {
 		using ToSkeletonMeshAppend = vcg::tri::Append<SkeletonMesh, MESH>;
 
-		std::vector<SkeletonBranch> branches;
+		std::vector<MeshBranch> branches;
 		branches.reserve(tree_branches.size());
 		//copy tree branches
 		for (auto& branch : tree_branches) {
@@ -201,7 +192,7 @@ namespace curvatureSkeleton
 
 	template<typename MESH>
 	void detail::computeOriginalBranches(
-		MESH& original, std::vector<SkeletonBranch>& branches,
+		MESH& original, std::vector<MeshBranch>& branches,
 		std::string const& adjacency_attribute_name
 	) {
 		using Allocator = vcg::tri::Allocator<MESH>;
@@ -225,7 +216,7 @@ namespace curvatureSkeleton
 	template<typename MESH>
 	std::vector<MESH> ComputeBranches<MESH>::extractBranches(
 		MESH& original,
-		std::vector<SkeletonBranch>& branches_data
+		std::vector<MeshBranch>& branches_data
 	) {
 		std::vector<MESH> branches;
 		branches.reserve(branches_data.size());
@@ -244,9 +235,9 @@ namespace curvatureSkeleton
 		MESH& original,
 		MESH& branch,
 		int branch_index,
-		std::vector<SkeletonBranch> const& branches_data
+		std::vector<MeshBranch> const& branches_data
 	) {
-		//select and copy the given branch
+		//select the given branch
 		detail::selectFromBranch(original, branch_index, branches_data);
 		vcg::tri::UpdateSelection<MESH>::VertexClear(original);
 
@@ -268,7 +259,7 @@ namespace curvatureSkeleton
 	template<typename MESH>
 	void detail::selectFromBranch(
 		MESH& original, int branch_index,
-		std::vector<SkeletonBranch> const& branches_data
+		std::vector<MeshBranch> const& branches_data
 	) {
 		vcg::tri::UpdateSelection<MESH>::VertexClear(original);
 

@@ -25,6 +25,9 @@
 
 namespace curvatureSkeleton
 {
-	detail::TreeBranch::TreeBranch(std::vector<int> tree_vertices, Scalarm order_number, int parent_branch_index)
+	MeshBranch::MeshBranch(std::vector<int> mesh_vertices, std::vector<int> skeleton_vertices, std::vector<int> tree_vertices, Scalarm order_number, int parent_branch_index)
+		: mesh_vertices(mesh_vertices), skeleton_vertices(skeleton_vertices), tree_vertices(tree_vertices), order_number(order_number), parent_branch_index(parent_branch_index) { }
+
+	TreeBranch::TreeBranch(std::vector<int> tree_vertices, Scalarm order_number, int parent_branch_index)
 		: tree_vertices(tree_vertices), order_number(order_number), parent_branch_index(parent_branch_index) { }
 }
