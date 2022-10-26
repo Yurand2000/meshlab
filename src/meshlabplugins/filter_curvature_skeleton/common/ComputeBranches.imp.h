@@ -43,11 +43,13 @@ namespace curvatureSkeleton
 		);
 
 		template<typename MESH> static std::vector<MeshBranch> computeSkeletonBranches(
-			MESH& skeleton, MESH& tree, std::vector<TreeBranch>& tree_branches
+			MESH& skeleton, MESH& tree, std::vector<TreeBranch>& tree_branches,
+			std::string const& input_attribute_name
 		);
 
 		template<typename MESH> static void computeOriginalBranches(
 			MESH& original, std::vector<MeshBranch>& branches,
+			std::string const& input_attribute_name,
 			std::string const& adjacency_attribute_name
 		);
 
@@ -72,8 +74,8 @@ namespace curvatureSkeleton
 		std::string const& adjacency_attribute_name
 	) {
 		auto tree_branches = detail::computeTreeBranches(tree, tree_root_index, input_attribute_name, input_attribute_compare_function);
-		auto branches = detail::computeSkeletonBranches(skeleton, tree, tree_branches);
-		detail::computeOriginalBranches(original, branches, adjacency_attribute_name);
+		auto branches = detail::computeSkeletonBranches(skeleton, tree, tree_branches, input_attribute_name);
+		detail::computeOriginalBranches(original, branches, input_attribute_name, adjacency_attribute_name);
 
 		return branches;
 	}
@@ -152,9 +154,12 @@ namespace curvatureSkeleton
 
 	template<typename MESH>
 	std::vector<MeshBranch> detail::computeSkeletonBranches(
-		MESH& skeleton, MESH& tree, std::vector<TreeBranch>& tree_branches
+		MESH& skeleton, MESH& tree, std::vector<TreeBranch>& tree_branches,
+		std::string const& input_attribute_name
 	) {
 		using ToSkeletonMeshAppend = vcg::tri::Append<SkeletonMesh, MESH>;
+
+		auto order_numbers = vcg::tri::Allocator<MESH>::template GetPerVertexAttribute<Scalarm>(skeleton, input_attribute_name);
 
 		std::vector<MeshBranch> branches;
 		branches.reserve(tree_branches.size());
@@ -177,13 +182,46 @@ namespace curvatureSkeleton
 
 			for (int i = 0; i < branch.tree_vertices.size() - 1; i++)
 			{
-				auto* start = &converted_skeleton.vert[Utils<SkeletonMesh>::getVertexIndexInMesh(tree.vert[branch.tree_vertices[i]].cP(), converted_skeleton)];
-				auto* end   = &converted_skeleton.vert[Utils<SkeletonMesh>::getVertexIndexInMesh(tree.vert[branch.tree_vertices[i+1]].cP(), converted_skeleton)];
+				auto* start = Utils<SkeletonMesh>::getVertexInMesh(tree.vert[branch.tree_vertices[i]].cP(), converted_skeleton);
+				auto* end   = Utils<SkeletonMesh>::getVertexInMesh(tree.vert[branch.tree_vertices[i+1]].cP(), converted_skeleton);
 
-				auto skel_vertices = EdgeMeshUtils<SkeletonMesh>::getVerticesInBetween(converted_skeleton, start, end);
-				for (auto* vertex : skel_vertices) {
+				auto path = EdgeMeshUtils<SkeletonMesh>::getVerticesPath(converted_skeleton, start, end);
+				for (auto* vertex : path) {
 					branch.skeleton_vertices.push_back(vertex->Index());
 				}
+
+				auto& mesh = converted_skeleton;
+
+				//fill the frontier for the flooding operation
+				std::queue<SkeletonVertex*> frontier;
+				vcg::tri::UnMarkAll(mesh);
+				vcg::tri::Mark(mesh, path.front());
+				vcg::tri::Mark(mesh, path.back());
+				for (size_t i = 1; i < path.size() - 1; i++) {
+					frontier.push(path[i]);
+					vcg::tri::Mark(mesh, path[i]);
+				}
+
+				//add vertices recursively by flooding
+				std::vector<SkeletonVertex*> star;
+				do {
+					auto* node = frontier.front(); frontier.pop();
+					vcg::tri::Mark(mesh, node);
+
+					vcg::edge::VVStarVE(node, star);
+					for (auto* adj : star) {
+						if (!vcg::tri::IsMarked(mesh, adj))
+						{
+							if (order_numbers[adj->Index()] == branch.order_number) {
+								branch.skeleton_vertices.push_back(adj->Index());
+								frontier.push(adj);
+							}
+							else {
+								vcg::tri::Mark(mesh, adj);
+							}
+						}
+					}
+				} while (!frontier.empty());
 			}
 		}
 
@@ -193,10 +231,12 @@ namespace curvatureSkeleton
 	template<typename MESH>
 	void detail::computeOriginalBranches(
 		MESH& original, std::vector<MeshBranch>& branches,
+		std::string const& input_attribute_name,
 		std::string const& adjacency_attribute_name
 	) {
 		using Allocator = vcg::tri::Allocator<MESH>;
 
+		auto order_attribute = Allocator::template GetPerVertexAttribute<Scalarm>(original, input_attribute_name);
 		auto adj_attribute = Allocator::template GetPerVertexAttribute<Scalarm>(original, adjacency_attribute_name);
 
 		for (auto& branch : branches) {
@@ -205,7 +245,7 @@ namespace curvatureSkeleton
 
 			for (auto& vertex : original.vert)
 			{
-				if (indices.count( adj_attribute[vertex] ) > 0) {
+				if (indices.count( adj_attribute[vertex] ) > 0 && order_attribute[vertex] == branch.order_number) {
 					branch.mesh_vertices.push_back( vertex.Index() );
 				}
 			}
@@ -280,7 +320,7 @@ namespace curvatureSkeleton
 				}
 			}
 		} while (!branch_nums.empty());
-		vcg::tri::UpdateSelection<MESH>::FaceFromVertexStrict(original);
+		vcg::tri::UpdateSelection<MESH>::FaceFromVertexLoose(original);
 	}
 
 	template<typename MESH>
@@ -305,6 +345,7 @@ namespace curvatureSkeleton
 		}
 
 		//select biggest connected component
+		vcg::tri::UpdateSelection<MESH>::FaceClear(branch);
 		conn_comps[index].second->SetS();
 		vcg::tri::UpdateSelection<MESH>::FaceConnectedFF(branch);
 		vcg::tri::UpdateSelection<MESH>::VertexFromEdgeLoose(branch);

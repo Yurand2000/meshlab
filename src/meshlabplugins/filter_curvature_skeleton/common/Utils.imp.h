@@ -30,7 +30,7 @@ namespace curvatureSkeleton
     int Utils<MESH>::getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
     {
 		Scalarm min_sqr_dist = std::numeric_limits<Scalarm>::max();
-		int index = -1;
+		int index = 0;
 		for (auto& vertex : mesh.vert)
 		{
 			auto sqr_dist = (point - vertex.cP()).SquaredNorm();
@@ -42,6 +42,40 @@ namespace curvatureSkeleton
 		}
 		return index;
     }
+
+	template <typename MESH>
+	typename MESH::VertexType const* Utils<MESH>::getVertexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh)
+	{
+		Scalarm min_sqr_dist = std::numeric_limits<Scalarm>::max();
+		typename MESH::VertexType const* index = &mesh.vert[0];
+		for (auto& vertex : mesh.vert)
+		{
+			auto sqr_dist = (point - vertex.cP()).SquaredNorm();
+			if (sqr_dist < min_sqr_dist)
+			{
+				min_sqr_dist = sqr_dist;
+				index = &vertex;
+			}
+		}
+		return index;
+	}
+
+	template <typename MESH>
+	typename MESH::VertexType* Utils<MESH>::getVertexInMesh(vcg::Point3<Scalarm> point, MESH& mesh)
+	{
+		Scalarm min_sqr_dist = std::numeric_limits<Scalarm>::max();
+		typename MESH::VertexType* index = &mesh.vert[0];
+		for (auto& vertex : mesh.vert)
+		{
+			auto sqr_dist = (point - vertex.cP()).SquaredNorm();
+			if (sqr_dist < min_sqr_dist)
+			{
+				min_sqr_dist = sqr_dist;
+				index = &vertex;
+			}
+		}
+		return index;
+	}
 }
 
 #endif // FILTERCURVATURESKELETON_UTILITY_FUNCTIONS_IMPLEMENTATION

@@ -24,6 +24,7 @@
 #include "ComputePolylinesFilter.h"
 
 #include "common/SkeletonMesh.h"
+#include "common/BranchTagger.h"
 #include "common/ComputeBranches.h"
 #include "common/MeshBorderPolyline.h"
 
@@ -60,6 +61,10 @@ std::map<std::string, QVariant> ComputePolylinesTestFilter::applyFilter(
 	vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(tree, ATTRIBUTE_HACK_ORDER_NUMBER);
 	vcg::tri::Append<CMeshO, SkeletonMesh>::MeshCopyConst(tree, converted_tree);
 	vcg::tri::Allocator<CMeshO>::GetPerMeshAttribute<Scalarm>(tree, ATTRIBUTE_ROOT_INDEX)() = tree_root_index;
+
+	//save attributes back to the original meshes
+	BranchTagger<CMeshO>::copyAttributeTreeToSkeleton(skeleton, tree, tree_root_index, ATTRIBUTE_HACK_ORDER_NUMBER, true);
+	BranchTagger<CMeshO>::copyAttributeUsingAdjacency(skeleton, original, ATTRIBUTE_HACK_ORDER_NUMBER, ATTRIBUTE_MESH_TO_SKELETON);
 
 	//compute branches
 	auto branches_data = ComputeBranches<CMeshO>::compute(original, skeleton, tree, tree_root_index, ATTRIBUTE_HACK_ORDER_NUMBER, std::greater<int>(), ATTRIBUTE_MESH_TO_SKELETON);

@@ -33,6 +33,8 @@ namespace curvatureSkeleton
     class Utils
     {
     public:
+        static typename MESH::VertexType const* getVertexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
+        static typename MESH::VertexType* getVertexInMesh(vcg::Point3<Scalarm> point, MESH& mesh);
         static int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
     };
 }
