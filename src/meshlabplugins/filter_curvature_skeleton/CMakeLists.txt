@@ -17,8 +17,11 @@ else()
 	add_subdirectory(common)
 	add_subdirectory(filters)
 	add_subdirectory(cgalAdapter)
+
+	if(CURVATURE_SKELETON_TEST)
 		add_subdirectory(test_filters)
 		target_compile_definitions(${FILTER_NAME} PUBLIC CURVATURE_SKELETON_TEST)
+	endif()
 endif()
 
 
