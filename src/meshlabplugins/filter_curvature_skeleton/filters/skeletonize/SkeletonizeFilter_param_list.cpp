@@ -42,7 +42,7 @@
 
 #define LOCAL_REMESHING_CATEGORY "(2) Local Remeshing"
 #define MAX_ANGLE_DISPLAYNAME "Max Triangle Angle"
-#define MAX_ANGLE_DESCRIPTION "*EXTRA* During remeshing steps, a edge will be split if its opposite vertex (on the incident triangle) has angle greater than the given value. The default angle mentioned in the paper is 110 degrees. It is not really considered as a parameter in the paper itself, so most users might leave it as is. Angle in degrees, must be between 90 and 180 degrees."
+#define MAX_ANGLE_DESCRIPTION "During remeshing steps, a edge will be split if its opposite vertex (on the incident triangle) has angle greater than the given value. The default angle mentioned in the paper is 110 degrees. It is not really considered as a parameter in the paper itself, so most users might leave it as is. Angle in degrees, must be between 90 and 180 degrees."
 #define MIN_EDGE_LENGTH_DISPLAYNAME "Min Edge Length"
 #define MIN_EDGE_LENGTH_DESCRIPTION "During remeshing steps, an edge will be collapsed if its length is less than the given value. It is used to control the resulting skeleton resolution. The default length mentioned in the paper is 0.002 times the diagional of the mesh's bounding box (this value supplied here as default). This length must be positive and its unit is in application units (Example: if the mesh unit is meters, this value will be in meters too)."
 
@@ -65,14 +65,14 @@ RichParameterList SkeletonizeFilter::initParameterList(FilterPlugin const&, Mesh
 
 	auto defaults = CGALMeshSkeletonizer::Parameters(m.cm);
 	parlst.addParam(RichInt(PARAM_MAX_ITERATIONS, MAX_ITERATIONS_DEFAULT, MAX_ITERATIONS_DISPLAYNAME, MAX_ITERATIONS_DESCRIPTION, false, GENERIC_CATEGORY));
-	parlst.addParam(RichDynamicFloat(PARAM_DELTA_AREA_TERMINATION, defaults.delta_area_threshold, 0, 1, DELTA_AREA_TERMINATION_DISPLAYNAME, DELTA_AREA_TERMINATION_DESCRIPTION, false, GENERIC_CATEGORY));
-	parlst.addParam(RichBool(PARAM_GENERATE_INTERMEDIATE_MESHES, GENERATE_INTERMEDIATE_MESHES_DEFAULT, GENERATE_INTERMEDIATE_MESHES_DISPLAYNAME, GENERATE_INTERMEDIATE_MESHES_DESCRIPTION, false, GENERIC_CATEGORY));
+	parlst.addParam(RichDynamicFloat(PARAM_DELTA_AREA_TERMINATION, defaults.delta_area_threshold, 0, 1, DELTA_AREA_TERMINATION_DISPLAYNAME, DELTA_AREA_TERMINATION_DESCRIPTION, true, GENERIC_CATEGORY));
+	parlst.addParam(RichBool(PARAM_GENERATE_INTERMEDIATE_MESHES, GENERATE_INTERMEDIATE_MESHES_DEFAULT, GENERATE_INTERMEDIATE_MESHES_DISPLAYNAME, GENERATE_INTERMEDIATE_MESHES_DESCRIPTION, true, GENERIC_CATEGORY));
 	
-	parlst.addParam(RichDynamicFloat(PARAM_MAX_ANGLE, defaults.max_triangle_angle, 90, 180, MAX_ANGLE_DISPLAYNAME, MAX_ANGLE_DESCRIPTION, false, LOCAL_REMESHING_CATEGORY));
+	parlst.addParam(RichDynamicFloat(PARAM_MAX_ANGLE, defaults.max_triangle_angle, 90, 180, MAX_ANGLE_DISPLAYNAME, MAX_ANGLE_DESCRIPTION, true, LOCAL_REMESHING_CATEGORY));
 	parlst.addParam(RichPercentage(PARAM_MIN_EDGE_LENGTH, defaults.min_edge_length, MIN_EDGE_LENGTH_MIN_VALUE, getMinEdgeLength_DefaultMaxValue(m), MIN_EDGE_LENGTH_DISPLAYNAME, MIN_EDGE_LENGTH_DESCRIPTION, false, LOCAL_REMESHING_CATEGORY));
 
 	parlst.addParam(RichFloat(PARAM_QUALITY_TRADEOFF, defaults.quality_speed_tradeoff, QUALITY_SPEED_TRADEOFF_DISPLAYNAME, QUALITY_SPEED_TRADEOFF_DESCRIPTION, false, VERTEX_MOTION_OPTIONS_CATEGORY));
-	parlst.addParam(RichBool(PARAM_ENABLE_MEDIALLY_CENTERING, (defaults.medially_centering_speed_tradeoff > 0), USE_MEDIALLY_CENTERING_DISPLAYNAME, USE_MEDIALLY_CENTERING_DESCRIPTION, false, VERTEX_MOTION_OPTIONS_CATEGORY));
+	parlst.addParam(RichBool(PARAM_ENABLE_MEDIALLY_CENTERING, (defaults.medially_centering_speed_tradeoff > 0), USE_MEDIALLY_CENTERING_DISPLAYNAME, USE_MEDIALLY_CENTERING_DESCRIPTION, true, VERTEX_MOTION_OPTIONS_CATEGORY));
 	parlst.addParam(RichFloat(PARAM_MEDIALLY_CENTERING_TRADEOFF, defaults.medially_centering_speed_tradeoff, MEDIALLY_CENTERING_VALUE_DISPLAYNAME, MEDIALLY_CENTERING_VALUE_DESCRIPTION, false, VERTEX_MOTION_OPTIONS_CATEGORY));
 
 	return parlst;

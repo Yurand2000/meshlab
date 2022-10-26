@@ -62,7 +62,13 @@ std::map<std::string, QVariant> AlgorithmSkeletonize::apply()
 void AlgorithmSkeletonize::checkSelectedMesh() const
 {
 	callback_pos(0, "Checking mesh is watertight...");
-	if (  !vcg::tri::Clean<CMeshO>::IsWaterTight( getMesh() )  )
+	auto& mesh = getMesh();
+
+	if ( mesh.FN() == 0 || mesh.EN() == 0 )
+	{
+		throw MLException("Given mesh has no faces.");
+	}
+	if ( !vcg::tri::Clean<CMeshO>::IsWaterTight(mesh) )
 	{
 		throw MLException("Given mesh is not watertight.");
 	}
