@@ -28,10 +28,12 @@
 #include <common/plugins/interfaces/filter_plugin.h>
 
 #define PARAM_ORIGINAL_MESH "original_mesh"
+#define PARAM_SKELETON_MESH "skeleton_mesh"
 #define PARAM_POLYLINE_MESH "polyline_mesh"
 #define PARAM_ITERATIONS "iterations"
 #define PARAM_SMOOTH_WEIGTH "smooth_weigth"
 #define PARAM_PROJECT_WEIGTH "project_weigth"
+#define PARAM_FORCE_WEIGTH "force_weigth"
 
 namespace curvatureSkeleton
 {

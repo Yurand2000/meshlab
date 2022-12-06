@@ -26,6 +26,7 @@
 #include "filters/skeletonize/SkeletonizeFilter.h"
 #include "filters/pruneExtend/PruneExtendFilter.h"
 #include "filters/orderCompute/OrderComputeFilter.h"
+#include "filters/branchCutter/BranchCutterFilter.h"
 
 #ifdef CURVATURE_SKELETON_TEST
 #include "test_filters/testFilters.h"
@@ -35,6 +36,8 @@
 #include "test_filters/computePolylines/ComputePolylinesFilter.h"
 #include "test_filters/extractPolyline/ExtractPolylineFilter.h"
 #include "test_filters/refinePolyline/RefinePolylineFilter.h"
+#include "test_filters/showMinRadius/ShowMinRadiusFilter.h"
+#include "test_filters/showPolylineParent/ShowPolylineParentFilter.h"
 #endif
 
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
@@ -47,11 +50,13 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	filters.push_back( std::make_unique<SkeletonizeFilter>() );
 	filters.push_back( std::make_unique<PruneExtendFilter>() );
 	filters.push_back( std::make_unique<OrderComputeFilter>() );
+	filters.push_back( std::make_unique<BranchCutterFilter>() );
 
 	typeList = {
 		SKELETONIZE,
 		PRUNE_AND_EXTEND,
-		COMPUTE_ORDER_NUMBERS
+		COMPUTE_ORDER_NUMBERS,
+		BRANCH_CUTTER,
 	};
 
 #ifdef CURVATURE_SKELETON_TEST
@@ -61,12 +66,16 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	filters.push_back( std::make_unique<ExtractPolylineTestFilter>() );
 	filters.push_back( std::make_unique<RefinePolylineTestFilter>() );
 	filters.push_back( std::make_unique<ComputePolylinesTestFilter>() );
+	filters.push_back( std::make_unique<ShowMinRadiusTestFilter>() );
+	filters.push_back( std::make_unique<ShowPolylineParentTestFilter>() );
 	typeList.push_back(TestFilters::FIND_PATH);
 	typeList.push_back(TestFilters::FIND_PATH_FILL);
 	typeList.push_back(TestFilters::COMPUTE_BRANCHES);
 	typeList.push_back(TestFilters::COMPUTE_POLYLINES);
 	typeList.push_back(TestFilters::EXTRACT_POLYLINE);
 	typeList.push_back(TestFilters::REFINE_POLYLINE);
+	typeList.push_back(TestFilters::SHOW_MIN_RADIUS);
+	typeList.push_back(TestFilters::SHOW_POLYLINE_PARENT);
 #endif
 
 	for(ActionIDType tt : types())

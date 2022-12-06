@@ -21,23 +21,21 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_TEST_FILTERS
-#define FILTERCURVATURESKELETON_TEST_FILTERS
+#include "ShowPolylineParentFilter.h"
 
-#include <common/plugins/interfaces/filter_plugin.h>
+#include <string>
 
 namespace curvatureSkeleton
 {
-    enum TestFilters : MeshLabPlugin::ActionIDType {
-        FIND_PATH = 1000,
-        FIND_PATH_FILL,
-        COMPUTE_BRANCHES,
-        COMPUTE_POLYLINES,
-        EXTRACT_POLYLINE,
-        REFINE_POLYLINE,
-        SHOW_MIN_RADIUS,
-        SHOW_POLYLINE_PARENT,
-    };
+
+RichParameterList ShowPolylineParentTestFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
+{
+	RichParameterList parlst;
+
+	parlst.addParam(RichMesh(PARAM_POLYLINE_MESH, 0, &m, "POLYLINE MESH", "", false));
+	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, 0, &m, "SKELETON MESH", "", false));
+
+	return parlst;
 }
 
-#endif //FILTERCURVATURESKELETON_TEST_FILTERS
+}

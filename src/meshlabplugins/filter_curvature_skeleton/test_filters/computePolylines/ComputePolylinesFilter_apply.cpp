@@ -31,6 +31,7 @@
 #define ATTRIBUTE_HACK_ORDER_NUMBER "hack_order_number"
 #define ATTRIBUTE_ROOT_INDEX "root_index"
 #define ATTRIBUTE_MESH_TO_SKELETON "skeleton_index"
+#define ATTRIBUTE_BRANCH_NUMBER "branch_number"
 
 namespace curvatureSkeleton
 {
@@ -72,14 +73,41 @@ std::map<std::string, QVariant> ComputePolylinesTestFilter::applyFilter(
 	auto branches = ComputeBranches<CMeshO>::extractBranches(original, branches_data);
 
 	auto* polylines = document.addNewMesh("", QString::asprintf("Polylines"), false);
+	vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(polylines->cm, ATTRIBUTE_BRANCH_NUMBER);
+	auto skel_branch_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_BRANCH_NUMBER);
+	auto orig_branch_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(original, ATTRIBUTE_BRANCH_NUMBER);
+
+	auto* skel_branches = document.addNewMesh("", QString::asprintf("Skeleton Branches"), false);
+	auto skel_branches_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(skel_branches->cm, ATTRIBUTE_BRANCH_NUMBER);
 	for (int i = 0; i < branches.size(); i++)
 	{
 		auto& branch = branches[i];
 
+		//associate branch index to each vertex of the original mesh
+		for (auto vertex : branches_data[i].mesh_vertices) {
+			orig_branch_number[vertex] = i;
+		}
+
+		//associate branch index to each vertex of the skeleton
+		for (auto vertex : branches_data[i].skeleton_vertices) {
+			skel_branch_number[vertex] = i;
+			skeleton.vert[vertex].SetS();
+		}
+		vcg::tri::Append<CMeshO, CMeshO>::MeshAppendConst(skel_branches->cm, skeleton, true);
+		vcg::tri::UpdateSelection<CMeshO>::Clear(skeleton);
+
+		//compute polyline of branch
 		branch.face.EnableFFAdjacency();
 		auto polyline = MeshBorderPolyline<CMeshO>::getLongestPolyline(branch);
 		branch.face.DisableFFAdjacency();
 
+		//associate parent branch index to each vertex of the polyline
+		auto poly_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
+		for (auto& vertex : polyline.vert) {
+			poly_number[vertex] = branches_data[i].parent_branch_index;
+		}
+
+		//append polyline to polylines mesh
 		vcg::tri::Append<CMeshO, CMeshO>::MeshAppendConst(polylines->cm, polyline);
 	}
 

@@ -64,11 +64,11 @@ void AlgorithmSkeletonize::checkSelectedMesh() const
 	callback_pos(0, "Checking mesh is watertight...");
 	auto& mesh = getMesh();
 
-	if ( mesh.FN() == 0 || mesh.EN() == 0 )
+	if ( mesh.FN() == 0 )
 	{
 		throw MLException("Given mesh has no faces.");
 	}
-	if ( !vcg::tri::Clean<CMeshO>::IsWaterTight(mesh) )
+	else if ( !vcg::tri::Clean<CMeshO>::IsWaterTight(mesh) )
 	{
 		throw MLException("Given mesh is not watertight.");
 	}

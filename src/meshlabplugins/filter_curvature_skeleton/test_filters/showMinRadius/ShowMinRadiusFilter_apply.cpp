@@ -21,23 +21,37 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_TEST_FILTERS
-#define FILTERCURVATURESKELETON_TEST_FILTERS
-
-#include <common/plugins/interfaces/filter_plugin.h>
+#include "ShowMinRadiusFilter.h"
 
 namespace curvatureSkeleton
 {
-    enum TestFilters : MeshLabPlugin::ActionIDType {
-        FIND_PATH = 1000,
-        FIND_PATH_FILL,
-        COMPUTE_BRANCHES,
-        COMPUTE_POLYLINES,
-        EXTRACT_POLYLINE,
-        REFINE_POLYLINE,
-        SHOW_MIN_RADIUS,
-        SHOW_POLYLINE_PARENT,
-    };
+
+std::map<std::string, QVariant> ShowMinRadiusTestFilter::applyFilter(
+	FilterPlugin const&      plugin,
+	RichParameterList const& rich_params,
+	MeshDocument&            document,
+	unsigned int&,
+	vcg::CallBackPos*		 cb)
+{
+	auto& original = document.getMesh(rich_params.getMeshId(PARAM_ORIGINAL_MESH))->cm;
+	auto* skeleton_mesh = document.getMesh(rich_params.getMeshId(PARAM_SKELETON_MESH));
+	skeleton_mesh->updateDataMask(MeshModel::MM_VERTQUALITY);
+	auto& skeleton = skeleton_mesh->cm;
+
+	for (auto& skel_vertex : skeleton.vert)
+	{
+		auto min_distance = std::numeric_limits<Scalarm>::max();
+		for (auto& vertex : original.vert)
+		{
+			auto distance = vcg::SquaredDistance(vertex.cP(), skel_vertex.cP());
+			if (distance < min_distance) {
+				min_distance = distance;
+				skel_vertex.Q() = std::sqrt(distance);
+			}
+		}
+	}
+
+	return {};
 }
 
-#endif //FILTERCURVATURESKELETON_TEST_FILTERS
+}

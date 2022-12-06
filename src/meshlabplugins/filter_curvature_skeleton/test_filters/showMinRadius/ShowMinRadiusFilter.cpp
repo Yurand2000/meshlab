@@ -21,23 +21,24 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_TEST_FILTERS
-#define FILTERCURVATURESKELETON_TEST_FILTERS
+#include "ShowMinRadiusFilter.h"
+#include "test_filters/testFilters.h"
 
-#include <common/plugins/interfaces/filter_plugin.h>
+#define F_FILTERID    TestFilters::SHOW_MIN_RADIUS
+#define F_DISPLAYNAME "TEST - Show Min Radius"
+#define F_DESCRIPTION ""
+#define F_CATEGORY    FilterPlugin::Other
+#define F_PYTHON_NAME "test_filter___show_min_radius"
+#define F_ARITY       FilterPlugin::FilterArity::FIXED
+#define F_PRECONDS    MeshModel::MM_NONE
+#define F_POSTCONDS   MeshModel::MM_NONE
 
 namespace curvatureSkeleton
 {
-    enum TestFilters : MeshLabPlugin::ActionIDType {
-        FIND_PATH = 1000,
-        FIND_PATH_FILL,
-        COMPUTE_BRANCHES,
-        COMPUTE_POLYLINES,
-        EXTRACT_POLYLINE,
-        REFINE_POLYLINE,
-        SHOW_MIN_RADIUS,
-        SHOW_POLYLINE_PARENT,
-    };
-}
 
-#endif //FILTERCURVATURESKELETON_TEST_FILTERS
+ShowMinRadiusTestFilter::ShowMinRadiusTestFilter()
+	: TemplateFilter(
+		F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
+		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
+
+}

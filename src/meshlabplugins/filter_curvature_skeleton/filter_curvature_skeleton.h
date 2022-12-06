@@ -45,7 +45,8 @@ public:
 	enum : MeshLabPlugin::ActionIDType {
 		SKELETONIZE,
 		PRUNE_AND_EXTEND,
-		COMPUTE_ORDER_NUMBERS
+		COMPUTE_ORDER_NUMBERS,
+		BRANCH_CUTTER,
 	};
 
 	FilterCurvatureSkeleton();

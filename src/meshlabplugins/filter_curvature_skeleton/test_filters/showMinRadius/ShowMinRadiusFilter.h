@@ -21,23 +21,32 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_TEST_FILTERS
-#define FILTERCURVATURESKELETON_TEST_FILTERS
+#ifndef FILTERCURVATURESKELETON_TEST_FILTER_SHOW_MIN_RADIUS
+#define FILTERCURVATURESKELETON_TEST_FILTER_SHOW_MIN_RADIUS
 
+#include "common/TemplateFilter.h"
 #include <common/plugins/interfaces/filter_plugin.h>
+
+#define PARAM_ORIGINAL_MESH "original_mesh"
+#define PARAM_SKELETON_MESH "skeleton_mesh"
 
 namespace curvatureSkeleton
 {
-    enum TestFilters : MeshLabPlugin::ActionIDType {
-        FIND_PATH = 1000,
-        FIND_PATH_FILL,
-        COMPUTE_BRANCHES,
-        COMPUTE_POLYLINES,
-        EXTRACT_POLYLINE,
-        REFINE_POLYLINE,
-        SHOW_MIN_RADIUS,
-        SHOW_POLYLINE_PARENT,
-    };
+
+class ShowMinRadiusTestFilter : public TemplateFilter
+{
+public:
+	ShowMinRadiusTestFilter();
+
+	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
+	virtual std::map<std::string, QVariant> applyFilter(
+		FilterPlugin const&,
+		RichParameterList const&,
+		MeshDocument&,
+		unsigned int&,
+		vcg::CallBackPos*) override;
+};
+
 }
 
-#endif //FILTERCURVATURESKELETON_TEST_FILTERS
+#endif //FILTERCURVATURESKELETON_TEST_FILTER_SHOW_MIN_RADIUS

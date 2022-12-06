@@ -31,10 +31,12 @@ RichParameterList RefinePolylineTestFilter::initParameterList(FilterPlugin const
 	RichParameterList parlst;
 
 	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, 0, &m, "ORIGINAL MESH", ""));
+	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, 0, &m, "SKELETON MESH", ""));
 	parlst.addParam(RichMesh(PARAM_POLYLINE_MESH, 0, &m, "POLYLINE MESH", ""));
 	parlst.addParam(RichInt(PARAM_ITERATIONS, 1, "Iterations", ""));
 	parlst.addParam(RichDynamicFloat(PARAM_SMOOTH_WEIGTH, 0.5f, 0.f, 1.f, "Smooth Weight", ""));
 	parlst.addParam(RichDynamicFloat(PARAM_PROJECT_WEIGTH, 0.5f, 0.f, 1.f, "Project Weight", ""));
+	parlst.addParam(RichDynamicFloat(PARAM_FORCE_WEIGTH, 0.5f, 0.f, 1.f, "Force to Parent Branch Weight", ""));
 
 	return parlst;
 }
