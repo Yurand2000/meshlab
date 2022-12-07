@@ -35,6 +35,10 @@
 
 namespace curvatureSkeleton
 {
+static void copySkeletonBranch(
+	std::vector<MeshBranch> const& branches_data, int branch,
+	CMeshO& skeleton, CMeshO& skeleton_vertices
+);
 
 std::map<std::string, QVariant> ComputePolylinesTestFilter::applyFilter(
 	FilterPlugin const&      plugin,
@@ -78,23 +82,14 @@ std::map<std::string, QVariant> ComputePolylinesTestFilter::applyFilter(
 	auto orig_branch_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(original, ATTRIBUTE_BRANCH_NUMBER);
 
 	auto* skel_branches = document.addNewMesh("", QString::asprintf("Skeleton Branches"), false);
-	auto skel_branches_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(skel_branches->cm, ATTRIBUTE_BRANCH_NUMBER);
+	vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(skel_branches->cm, ATTRIBUTE_BRANCH_NUMBER)
+		;
+	copySkeletonBranch(branches_data, 0, skeleton, skel_branches->cm);
 	for (int i = 1; i < branches_data.size(); i++)
 	{
 		auto& branch = branches[i];
 
-		//associate branch index to each vertex of the original mesh
-		for (auto vertex : branches_data[i].mesh_vertices) {
-			orig_branch_number[vertex] = i;
-		}
-
-		//associate branch index to each vertex of the skeleton
-		for (auto vertex : branches_data[i].skeleton_vertices) {
-			skel_branch_number[vertex] = i;
-			skeleton.vert[vertex].SetS();
-		}
-		vcg::tri::Append<CMeshO, CMeshO>::MeshAppendConst(skel_branches->cm, skeleton, true);
-		vcg::tri::UpdateSelection<CMeshO>::Clear(skeleton);
+		copySkeletonBranch(branches_data, i, skeleton, skel_branches->cm);
 
 		//compute polyline of branch
 		branch.face.EnableFFAdjacency();
@@ -112,6 +107,21 @@ std::map<std::string, QVariant> ComputePolylinesTestFilter::applyFilter(
 	}
 
 	return {};
+}
+
+void copySkeletonBranch(
+	std::vector<MeshBranch> const& branches_data, int branch,
+	CMeshO& skeleton, CMeshO& skeleton_vertices
+) {
+	auto skel_branch_number = vcg::tri::Allocator<CMeshO>::GetPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_BRANCH_NUMBER);
+
+	//associate branch index to each vertex of the skeleton
+	for (auto vertex : branches_data[branch].skeleton_vertices) {
+		skel_branch_number[vertex] = branch;
+		skeleton.vert[vertex].SetS();
+	}
+	vcg::tri::Append<CMeshO, CMeshO>::MeshAppendConst(skeleton_vertices, skeleton, true);
+	vcg::tri::UpdateSelection<CMeshO>::Clear(skeleton);
 }
 
 }

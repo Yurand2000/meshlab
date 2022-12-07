@@ -123,18 +123,18 @@ std::vector<std::pair<vcg::Point3<Scalarm>, Scalarm>> extractMinRadiusBranch(CMe
 	return branch;
 }
 
-void movePolylineToParentBranch(PolylineMesh& polyline, std::vector<std::pair<vcg::Point3<Scalarm>, Scalarm>>& min_radius, Scalarm weight)
+void movePolylineToParentBranch(PolylineMesh& polyline, std::vector<std::pair<vcg::Point3<Scalarm>, Scalarm>>& parent_branch, Scalarm weight)
 {
-	if ( !min_radius.empty() )
+	if ( !parent_branch.empty() )
 	{
 		for (auto& vertex : polyline.vert)
 		{
 			// compute closest point on parent branch
 			auto min_point = 0;
 			auto min_distance = std::numeric_limits<Scalarm>::max();
-			for (int i = 0; i < min_radius.size(); i++)
+			for (int i = 0; i < parent_branch.size(); i++)
 			{
-				auto& pair = min_radius[i];
+				auto& pair = parent_branch[i];
 				auto distance = vcg::SquaredDistance(vertex.cP(), pair.first);
 				if (distance < min_distance) {
 					min_distance = distance;
@@ -143,9 +143,12 @@ void movePolylineToParentBranch(PolylineMesh& polyline, std::vector<std::pair<vc
 			}
 
 			// compute force delta
+			/*
 			auto difference_vec = min_radius[min_point].first - vertex.cP();
 			auto normalized_vec = vcg::Normalized(difference_vec);
 			auto delta_vec = difference_vec - normalized_vec * min_radius[min_point].second;
+			*/
+			auto delta_vec = parent_branch[min_point].first - vertex.cP();
 
 			// move polyline vertex
 			vertex.P() += delta_vec * weight / 100.0;
@@ -157,13 +160,13 @@ CMeshO extractSkeletonBranch(CMeshO& skeleton, int branch_num)
 {
 	CMeshO branch;
 
-	auto poly_number = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_BRANCH_NUMBER);
-	if (!vcg::tri::Allocator<CMeshO>::IsValidHandle(skeleton, poly_number)) {
+	auto branch_number = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_BRANCH_NUMBER);
+	if (!vcg::tri::Allocator<CMeshO>::IsValidHandle(skeleton, branch_number)) {
 		throw new MLException("ATTRIBUTE MISSING ERROR!");
 	}
 
 	for (auto& vertex : skeleton.vert) {
-		if (poly_number[vertex] == branch_num) {
+		if (branch_number[vertex] == branch_num) {
 			vertex.SetS();
 		}
 	}

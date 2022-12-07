@@ -26,7 +26,6 @@
 #include "filters/skeletonize/SkeletonizeFilter.h"
 #include "filters/pruneExtend/PruneExtendFilter.h"
 #include "filters/orderCompute/OrderComputeFilter.h"
-#include "filters/branchCutter/BranchCutterFilter.h"
 
 #ifdef CURVATURE_SKELETON_TEST
 #include "test_filters/testFilters.h"
@@ -50,13 +49,11 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	filters.push_back( std::make_unique<SkeletonizeFilter>() );
 	filters.push_back( std::make_unique<PruneExtendFilter>() );
 	filters.push_back( std::make_unique<OrderComputeFilter>() );
-	filters.push_back( std::make_unique<BranchCutterFilter>() );
 
 	typeList = {
 		SKELETONIZE,
 		PRUNE_AND_EXTEND,
 		COMPUTE_ORDER_NUMBERS,
-		BRANCH_CUTTER,
 	};
 
 #ifdef CURVATURE_SKELETON_TEST
