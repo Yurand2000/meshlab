@@ -121,10 +121,12 @@ namespace curvatureSkeleton
 
 		//copy path to vector
 		std::vector<typename MESH::VertexType*> path;
-		path.reserve(parent.size());
+		path.resize(parent.size());
+		auto it = path.rbegin();
 		do
 		{
-			path.push_back( parent.top() );
+			*it = parent.top();
+			it++;
 			parent.pop();
 		} while (!parent.empty());
 		return path;

@@ -79,7 +79,7 @@ std::map<std::string, QVariant> ComputePolylinesTestFilter::applyFilter(
 
 	auto* skel_branches = document.addNewMesh("", QString::asprintf("Skeleton Branches"), false);
 	auto skel_branches_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(skel_branches->cm, ATTRIBUTE_BRANCH_NUMBER);
-	for (int i = 0; i < branches.size(); i++)
+	for (int i = 1; i < branches_data.size(); i++)
 	{
 		auto& branch = branches[i];
 

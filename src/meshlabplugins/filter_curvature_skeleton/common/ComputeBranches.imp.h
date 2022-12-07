@@ -178,28 +178,34 @@ namespace curvatureSkeleton
 		vcg::tri::InitVertexIMark(converted_skeleton);
 
 		//get skeleton paths
+		auto& mesh = converted_skeleton;
 		for (auto& branch : branches) {
 
 			for (int i = 0; i < branch.tree_vertices.size() - 1; i++)
 			{
-				auto* start = Utils<SkeletonMesh>::getVertexInMesh(tree.vert[branch.tree_vertices[i]].cP(), converted_skeleton);
-				auto* end   = Utils<SkeletonMesh>::getVertexInMesh(tree.vert[branch.tree_vertices[i+1]].cP(), converted_skeleton);
+				auto* start = Utils<SkeletonMesh>::getVertexInMesh(tree.vert[branch.tree_vertices[i]].cP(), mesh);
+				auto* end   = Utils<SkeletonMesh>::getVertexInMesh(tree.vert[branch.tree_vertices[i+1]].cP(), mesh);
 
-				auto path = EdgeMeshUtils<SkeletonMesh>::getVerticesPath(converted_skeleton, start, end);
-				for (auto* vertex : path) {
-					branch.skeleton_vertices.push_back(vertex->Index());
+				auto path = EdgeMeshUtils<SkeletonMesh>::getVerticesPath(mesh, start, end);
+				for (auto it = path.rbegin(); it != path.rend(); it++) {
+					auto* vertex = *it;
+
+					if (order_numbers[vertex->Index()] == branch.order_number) {
+						branch.skeleton_vertices.push_back(vertex->Index());
+					} else {
+						break;
+					}
 				}
 
-				auto& mesh = converted_skeleton;
-
 				//fill the frontier for the flooding operation
+				auto& indices = branch.skeleton_vertices;
 				std::queue<SkeletonVertex*> frontier;
 				vcg::tri::UnMarkAll(mesh);
-				vcg::tri::Mark(mesh, path.front());
-				vcg::tri::Mark(mesh, path.back());
-				for (size_t i = 1; i < path.size() - 1; i++) {
-					frontier.push(path[i]);
-					vcg::tri::Mark(mesh, path[i]);
+				vcg::tri::Mark(mesh, &mesh.vert[indices.front()]);
+				vcg::tri::Mark(mesh, &mesh.vert[indices.back()]);
+				for (size_t i = 1; i < indices.size() - 1; i++) {
+					frontier.push( &mesh.vert[indices[i]] );
+					vcg::tri::Mark( mesh, &mesh.vert[indices[i]] );
 				}
 
 				//add vertices recursively by flooding
@@ -327,6 +333,7 @@ namespace curvatureSkeleton
 	void detail::selectBiggestConnectedComponent(MESH& branch)
 	{
 		vcg::tri::RequireFFAdjacency(branch);
+		if ( branch.face.empty() ) return;
 
 		std::vector<std::pair<int, CFaceO*>> conn_comps;
 		vcg::tri::Clean<MESH>::ConnectedComponents(branch, conn_comps);
