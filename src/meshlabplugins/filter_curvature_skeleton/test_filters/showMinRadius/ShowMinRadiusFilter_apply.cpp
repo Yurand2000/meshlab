@@ -35,9 +35,12 @@ std::map<std::string, QVariant> ShowMinRadiusTestFilter::applyFilter(
 {
 	auto& original = document.getMesh(rich_params.getMeshId(PARAM_ORIGINAL_MESH))->cm;
 	auto* skeleton_mesh = document.getMesh(rich_params.getMeshId(PARAM_SKELETON_MESH));
+	auto display_data = rich_params.getEnum(PARAM_DISPLAY_TYPE);
 	skeleton_mesh->updateDataMask(MeshModel::MM_VERTQUALITY);
 	auto& skeleton = skeleton_mesh->cm;
 
+	Scalarm average = 0;
+	int count = 0;
 	for (auto& skel_vertex : skeleton.vert)
 	{
 		auto min_distance = std::numeric_limits<Scalarm>::max();
@@ -48,6 +51,17 @@ std::map<std::string, QVariant> ShowMinRadiusTestFilter::applyFilter(
 				min_distance = distance;
 				skel_vertex.Q() = std::sqrt(distance);
 			}
+		}
+
+		average += skel_vertex.Q();
+		count += 1;
+	}
+
+	if (display_data == 1 && count > 0) {
+		average /= count;
+
+		for (auto& skel_vertex : skeleton.vert) {
+			skel_vertex.Q() = vcg::math::Abs( average - skel_vertex.Q() );
 		}
 	}
 

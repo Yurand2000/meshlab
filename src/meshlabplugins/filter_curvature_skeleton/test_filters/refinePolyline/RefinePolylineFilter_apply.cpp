@@ -31,8 +31,9 @@
 
 namespace curvatureSkeleton
 {
-static std::vector<std::pair<vcg::Point3<Scalarm>, Scalarm>> extractMinRadiusBranch(CMeshO& original, CMeshO& skel_branch);
-static void movePolylineToParentBranch(PolylineMesh& polyline, std::vector<std::pair<vcg::Point3<Scalarm>, Scalarm>>& min_radius, Scalarm weight);
+static Scalarm extractAvgRadiusBranch(CMeshO& original, CMeshO& skel_branch);
+static void movePolylineToParentBranch(PolylineMesh& polyline, CMeshO const& parent_branch, Scalarm avg_distance, Scalarm weight);
+static void polylineToParentBranchNormals(PolylineMesh& polyline, CMeshO const& parent_branch);
 static CMeshO extractSkeletonBranch(CMeshO& skeleton, int branch_num);
 
 std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
@@ -43,12 +44,15 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 	vcg::CallBackPos*		 cb)
 {
 	auto& original = document.getMesh( rich_params.getMeshId(PARAM_ORIGINAL_MESH) )->cm;
-	auto& skeleton = document.getMesh(rich_params.getMeshId(PARAM_SKELETON_MESH))->cm;
+	auto& skeleton = document.getMesh( rich_params.getMeshId(PARAM_SKELETON_MESH) )->cm;
 	auto& polylines_mesh = document.getMesh( rich_params.getMeshId(PARAM_POLYLINE_MESH) )->cm;
 	auto iter = rich_params.getInt(PARAM_ITERATIONS); if (iter < 1) { iter = 1; }
 	auto smooth_w = rich_params.getDynamicFloat(PARAM_SMOOTH_WEIGTH);
 	auto proj_w = rich_params.getDynamicFloat(PARAM_PROJECT_WEIGTH);
 	auto force_w = rich_params.getDynamicFloat(PARAM_FORCE_WEIGTH);
+
+	auto attrib = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(polylines_mesh, ATTRIBUTE_BRANCH_NUMBER);
+	if ( !vcg::tri::Allocator<CMeshO>::IsValidHandle(polylines_mesh, attrib) ) throw MLException("Attribute " ATTRIBUTE_BRANCH_NUMBER " not found for Polyline Mesh!");
 
 	//convert meshes to PolylineMesh
 	PolylineMesh converted_mesh, converted_polylines;
@@ -65,8 +69,9 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 	vcg::tri::Clean<PolylineMesh>::edgeMeshConnectedComponents(converted_polylines, polylines_data);
 
 	PolylineMesh smoothed_polylines, polyline;
-	auto parent_branch_num = vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
+	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
 	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(smoothed_polylines, ATTRIBUTE_BRANCH_NUMBER);
+	auto parent_branch_numbers = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(converted_polylines, ATTRIBUTE_BRANCH_NUMBER);
 	for (auto& polyline_data : polylines_data)
 	{
 		//extract polyline
@@ -79,16 +84,26 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 		vcg::tri::UpdateSelection<PolylineMesh>::Clear(polyline);
 
 		//extract parent branch
-		auto parent = extractSkeletonBranch(skeleton, parent_branch_num[0]);
-		auto min_radius = extractMinRadiusBranch(original, parent);
+		it.start(converted_polylines, polyline_data.second);
+		auto parent_branch_number = parent_branch_numbers[(*it)->V(0)];
+		auto parent_branch = extractSkeletonBranch(skeleton, parent_branch_number);
+		auto avg_radius = extractAvgRadiusBranch(original, parent_branch);
 
 		//smooth project polyline
 		for (int i = 0; i < iter; i++) {
-			movePolylineToParentBranch(polyline, min_radius, force_w);
+			movePolylineToParentBranch(polyline, parent_branch, avg_radius, force_w);
 			com.SmoothProject(polyline, 1, smooth_w, proj_w);
 			vcg::tri::Clean<PolylineMesh>::RemoveUnreferencedVertex(polyline);
 			vcg::tri::Allocator<PolylineMesh>::CompactEveryVector(polyline);
 		}
+
+		//reassign correct parent index because new vertices may be added
+		auto parent_branch_numbers = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
+		for (auto& vertex : polyline.vert)
+			parent_branch_numbers[vertex] = parent_branch_number;
+
+		//debug show normals
+		polylineToParentBranchNormals(polyline, parent_branch);
 
 		//append polyline
 		vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshAppendConst(smoothed_polylines, polyline);
@@ -100,9 +115,10 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 	return {};
 }
 
-std::vector<std::pair<vcg::Point3<Scalarm>, Scalarm>> extractMinRadiusBranch(CMeshO& original, CMeshO& skel_branch)
+Scalarm extractAvgRadiusBranch(CMeshO& original, CMeshO& skel_branch)
 {
-	std::vector<std::pair<vcg::Point3<Scalarm>, Scalarm>> branch;
+	Scalarm branch = 0;
+	int count = 0;
 
 	for (auto& skel_vertex : skel_branch.vert)
 	{
@@ -117,41 +133,39 @@ std::vector<std::pair<vcg::Point3<Scalarm>, Scalarm>> extractMinRadiusBranch(CMe
 			}
 		}
 
-		branch.push_back( std::make_pair(position, std::sqrt(min_distance)) );
+		branch += std::sqrt(min_distance);
+		count += 1;
 	}
 
-	return branch;
+	return (count > 0) ? branch / count : 0;
 }
 
-void movePolylineToParentBranch(PolylineMesh& polyline, std::vector<std::pair<vcg::Point3<Scalarm>, Scalarm>>& parent_branch, Scalarm weight)
+void movePolylineToParentBranch(PolylineMesh& polyline, CMeshO const& parent_branch, Scalarm avg_distance, Scalarm weight)
 {
-	if ( !parent_branch.empty() )
+	if ( !parent_branch.vert.empty() )
 	{
 		for (auto& vertex : polyline.vert)
 		{
 			// compute closest point on parent branch
 			auto min_point = 0;
 			auto min_distance = std::numeric_limits<Scalarm>::max();
-			for (int i = 0; i < parent_branch.size(); i++)
+			for (auto& parent_vertex : parent_branch.vert)
 			{
-				auto& pair = parent_branch[i];
-				auto distance = vcg::SquaredDistance(vertex.cP(), pair.first);
+				auto distance = vcg::SquaredDistance(vertex.cP(), parent_vertex.cP());
 				if (distance < min_distance) {
 					min_distance = distance;
-					min_point = i;
+					min_point = parent_vertex.Index();
 				}
 			}
 
 			// compute force delta
-			/*
-			auto difference_vec = min_radius[min_point].first - vertex.cP();
+			auto difference_vec = parent_branch.vert[min_point].cP() - vertex.cP();
 			auto normalized_vec = vcg::Normalized(difference_vec);
-			auto delta_vec = difference_vec - normalized_vec * min_radius[min_point].second;
-			*/
-			auto delta_vec = parent_branch[min_point].first - vertex.cP();
+			auto delta_vec = difference_vec - normalized_vec * avg_distance;
 
 			// move polyline vertex
 			vertex.P() += delta_vec * weight / 100.0;
+			vertex.N() = normalized_vec; //debug
 		}
 	}	
 }
@@ -176,6 +190,31 @@ CMeshO extractSkeletonBranch(CMeshO& skeleton, int branch_num)
 	vcg::tri::UpdateSelection<CMeshO>::Clear(skeleton);
 	vcg::tri::UpdateSelection<CMeshO>::Clear(branch);
 	return branch;
+}
+
+void polylineToParentBranchNormals(PolylineMesh& polyline, CMeshO const& parent_branch)
+{
+	if (!parent_branch.vert.empty())
+	{
+		for (auto& vertex : polyline.vert)
+		{
+			// compute closest point on parent branch
+			auto min_point = 0;
+			auto min_distance = std::numeric_limits<Scalarm>::max();
+			for (auto& parent_vertex : parent_branch.vert)
+			{
+				auto distance = vcg::SquaredDistance(vertex.cP(), parent_vertex.cP());
+				if (distance < min_distance) {
+					min_distance = distance;
+					min_point = parent_vertex.Index();
+				}
+			}
+
+			// compute force delta
+			auto normalized_vec = vcg::Normalized(parent_branch.vert[min_point].cP() - vertex.cP());
+			vertex.N() = normalized_vec;
+		}
+	}
 }
 
 }

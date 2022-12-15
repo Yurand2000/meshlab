@@ -29,6 +29,7 @@
 
 #define PARAM_ORIGINAL_MESH "original_mesh"
 #define PARAM_SKELETON_MESH "skeleton_mesh"
+#define PARAM_DISPLAY_TYPE "display_type"
 
 namespace curvatureSkeleton
 {

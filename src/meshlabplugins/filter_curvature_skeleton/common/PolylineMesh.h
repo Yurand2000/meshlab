@@ -43,6 +43,7 @@ namespace curvatureSkeleton
 	{ };
 
 	class PolylineVertex : public vcg::Vertex<PolylineUsedTypes,
+		vcg::vertex::InfoOcf,
 		vcg::vertex::Coord3m,
 		vcg::vertex::Normal3m,
 		vcg::vertex::Qualitym,

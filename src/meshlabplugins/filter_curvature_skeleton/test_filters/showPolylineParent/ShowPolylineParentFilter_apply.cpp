@@ -41,6 +41,9 @@ std::map<std::string, QVariant> ShowPolylineParentTestFilter::applyFilter(
 	auto& polylines = document.getMesh(rich_params.getMeshId(PARAM_POLYLINE_MESH))->cm;
 	auto& skeleton = document.getMesh(rich_params.getMeshId(PARAM_SKELETON_MESH))->cm;
 
+	auto attrib = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(polylines, ATTRIBUTE_BRANCH_NUMBER);
+	if ( !vcg::tri::Allocator<CMeshO>::IsValidHandle(polylines, attrib) ) throw MLException("Attribute not found!");
+
 	//convert meshes to PolylineMesh
 	PolylineMesh converted_mesh, converted_polylines;
 	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(converted_polylines, ATTRIBUTE_BRANCH_NUMBER);

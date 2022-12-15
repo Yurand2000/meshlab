@@ -31,9 +31,14 @@ namespace curvatureSkeleton
 RichParameterList ShowMinRadiusTestFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
 {
 	RichParameterList parlst;
+	auto display_types = QStringList{
+		"minimum radius",
+		"average radius delta"
+	};
 
 	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, 0, &m, "ORIGINAL MESH", "", false));
 	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, 0, &m, "SKELETON MESH", "", false));
+	parlst.addParam(RichEnum(PARAM_DISPLAY_TYPE, 0, display_types, "DATA TO DISPLAY", "", false));
 
 	return parlst;
 }

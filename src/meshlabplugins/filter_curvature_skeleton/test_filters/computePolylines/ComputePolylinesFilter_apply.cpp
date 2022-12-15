@@ -73,28 +73,29 @@ std::map<std::string, QVariant> ComputePolylinesTestFilter::applyFilter(
 
 	//compute branches
 	auto branches_data = ComputeBranches<CMeshO>::compute(original, skeleton, tree, tree_root_index, ATTRIBUTE_HACK_ORDER_NUMBER, std::greater<int>(), ATTRIBUTE_MESH_TO_SKELETON);
-
 	auto branches = ComputeBranches<CMeshO>::extractBranches(original, branches_data);
 
+	//prepare output meshes
 	auto* polylines = document.addNewMesh("", QString::asprintf("Polylines"), false);
 	vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(polylines->cm, ATTRIBUTE_BRANCH_NUMBER);
-	auto skel_branch_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_BRANCH_NUMBER);
-	auto orig_branch_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(original, ATTRIBUTE_BRANCH_NUMBER);
 
 	auto* skel_branches = document.addNewMesh("", QString::asprintf("Skeleton Branches"), false);
-	vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(skel_branches->cm, ATTRIBUTE_BRANCH_NUMBER)
-		;
-	copySkeletonBranch(branches_data, 0, skeleton, skel_branches->cm);
-	for (int i = 1; i < branches_data.size(); i++)
-	{
-		auto& branch = branches[i];
+	vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(skel_branches->cm, ATTRIBUTE_BRANCH_NUMBER);
 
+	//build output meshes
+	for (int i = 0; i < branches_data.size(); i++)
+	{
+		//build polyline parent branches
 		copySkeletonBranch(branches_data, i, skeleton, skel_branches->cm);
 
+		//build polylines
+		if (branches_data[i].parent_branch_index < 0 ||
+			branches_data[i].parent_branch_index >= branches_data.size()
+		) continue;
+
 		//compute polyline of branch
-		branch.face.EnableFFAdjacency();
-		auto polyline = MeshBorderPolyline<CMeshO>::getLongestPolyline(branch);
-		branch.face.DisableFFAdjacency();
+		branches[i].face.EnableFFAdjacency();
+		auto polyline = MeshBorderPolyline<CMeshO>::getLongestPolyline(branches[i]);
 
 		//associate parent branch index to each vertex of the polyline
 		auto poly_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
@@ -121,6 +122,7 @@ void copySkeletonBranch(
 		skeleton.vert[vertex].SetS();
 	}
 	vcg::tri::Append<CMeshO, CMeshO>::MeshAppendConst(skeleton_vertices, skeleton, true);
+	vcg::tri::UpdateSelection<CMeshO>::Clear(skeleton_vertices);
 	vcg::tri::UpdateSelection<CMeshO>::Clear(skeleton);
 }
 
