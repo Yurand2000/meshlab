@@ -35,6 +35,7 @@
 #include "test_filters/computePolylines/ComputePolylinesFilter.h"
 #include "test_filters/extractPolyline/ExtractPolylineFilter.h"
 #include "test_filters/refinePolyline/RefinePolylineFilter.h"
+#include "test_filters/cutOnPolylines/CutOnPolylinesFilter.h"
 #include "test_filters/showMinRadius/ShowMinRadiusFilter.h"
 #include "test_filters/showPolylineParent/ShowPolylineParentFilter.h"
 #endif
@@ -63,6 +64,7 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	filters.push_back( std::make_unique<ExtractPolylineTestFilter>() );
 	filters.push_back( std::make_unique<RefinePolylineTestFilter>() );
 	filters.push_back( std::make_unique<ComputePolylinesTestFilter>() );
+	filters.push_back( std::make_unique<CutOnPolylinesTestFilter>() );
 	filters.push_back( std::make_unique<ShowMinRadiusTestFilter>() );
 	filters.push_back( std::make_unique<ShowPolylineParentTestFilter>() );
 	typeList.push_back(TestFilters::FIND_PATH);
@@ -71,6 +73,7 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	typeList.push_back(TestFilters::COMPUTE_POLYLINES);
 	typeList.push_back(TestFilters::EXTRACT_POLYLINE);
 	typeList.push_back(TestFilters::REFINE_POLYLINE);
+	typeList.push_back(TestFilters::CUT_ON_POLYLINES);
 	typeList.push_back(TestFilters::SHOW_MIN_RADIUS);
 	typeList.push_back(TestFilters::SHOW_POLYLINE_PARENT);
 #endif

@@ -1,8 +1,8 @@
 /****************************************************************************
  * MeshLab                                                           o o     *
- * An extendible mesh processor                                    o     o   *
+ * A versatile mesh processing toolbox                             o     o   *
  *                                                                _   O  _   *
- * Copyright(C) 2005 - 2020                                          \/)\/   *
+ * Copyright(C) 2005                                                \/)\/    *
  * Visual Computing Lab                                            /\/|      *
  * ISTI - Italian National Research Council                           |      *
  *                                                                    \      *
@@ -21,64 +21,24 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef POLYLINE_MESH
-#define POLYLINE_MESH
+#include "CutOnPolylinesFilter.h"
+#include "test_filters/testFilters.h"
 
-#include <vector>
-
-#include <common/ml_document/base_types.h>
-#include <common/ml_document/cmesh.h>
+#define F_FILTERID    TestFilters::CUT_ON_POLYLINES
+#define F_DISPLAYNAME "TEST - Cut on Polylines"
+#define F_DESCRIPTION ""
+#define F_CATEGORY    FilterPlugin::Other
+#define F_PYTHON_NAME "test_filter___cut_on_polylines"
+#define F_ARITY       FilterPlugin::FilterArity::FIXED
+#define F_PRECONDS    MeshModel::MM_NONE
+#define F_POSTCONDS   MeshModel::MM_NONE
 
 namespace curvatureSkeleton
 {
-	class PolylineVertex;
-	class PolylineEdge;
-	class PolylineFace;
 
-	class PolylineUsedTypes : public vcg::UsedTypes<
-		vcg::Use<PolylineVertex>::AsVertexType,
-		vcg::Use<PolylineEdge>::AsEdgeType,
-		vcg::Use<PolylineFace>::AsFaceType
-	>
-	{ };
+CutOnPolylinesTestFilter::CutOnPolylinesTestFilter()
+	: TemplateFilter(
+		F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
+		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
 
-	class PolylineVertex : public vcg::Vertex<PolylineUsedTypes,
-		vcg::vertex::InfoOcf,
-		vcg::vertex::Coord3m,
-		vcg::vertex::Normal3m,
-		vcg::vertex::Qualitym,
-		vcg::vertex::Color4b,
-		vcg::vertex::VEAdj,
-		vcg::vertex::VFAdj,
-		vcg::vertex::Mark,
-		vcg::vertex::BitFlags
-	>
-	{ };
-
-	class PolylineEdge : public vcg::Edge<PolylineUsedTypes,
-		vcg::edge::VEAdj,
-		vcg::edge::EVAdj,
-		vcg::edge::EEAdj,
-		vcg::edge::Mark,
-		vcg::edge::BitFlags
-	>
-	{ };
-
-	class PolylineFace : public vcg::Face<PolylineUsedTypes,
-		vcg::face::VertexRef,
-		vcg::face::Normal3m,
-		vcg::face::FFAdj,
-		vcg::face::VFAdj,
-		vcg::face::Mark,
-		vcg::face::BitFlags
-	>
-	{ };
-
-	typedef vcg::tri::TriMesh<
-		std::vector<PolylineVertex>,
-		std::vector<PolylineEdge>,
-		std::vector<PolylineFace>
-	> PolylineMesh;
 }
-
-#endif //POLYLINE_MESH

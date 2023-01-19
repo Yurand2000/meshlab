@@ -1,8 +1,8 @@
 /****************************************************************************
  * MeshLab                                                           o o     *
- * An extendible mesh processor                                    o     o   *
+ * A versatile mesh processing toolbox                             o     o   *
  *                                                                _   O  _   *
- * Copyright(C) 2005 - 2020                                          \/)\/   *
+ * Copyright(C) 2005                                                \/)\/    *
  * Visual Computing Lab                                            /\/|      *
  * ISTI - Italian National Research Council                           |      *
  *                                                                    \      *
@@ -21,64 +21,19 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef POLYLINE_MESH
-#define POLYLINE_MESH
-
-#include <vector>
-
-#include <common/ml_document/base_types.h>
-#include <common/ml_document/cmesh.h>
+#include "CutOnPolylinesFilter.h"
 
 namespace curvatureSkeleton
 {
-	class PolylineVertex;
-	class PolylineEdge;
-	class PolylineFace;
 
-	class PolylineUsedTypes : public vcg::UsedTypes<
-		vcg::Use<PolylineVertex>::AsVertexType,
-		vcg::Use<PolylineEdge>::AsEdgeType,
-		vcg::Use<PolylineFace>::AsFaceType
-	>
-	{ };
+RichParameterList CutOnPolylinesTestFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
+{
+	RichParameterList parlst;
 
-	class PolylineVertex : public vcg::Vertex<PolylineUsedTypes,
-		vcg::vertex::InfoOcf,
-		vcg::vertex::Coord3m,
-		vcg::vertex::Normal3m,
-		vcg::vertex::Qualitym,
-		vcg::vertex::Color4b,
-		vcg::vertex::VEAdj,
-		vcg::vertex::VFAdj,
-		vcg::vertex::Mark,
-		vcg::vertex::BitFlags
-	>
-	{ };
+	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, 0, &m, "ORIGINAL MESH", ""));
+	parlst.addParam(RichMesh(PARAM_POLYLINE_MESH, 0, &m, "POLYLINE MESH", ""));
 
-	class PolylineEdge : public vcg::Edge<PolylineUsedTypes,
-		vcg::edge::VEAdj,
-		vcg::edge::EVAdj,
-		vcg::edge::EEAdj,
-		vcg::edge::Mark,
-		vcg::edge::BitFlags
-	>
-	{ };
-
-	class PolylineFace : public vcg::Face<PolylineUsedTypes,
-		vcg::face::VertexRef,
-		vcg::face::Normal3m,
-		vcg::face::FFAdj,
-		vcg::face::VFAdj,
-		vcg::face::Mark,
-		vcg::face::BitFlags
-	>
-	{ };
-
-	typedef vcg::tri::TriMesh<
-		std::vector<PolylineVertex>,
-		std::vector<PolylineEdge>,
-		std::vector<PolylineFace>
-	> PolylineMesh;
+	return parlst;
 }
 
-#endif //POLYLINE_MESH
+}

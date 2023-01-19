@@ -35,6 +35,7 @@ namespace curvatureSkeleton
         COMPUTE_POLYLINES,
         EXTRACT_POLYLINE,
         REFINE_POLYLINE,
+        CUT_ON_POLYLINES,
         SHOW_MIN_RADIUS,
         SHOW_POLYLINE_PARENT,
     };

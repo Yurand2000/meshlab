@@ -1,8 +1,8 @@
 /****************************************************************************
  * MeshLab                                                           o o     *
- * An extendible mesh processor                                    o     o   *
+ * A versatile mesh processing toolbox                             o     o   *
  *                                                                _   O  _   *
- * Copyright(C) 2005 - 2020                                          \/)\/   *
+ * Copyright(C) 2005                                                \/)\/    *
  * Visual Computing Lab                                            /\/|      *
  * ISTI - Italian National Research Council                           |      *
  *                                                                    \      *
@@ -21,64 +21,32 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef POLYLINE_MESH
-#define POLYLINE_MESH
+#ifndef FILTERCURVATURESKELETON_TEST_FILTER_CUT_ON_POLYLINES
+#define FILTERCURVATURESKELETON_TEST_FILTER_CUT_ON_POLYLINES
 
-#include <vector>
+#include "common/TemplateFilter.h"
+#include <common/plugins/interfaces/filter_plugin.h>
 
-#include <common/ml_document/base_types.h>
-#include <common/ml_document/cmesh.h>
+#define PARAM_ORIGINAL_MESH "original_mesh"
+#define PARAM_POLYLINE_MESH "polyline_mesh"
 
 namespace curvatureSkeleton
 {
-	class PolylineVertex;
-	class PolylineEdge;
-	class PolylineFace;
 
-	class PolylineUsedTypes : public vcg::UsedTypes<
-		vcg::Use<PolylineVertex>::AsVertexType,
-		vcg::Use<PolylineEdge>::AsEdgeType,
-		vcg::Use<PolylineFace>::AsFaceType
-	>
-	{ };
+class CutOnPolylinesTestFilter : public TemplateFilter
+{
+public:
+	CutOnPolylinesTestFilter();
 
-	class PolylineVertex : public vcg::Vertex<PolylineUsedTypes,
-		vcg::vertex::InfoOcf,
-		vcg::vertex::Coord3m,
-		vcg::vertex::Normal3m,
-		vcg::vertex::Qualitym,
-		vcg::vertex::Color4b,
-		vcg::vertex::VEAdj,
-		vcg::vertex::VFAdj,
-		vcg::vertex::Mark,
-		vcg::vertex::BitFlags
-	>
-	{ };
+	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
+	virtual std::map<std::string, QVariant> applyFilter(
+		FilterPlugin const&,
+		RichParameterList const&,
+		MeshDocument&,
+		unsigned int&,
+		vcg::CallBackPos*) override;
+};
 
-	class PolylineEdge : public vcg::Edge<PolylineUsedTypes,
-		vcg::edge::VEAdj,
-		vcg::edge::EVAdj,
-		vcg::edge::EEAdj,
-		vcg::edge::Mark,
-		vcg::edge::BitFlags
-	>
-	{ };
-
-	class PolylineFace : public vcg::Face<PolylineUsedTypes,
-		vcg::face::VertexRef,
-		vcg::face::Normal3m,
-		vcg::face::FFAdj,
-		vcg::face::VFAdj,
-		vcg::face::Mark,
-		vcg::face::BitFlags
-	>
-	{ };
-
-	typedef vcg::tri::TriMesh<
-		std::vector<PolylineVertex>,
-		std::vector<PolylineEdge>,
-		std::vector<PolylineFace>
-	> PolylineMesh;
 }
 
-#endif //POLYLINE_MESH
+#endif //FILTERCURVATURESKELETON_TEST_FILTER_REFINE_POLYLINE
