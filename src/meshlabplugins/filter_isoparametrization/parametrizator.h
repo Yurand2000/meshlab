@@ -1,5 +1,5 @@
-#ifndef _PARAMETRIZATOR
-#define _PARAMETRIZATOR
+#ifndef MESHLAB_PARAMETRIZATOR
+#define MESHLAB_PARAMETRIZATOR
 
 #include <defines.h>
 
@@ -32,7 +32,7 @@
 #include <vcg/space/color4.h>
 #include <dual_coord_optimization.h>
 #include <float.h>
-#include <lm.h>
+#include <levmar.h>
 #ifndef _MESHLAB
 #include <wrap/io_trimesh/export_ply.h>
 #endif
@@ -1273,4 +1273,4 @@ public:
 
 };
 
-#endif
+#endif // MESHLAB_PARAMETRIZATOR
