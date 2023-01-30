@@ -36,7 +36,7 @@ RichParameterList CloseHolesTestFilter::initParameterList(FilterPlugin const& p,
 	parlst.addParam(RichBool(PARAM_SELECTED_FACES, m.mm()->cm.sfn > 0, "Close holes with selected faces", ""));
 	parlst.addParam(RichBool(PARAM_SELECT_NEW_FACES, true, "Select the newly created faces", ""));
 	parlst.addParam(RichBool(PARAM_PREVENT_SELF_INTERSECTION, true, "Prevent creation of selfIntersecting faces", ""));
-	parlst.addParam(RichDynamicFloat(PARAM_DIEDRAL_WEIGHT, 0.1, 0.0, 1.0, "DIEDRAL WEIGHT", "", false));
+	parlst.addParam(RichFloat(PARAM_DIEDRAL_WEIGHT, 0.1, "DIEDRAL WEIGHT", "", false));
 
 	return parlst;
 }

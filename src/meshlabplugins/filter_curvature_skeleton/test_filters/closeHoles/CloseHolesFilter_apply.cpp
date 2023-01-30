@@ -38,7 +38,7 @@ std::map<std::string, QVariant> CloseHolesTestFilter::applyFilter(
 	auto& mesh_model = *document.mm();
 	auto& mesh = mesh_model.cm;
 	auto max_hole_size = rich_params.getInt(PARAM_MAX_HOLE_SIZE);
-	auto diedral_weight = rich_params.getDynamicFloat(PARAM_DIEDRAL_WEIGHT);
+	auto diedral_weight = rich_params.getFloat(PARAM_DIEDRAL_WEIGHT);
 	auto selected_faces = rich_params.getBool(PARAM_SELECTED_FACES);
 	auto select_new_faces = rich_params.getBool(PARAM_SELECT_NEW_FACES);
 	auto prevent_self_intersection = rich_params.getBool(PARAM_PREVENT_SELF_INTERSECTION);
@@ -52,7 +52,7 @@ std::map<std::string, QVariant> CloseHolesTestFilter::applyFilter(
 
 	size_t OriginalSize = mesh.face.size();
 	int holeCnt;
-	if (!prevent_self_intersection) {
+	if (prevent_self_intersection) {
 		holeCnt = vcg::tri::Hole<CMeshO>::EarCuttingIntersectionFill<vcg::tri::SelfIntersectionEar< CMeshO> >(mesh, max_hole_size, selected_faces, cb);
 	}
 	else {

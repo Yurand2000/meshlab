@@ -38,6 +38,7 @@ namespace curvatureSkeleton
         CUT_ON_POLYLINES,
         SHOW_MIN_RADIUS,
         SHOW_POLYLINE_PARENT,
+        CLOSE_HOLES
     };
 }
 
