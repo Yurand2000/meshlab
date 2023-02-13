@@ -32,6 +32,7 @@
 #define ATTRIBUTE_ROOT_INDEX "root_index"
 #define ATTRIBUTE_MESH_TO_SKELETON "skeleton_index"
 #define ATTRIBUTE_BRANCH_NUMBER "branch_number"
+#define ATTRIBUTE_BRANCH_ORDER "branch_order"
 
 namespace curvatureSkeleton
 {
@@ -78,6 +79,7 @@ std::map<std::string, QVariant> ComputePolylinesTestFilter::applyFilter(
 	//prepare output meshes
 	auto* polylines = document.addNewMesh("", QString::asprintf("Polylines"), false);
 	vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(polylines->cm, ATTRIBUTE_BRANCH_NUMBER);
+	vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(polylines->cm, ATTRIBUTE_BRANCH_ORDER);
 
 	auto* skel_branches = document.addNewMesh("", QString::asprintf("Skeleton Branches"), false);
 	vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(skel_branches->cm, ATTRIBUTE_BRANCH_NUMBER);
@@ -97,10 +99,12 @@ std::map<std::string, QVariant> ComputePolylinesTestFilter::applyFilter(
 		branches[i].face.EnableFFAdjacency();
 		auto polyline = MeshBorderPolyline<CMeshO>::getLongestPolyline(branches[i]);
 
-		//associate parent branch index to each vertex of the polyline
+		//associate parent branch index and branch order to each vertex of the polyline
 		auto poly_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
+		auto poly_order_number = vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_ORDER);
 		for (auto& vertex : polyline.vert) {
 			poly_number[vertex] = branches_data[i].parent_branch_index;
+			poly_order_number[vertex] = branches_data[i].order_number;
 		}
 
 		//append polyline to polylines mesh

@@ -74,11 +74,51 @@ namespace curvatureSkeleton
 	>
 	{ };
 
-	typedef vcg::tri::TriMesh<
+	class PolylineMesh : public vcg::tri::TriMesh<
 		std::vector<PolylineVertex>,
 		std::vector<PolylineEdge>,
 		std::vector<PolylineFace>
-	> PolylineMesh;
+	>
+	{
+
+	public:
+		PolylineMesh() = default;
+		PolylineMesh(PolylineMesh&& other) {
+			swap(*this, other);
+		}
+		PolylineMesh& operator=(PolylineMesh&& other) {
+			if (&other != this)
+				swap(*this, other);
+			return *this;
+		}
+
+	private:
+		inline void swap(PolylineMesh& m1, PolylineMesh& m2)
+		{
+			using std::swap;
+			swap(m1.vn, m2.vn);
+			swap(m1.vert, m2.vert);
+			swap(m1.en, m2.en);
+			swap(m1.edge, m2.edge);
+			swap(m1.fn, m2.fn);
+			swap(m1.face, m2.face);
+			swap(m1.hn, m2.hn);
+			swap(m1.hedge, m2.hedge);
+			swap(m1.tn, m2.tn);
+			swap(m1.tetra, m2.tetra);
+			swap(m1.bbox, m2.bbox);
+			swap(m1.textures, m2.textures);
+			swap(m1.normalmaps, m2.normalmaps);
+			swap(m1.attrn, m2.attrn);
+			swap(m1.vert_attr, m2.vert_attr);
+			swap(m1.edge_attr, m2.edge_attr);
+			swap(m1.face_attr, m2.face_attr);
+			swap(m1.mesh_attr, m2.mesh_attr);
+			swap(m1.tetra_attr, m2.tetra_attr);
+			swap(m1.shot, m2.shot);
+			swap(m1.imark, m2.imark);
+		}
+	};
 }
 
 #endif //POLYLINE_MESH

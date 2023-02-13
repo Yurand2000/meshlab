@@ -27,11 +27,16 @@
 #include <vcg/complex/complex.h>
 #include <vcg/complex/algorithms/curve_on_manifold.h>
 #include <vcg/complex/algorithms/crease_cut.h>
+#include <vcg/space/color4.h>
 
 #define ATTRIBUTE_BRANCH_NUMBER "branch_number"
+#define ATTRIBUTE_BRANCH_ORDER "branch_order"
 
 namespace curvatureSkeleton
 {
+
+static void extractSkeletonBranch(CMeshO& skeleton, CMeshO& out_branch, int branch_num);
+template<typename LMESH, typename RMESH> Scalarm minimumDistance(LMESH const& vert_mesh, RMESH const& mesh);
 
 std::map<std::string, QVariant> CutOnPolylinesTestFilter::applyFilter(
 	FilterPlugin const&      plugin,
@@ -41,32 +46,42 @@ std::map<std::string, QVariant> CutOnPolylinesTestFilter::applyFilter(
 	vcg::CallBackPos*		 cb)
 {
 	auto& original = document.getMesh( rich_params.getMeshId(PARAM_ORIGINAL_MESH) )->cm;
+	auto& skeleton = document.getMesh(rich_params.getMeshId(PARAM_SKELETON_MESH))->cm;
 	auto& polylines_mesh = document.getMesh( rich_params.getMeshId(PARAM_POLYLINE_MESH) )->cm;
 
 	//convert meshes to PolylineMesh
 	PolylineMesh converted_mesh, converted_polylines;
 	vcg::tri::Append<PolylineMesh, CMeshO>::MeshCopy(converted_mesh, original); //COPY ATTRIBUTES?
+	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(converted_polylines, ATTRIBUTE_BRANCH_NUMBER);
+	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(converted_polylines, ATTRIBUTE_BRANCH_ORDER);
 	vcg::tri::Append<PolylineMesh, CMeshO>::MeshCopy(converted_polylines, polylines_mesh);
+
+	//prepare curve on manifold class
 	vcg::tri::UpdateTopology<PolylineMesh>::FaceFace(converted_mesh);
 	vcg::tri::UpdateTopology<PolylineMesh>::VertexFace(converted_mesh);
 	vcg::tri::UpdateTopology<PolylineMesh>::VertexEdge(converted_mesh);
-
-	//prepare curve on manifold class
 	auto com = vcg::tri::CoM<PolylineMesh>(converted_mesh);
 	com.Init();
 
 	//split polyline in connected components
 	std::vector<std::pair<int, PolylineMesh::EdgeType*>> polylines_data;
 	vcg::tri::Clean<PolylineMesh>::edgeMeshConnectedComponents(converted_polylines, polylines_data);
-
-	PolylineMesh polyline;
-	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
 	auto parent_branch_numbers = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(converted_polylines, ATTRIBUTE_BRANCH_NUMBER);
-	for (auto& polyline_data : polylines_data)
+
+	std::vector<PolylineMesh> polylines;
+	polylines.resize(polylines_data.size());
+	for (int i = 0; i < polylines_data.size(); i++)
 	{
+		auto& polyline_data = polylines_data[i];
+		auto& polyline = polylines[i];
+
+		vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
+		vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_ORDER);
+
 		//extract polyline
 		auto it = vcg::tri::EdgeConnectedComponentIterator<PolylineMesh>();
 		vcg::tri::UpdateSelection<PolylineMesh>::EdgeClear(converted_polylines);
+		vcg::tri::UpdateSelection<PolylineMesh>::VertexClear(converted_polylines);
 		for (it.start(converted_polylines, polyline_data.second); !it.completed(); ++it) {
 			(*it)->SetS();
 		}
@@ -74,39 +89,149 @@ std::map<std::string, QVariant> CutOnPolylinesTestFilter::applyFilter(
 		vcg::tri::UpdateTopology<PolylineMesh>::VertexEdge(polyline);
 		vcg::tri::UpdateSelection<PolylineMesh>::Clear(polyline);
 
-		//cut base mesh on polyline
-		vcg::tri::UpdateSelection<PolylineMesh>::Clear(converted_mesh);
+		//refine mesh by polyline
 		com.RefineCurveByBaseMesh(polyline);
 		com.SplitMeshWithPolyline(polyline);
-		com.TagFaceEdgeSelWithPolyLine(polyline);
-		CutMeshAlongSelectedFaceEdges(converted_mesh);
 	}
 
-	//reconvert base_mesh to CMeshO
-	CMeshO cut_original;
-	vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopy(cut_original, converted_mesh);
+	std::sort(polylines.begin(), polylines.end(), [](const PolylineMesh& l, const PolylineMesh& r) {
+		auto l_number = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(l, ATTRIBUTE_BRANCH_ORDER)[0];
+		auto r_number = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(r, ATTRIBUTE_BRANCH_ORDER)[0];
+		return l_number > r_number;
+	});
 
-	//split in connected components
-	std::vector<std::pair<int, CFaceO*>> conn_comps;
+	std::vector<std::tuple<PolylineMesh, Scalarm, Scalarm>> cut_branches;
+	cut_branches.reserve( polylines.size() + 1 );
+	for (auto& polyline : polylines)
+	{
+		//initialize com
+		auto com = vcg::tri::CoM<PolylineMesh>(converted_mesh);
+		com.Init();
 
-	cut_original.face.EnableFFAdjacency();
-	vcg::tri::UpdateTopology<CMeshO>::FaceFace(cut_original);
-	vcg::tri::Clean<CMeshO>::ConnectedComponents(cut_original, conn_comps);
+		//cut base mesh on polyline
+		if (!com.TagFaceEdgeSelWithPolyLine(polyline))
+			throw MLException("Less than 2 connected components on single polyline! [2]");
+		CutMeshAlongSelectedFaceEdges(converted_mesh);
+
+		//get the two connected components
+		std::vector<std::pair<int, PolylineFace*>> conn_comps;
+		vcg::tri::UpdateTopology<PolylineMesh>::FaceFace(converted_mesh);
+		vcg::tri::Clean<PolylineMesh>::ConnectedComponents(converted_mesh, conn_comps);
+
+		if (conn_comps.size() > 2)
+			throw MLException("More than 2 connected components on single polyline!");
+		else if (conn_comps.size() < 2)
+			throw MLException("Less than 2 connected components on single polyline!");
+		else {
+			PolylineMesh mesh0, mesh1;
+
+			conn_comps[0].second->SetS();
+			vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(converted_mesh);
+			vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(mesh0, converted_mesh, true);
+			vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh0);
+			vcg::tri::UpdateSelection<PolylineMesh>::Clear(converted_mesh);
+
+			conn_comps[1].second->SetS();
+			vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(converted_mesh);
+			vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(mesh1, converted_mesh, true);
+			vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh1);
+			vcg::tri::UpdateSelection<PolylineMesh>::Clear(converted_mesh);
+
+			//find which connected component is the leaf
+			CMeshO skeleton_parent;
+			auto parent_branch_number = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER)[0];
+			extractSkeletonBranch(skeleton, skeleton_parent, parent_branch_number);
+
+			if (minimumDistance(skeleton_parent, mesh0) < minimumDistance(skeleton_parent, mesh1)) {
+				cut_branches.emplace_back(std::move(mesh1), 0, -1);
+				converted_mesh = std::move(mesh0);
+			}
+			else {
+				cut_branches.emplace_back(std::move(mesh0), 0, -1);
+				converted_mesh = std::move(mesh1);
+			}
+
+			//save hack number for the cut branch
+			std::get<1>(cut_branches.back()) =
+				vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_ORDER)[0];
+		}
+	}
+
+	//the remaining piece is the main branch.
+	cut_branches.emplace_back(std::move(converted_mesh), 1, -1);
+
+	//find parent branches
+	for (int i = 0; i < polylines.size(); i++) {
+		auto& parent_number = std::get<2>(cut_branches[i]);
+		auto& order_number = std::get<1>(cut_branches[i]);
+		auto& polyline = polylines[i];
+
+		Scalarm min_distance = std::numeric_limits<Scalarm>::max();
+		for (int j = 0; j < cut_branches.size(); j++) {
+			if (i != j && (order_number - 1) == std::get<1>(cut_branches[j])) {
+				auto distance = minimumDistance(polyline, std::get<0>(cut_branches[j]));
+				if (distance < min_distance) {
+					min_distance = distance;
+					parent_number = j;
+				}
+			}
+		}
+	}
+
+	//colorize by hack numbers
+	auto num_colors = std::get<1>(cut_branches[0]);
+	for (int i = 0; i < cut_branches.size(); i++)
+	{
+		auto color = vcg::Color4b::Scatter(num_colors, (std::get<1>(cut_branches[i]) - 1));
+		for ( auto& vert : std::get<0>(cut_branches[i]).vert ) {
+			vert.C() = color;
+		}
+	}
 
 	//save connected components
-	for (int i = 0; i < conn_comps.size(); i++)
+	for (int i = 0; i < cut_branches.size(); i++)
 	{
-		auto& pair = conn_comps[i];
-		auto new_mesh = document.addNewMesh("", QString::asprintf("Branch %d", i), false); //make numbering consistent
-		new_mesh->setVisible(false);
-		pair.second->SetS();
-		vcg::tri::UpdateSelection<CMeshO>::FaceConnectedFF(cut_original);
-		vcg::tri::Append<CMeshO, CMeshO>::MeshCopy(new_mesh->cm, cut_original, true);
-		vcg::tri::UpdateSelection<CMeshO>::Clear(new_mesh->cm);
-		vcg::tri::UpdateSelection<CMeshO>::Clear(cut_original);
+		auto& branch = std::get<0>(cut_branches[i]);
+		auto hack_number = std::get<1>(cut_branches[i]);
+		auto parent_branch = std::get<2>(cut_branches[i]);
+		auto new_mesh = document.addNewMesh("", QString::asprintf("Branch %d; Hack %.0f; Parent: %.0f", i, hack_number, parent_branch), false);
+		new_mesh->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
+		vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopy(new_mesh->cm, branch);
 	}
 
 	return {};
+}
+
+void extractSkeletonBranch(CMeshO& skeleton, CMeshO& out_branch, int branch_num)
+{
+	auto branch_number = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_BRANCH_NUMBER);
+	if (!vcg::tri::Allocator<CMeshO>::IsValidHandle(skeleton, branch_number)) {
+		throw new MLException("ATTRIBUTE MISSING ERROR!");
+	}
+
+	for (auto& vertex : skeleton.vert) {
+		if (branch_number[vertex] == branch_num) {
+			vertex.SetS();
+		}
+	}
+
+	vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(out_branch, skeleton, true);
+
+	vcg::tri::UpdateSelection<CMeshO>::Clear(skeleton);
+	vcg::tri::UpdateSelection<CMeshO>::Clear(out_branch);
+}
+
+template<typename LMESH, typename RMESH> Scalarm minimumDistance(LMESH const& vert_mesh, RMESH const& mesh)
+{
+	Scalarm min_distance = std::numeric_limits<Scalarm>::max();
+	for (auto& vert : vert_mesh.vert) {
+		for (auto& face : mesh.face) {
+			vcg::Point3<Scalarm> closest_point;
+			vcg::face::PointDistanceBase(face, vert.cP(), min_distance, closest_point);
+		}
+	}
+
+	return min_distance;
 }
 
 }

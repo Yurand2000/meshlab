@@ -29,6 +29,7 @@
 #include <forward_list>
 
 #define ATTRIBUTE_BRANCH_NUMBER "branch_number"
+#define ATTRIBUTE_BRANCH_ORDER "branch_order"
 
 namespace curvatureSkeleton
 {
@@ -36,12 +37,13 @@ static Scalarm extractAvgRadiusBranch(CMeshO& original, CMeshO& skel_branch);
 static void movePolylineToParentBranch(PolylineMesh& polyline, CMeshO const& parent_branch, Scalarm avg_distance, Scalarm weight);
 static void movePolylinesApart(PolylineMesh& lpolyline, PolylineMesh const& rpolyline, Scalarm max_distance, Scalarm weight);
 static void polylineToParentBranchNormals(PolylineMesh& polyline, CMeshO const& parent_branch);
-static CMeshO extractSkeletonBranch(CMeshO& skeleton, CMeshO& branch, int branch_num);
+static void extractSkeletonBranch(CMeshO& skeleton, CMeshO& out_branch, int branch_num);
 
 struct SinglePolylineData {
 	PolylineMesh polyline;
 	CMeshO parent_branch;
 	Scalarm parent_branch_number;
+	Scalarm parent_branch_order_number;
 	Scalarm avg_radius;
 
 	SinglePolylineData() : polyline(), parent_branch() { }
@@ -64,12 +66,19 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 	auto separation_w = rich_params.getDynamicFloat(PARAM_SEPARATION_WEIGHT); 
 	auto max_distance = original.trBB().Diag() * rich_params.getDynamicFloat(PARAM_SEPARATION_MAX_DISTANCE);
 
-	auto attrib = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(polylines_mesh, ATTRIBUTE_BRANCH_NUMBER);
-	if ( !vcg::tri::Allocator<CMeshO>::IsValidHandle(polylines_mesh, attrib) ) throw MLException("Attribute " ATTRIBUTE_BRANCH_NUMBER " not found for Polyline Mesh!");
+	{
+		auto attrib = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(polylines_mesh, ATTRIBUTE_BRANCH_NUMBER);
+		if (!vcg::tri::Allocator<CMeshO>::IsValidHandle(polylines_mesh, attrib)) throw MLException("Attribute " ATTRIBUTE_BRANCH_NUMBER " not found for Polyline Mesh!");
+	}
+	{
+		auto attrib = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(polylines_mesh, ATTRIBUTE_BRANCH_ORDER);
+		if (!vcg::tri::Allocator<CMeshO>::IsValidHandle(polylines_mesh, attrib)) throw MLException("Attribute " ATTRIBUTE_BRANCH_ORDER " not found for Polyline Mesh!");
+	}
 
 	//convert meshes to PolylineMesh
 	PolylineMesh converted_mesh, converted_polylines;
 	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(converted_polylines, ATTRIBUTE_BRANCH_NUMBER);
+	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(converted_polylines, ATTRIBUTE_BRANCH_ORDER);
 	vcg::tri::Append<PolylineMesh, CMeshO>::MeshCopy(converted_mesh, original);
 	vcg::tri::Append<PolylineMesh, CMeshO>::MeshCopy(converted_polylines, polylines_mesh);
 
@@ -83,33 +92,39 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 
 	PolylineMesh smoothed_polylines;
 	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(smoothed_polylines, ATTRIBUTE_BRANCH_NUMBER);
+	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(smoothed_polylines, ATTRIBUTE_BRANCH_ORDER);
 
-	std::forward_list< SinglePolylineData > single_polylines;
+	std::vector<SinglePolylineData> single_polylines;
+	single_polylines.resize( polylines_data.size() );
 
 	//split polyline mesh
 	auto parent_branch_numbers = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(converted_polylines, ATTRIBUTE_BRANCH_NUMBER);
+	auto parent_branch_order_numbers = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(converted_polylines, ATTRIBUTE_BRANCH_ORDER);
 	for (size_t i = 0; i < polylines_data.size(); i++)
 	{
 		auto& polyline_data = polylines_data[i];
-		single_polylines.emplace_front();
-		auto& polyline = single_polylines.front().polyline;
-		auto& parent_branch = single_polylines.front().parent_branch;
-		auto& parent_branch_number = single_polylines.front().parent_branch_number;
-		auto& avg_radius = single_polylines.front().avg_radius;
+		auto& polyline = single_polylines[i].polyline;
+		auto& parent_branch = single_polylines[i].parent_branch;
+		auto& parent_branch_number = single_polylines[i].parent_branch_number;
+		auto& parent_branch_order_number = single_polylines[i].parent_branch_order_number;
+		auto& avg_radius = single_polylines[i].avg_radius;
 
 		//extract polyline
 		auto it = vcg::tri::EdgeConnectedComponentIterator<PolylineMesh>();
 		vcg::tri::UpdateSelection<PolylineMesh>::EdgeClear(converted_polylines);
+		vcg::tri::UpdateSelection<PolylineMesh>::VertexClear(converted_polylines);
 		for (it.start(converted_polylines, polyline_data.second); !it.completed(); ++it) {
 			(*it)->SetS();
 		}
 		vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
+		vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_ORDER);
 		vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(polyline, converted_polylines, true);
 		vcg::tri::UpdateSelection<PolylineMesh>::Clear(polyline);
 
 		//extract parent branch
 		it.start(converted_polylines, polyline_data.second);
 		parent_branch_number = parent_branch_numbers[(*it)->V(0)];
+		parent_branch_order_number = parent_branch_order_numbers[(*it)->V(0)];
 		extractSkeletonBranch(skeleton, parent_branch, parent_branch_number);
 		avg_radius = extractAvgRadiusBranch(original, parent_branch);
 	}
@@ -141,12 +156,16 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 		auto& polyline = polyline_tuple.polyline;
 		auto& parent_branch = polyline_tuple.parent_branch;
 		auto& parent_branch_number = polyline_tuple.parent_branch_number;
+		auto& parent_branch_order_number = polyline_tuple.parent_branch_order_number;
 		auto& avg_radius = polyline_tuple.avg_radius;
 
 		//reassign correct parent index because new vertices may be added
 		auto parent_branch_numbers = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER);
-		for (auto& vertex : polyline.vert)
+		auto parent_branch_order_numbers = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_ORDER);
+		for (auto& vertex : polyline.vert) {
 			parent_branch_numbers[vertex] = parent_branch_number;
+			parent_branch_order_numbers[vertex] = parent_branch_order_number;
+		}
 
 		//debug show normals
 		polylineToParentBranchNormals(polyline, parent_branch);
@@ -233,7 +252,7 @@ void movePolylineToParentBranch(PolylineMesh& polyline, CMeshO const& parent_bra
 	}	
 }
 
-CMeshO extractSkeletonBranch(CMeshO& skeleton, CMeshO& branch, int branch_num)
+void extractSkeletonBranch(CMeshO& skeleton, CMeshO& out_branch, int branch_num)
 {
 	auto branch_number = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(skeleton, ATTRIBUTE_BRANCH_NUMBER);
 	if (!vcg::tri::Allocator<CMeshO>::IsValidHandle(skeleton, branch_number)) {
@@ -246,11 +265,10 @@ CMeshO extractSkeletonBranch(CMeshO& skeleton, CMeshO& branch, int branch_num)
 		}
 	}
 
-	vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(branch, skeleton, true);
+	vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(out_branch, skeleton, true);
 
 	vcg::tri::UpdateSelection<CMeshO>::Clear(skeleton);
-	vcg::tri::UpdateSelection<CMeshO>::Clear(branch);
-	return branch;
+	vcg::tri::UpdateSelection<CMeshO>::Clear(out_branch);
 }
 
 void polylineToParentBranchNormals(PolylineMesh& polyline, CMeshO const& parent_branch)
