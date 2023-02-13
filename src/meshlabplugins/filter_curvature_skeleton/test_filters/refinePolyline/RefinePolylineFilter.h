@@ -33,7 +33,9 @@
 #define PARAM_ITERATIONS "iterations"
 #define PARAM_SMOOTH_WEIGTH "smooth_weigth"
 #define PARAM_PROJECT_WEIGTH "project_weigth"
-#define PARAM_FORCE_WEIGTH "force_weigth"
+#define PARAM_FORCE_WEIGTH "to_parent_branch_force_weigth"
+#define PARAM_SEPARATION_WEIGHT "separation_weight"
+#define PARAM_SEPARATION_MAX_DISTANCE "separation_max_distance"
 
 namespace curvatureSkeleton
 {

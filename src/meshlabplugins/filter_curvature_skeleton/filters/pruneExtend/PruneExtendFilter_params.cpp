@@ -24,7 +24,7 @@
 #include "PruneExtendFilter.h"
 
 //default values
-#define PRUNING_PERCENTILE_DEFAULT 10.f
+#define PRUNING_PERCENTILE_DEFAULT 0.f
 #define DO_EXTEND_BRANCHES_DEFAULT true
 #define CONE_ANGLE_DEFAULT Scalarm(10)
 

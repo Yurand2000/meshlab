@@ -82,7 +82,7 @@ public:
 		double max_triangle_angle                = 110;
 		double min_edge_length                   = -1;
 		double quality_speed_tradeoff            = 20;
-		double medially_centering_speed_tradeoff = 40;
+		double medially_centering_speed_tradeoff = 20;
 		double delta_area_threshold              = 0.0001;
 
 		Parameters() = default;
@@ -90,7 +90,7 @@ public:
 		template <typename MYMESH>
 		Parameters(MYMESH const& mesh)
 		{
-			min_edge_length = mesh.trBB().Diag() * 0.002; 
+			min_edge_length = mesh.trBB().Diag() * 0.0005; 
 		}
 	};
 };
