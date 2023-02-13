@@ -61,7 +61,7 @@ std::map<std::string, QVariant> PruneExtendFilter::applyFilter(
 	auto  root_index    = params.getInt(PARAM_ROOT_INDEX);
 	auto  min_edge_size = params.getAbsPerc(PARAM_MIN_EDGE_SIZE);
 	auto  min_edge_perc = params.getDynamicFloat(PARAM_MIN_EDGE_PERCENTILE);
-	auto  extend_angle  = params.getDynamicFloat(PARAM_EXTENSION_CONE_ANGLE);
+	auto  extend_angle  = vcg::math::ToRad( params.getDynamicFloat(PARAM_EXTENSION_CONE_ANGLE) );
 	
 	if ( !isVertexValid(root_index, skeleton) )
 		root_index = getLowestPointOnYAxis(skeleton);
