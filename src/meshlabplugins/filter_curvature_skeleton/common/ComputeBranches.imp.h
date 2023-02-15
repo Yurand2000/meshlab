@@ -285,10 +285,9 @@ namespace curvatureSkeleton
 	) {
 		//select the given branch
 		detail::selectFromBranch(original, branch_index, branches_data);
-		vcg::tri::UpdateSelection<MESH>::VertexClear(original);
 
 		//copy branch into mesh
-		vcg::tri::Append<MESH, MESH>::MeshCopy(branch, original, true);
+		vcg::tri::Append<MESH, MESH>::MeshCopyConst(branch, original, true);
 		vcg::tri::UpdateSelection<MESH>::Clear(branch);
 
 		//get only the biggest connected component of the branch
@@ -326,7 +325,7 @@ namespace curvatureSkeleton
 				}
 			}
 		} while (!branch_nums.empty());
-		vcg::tri::UpdateSelection<MESH>::FaceFromVertexLoose(original);
+		vcg::tri::UpdateSelection<MESH>::FaceFromVertexStrict(original);
 	}
 
 	template<typename MESH>

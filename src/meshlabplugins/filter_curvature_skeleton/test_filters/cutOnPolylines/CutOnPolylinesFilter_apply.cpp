@@ -48,6 +48,7 @@ std::map<std::string, QVariant> CutOnPolylinesTestFilter::applyFilter(
 	auto& original = document.getMesh( rich_params.getMeshId(PARAM_ORIGINAL_MESH) )->cm;
 	auto& skeleton = document.getMesh(rich_params.getMeshId(PARAM_SKELETON_MESH))->cm;
 	auto& polylines_mesh = document.getMesh( rich_params.getMeshId(PARAM_POLYLINE_MESH) )->cm;
+	auto strict = rich_params.getBool(PARAM_STRICT);
 
 	//convert meshes to PolylineMesh
 	PolylineMesh converted_mesh, converted_polylines;
@@ -109,8 +110,7 @@ std::map<std::string, QVariant> CutOnPolylinesTestFilter::applyFilter(
 		com.Init();
 
 		//cut base mesh on polyline
-		if (!com.TagFaceEdgeSelWithPolyLine(polyline))
-			throw MLException("Less than 2 connected components on single polyline! [2]");
+		com.TagFaceEdgeSelWithPolyLine(polyline);
 		CutMeshAlongSelectedFaceEdges(converted_mesh);
 
 		//get the two connected components
@@ -118,43 +118,65 @@ std::map<std::string, QVariant> CutOnPolylinesTestFilter::applyFilter(
 		vcg::tri::UpdateTopology<PolylineMesh>::FaceFace(converted_mesh);
 		vcg::tri::Clean<PolylineMesh>::ConnectedComponents(converted_mesh, conn_comps);
 
-		if (conn_comps.size() > 2)
-			throw MLException("More than 2 connected components on single polyline!");
+		int index0 = 0, index1 = 1;
+		if (conn_comps.size() > 2) {
+			if (strict)
+				throw MLException("More than 2 connected components on single polyline!");
+			else //use the two biggest connected components
+			{
+				int count0 = 0, count1 = 0;
+				for (int i = 0; i < conn_comps.size(); i++) {
+					conn_comps[i].second->SetS();
+					auto size = vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(converted_mesh);
+					vcg::tri::UpdateSelection<PolylineMesh>::FaceClear(converted_mesh);
+
+					if (size > count0) {
+						index1 = index0;
+						count1 = count0;
+						index0 = i;
+						count0 = size;
+					}
+					else if(size > count1) {
+						index1 = i;
+						count1 = size;
+					}
+				}
+			}
+		}
 		else if (conn_comps.size() < 2)
 			throw MLException("Less than 2 connected components on single polyline!");
-		else {
-			PolylineMesh mesh0, mesh1;
 
-			conn_comps[0].second->SetS();
-			vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(converted_mesh);
-			vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(mesh0, converted_mesh, true);
-			vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh0);
-			vcg::tri::UpdateSelection<PolylineMesh>::Clear(converted_mesh);
+		PolylineMesh mesh0, mesh1;
 
-			conn_comps[1].second->SetS();
-			vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(converted_mesh);
-			vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(mesh1, converted_mesh, true);
-			vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh1);
-			vcg::tri::UpdateSelection<PolylineMesh>::Clear(converted_mesh);
+		conn_comps[index0].second->SetS();
+		vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(converted_mesh);
+		vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(mesh0, converted_mesh, true);
+		vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh0);
+		vcg::tri::UpdateSelection<PolylineMesh>::Clear(converted_mesh);
 
-			//find which connected component is the leaf
-			CMeshO skeleton_parent;
-			auto parent_branch_number = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER)[0];
-			extractSkeletonBranch(skeleton, skeleton_parent, parent_branch_number);
+		conn_comps[index1].second->SetS();
+		vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(converted_mesh);
+		vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(mesh1, converted_mesh, true);
+		vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh1);
+		vcg::tri::UpdateSelection<PolylineMesh>::Clear(converted_mesh);
 
-			if (minimumDistance(skeleton_parent, mesh0) < minimumDistance(skeleton_parent, mesh1)) {
-				cut_branches.emplace_back(std::move(mesh1), 0, -1);
-				converted_mesh = std::move(mesh0);
-			}
-			else {
-				cut_branches.emplace_back(std::move(mesh0), 0, -1);
-				converted_mesh = std::move(mesh1);
-			}
+		//find which connected component is the leaf
+		CMeshO skeleton_parent;
+		auto parent_branch_number = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_NUMBER)[0];
+		extractSkeletonBranch(skeleton, skeleton_parent, parent_branch_number);
 
-			//save hack number for the cut branch
-			std::get<1>(cut_branches.back()) =
-				vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_ORDER)[0];
+		if (minimumDistance(skeleton_parent, mesh0) < minimumDistance(skeleton_parent, mesh1)) {
+			cut_branches.emplace_back(std::move(mesh1), 0, -1);
+			converted_mesh = std::move(mesh0);
 		}
+		else {
+			cut_branches.emplace_back(std::move(mesh0), 0, -1);
+			converted_mesh = std::move(mesh1);
+		}
+
+		//save hack number for the cut branch
+		std::get<1>(cut_branches.back()) =
+			vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(polyline, ATTRIBUTE_BRANCH_ORDER)[0];
 	}
 
 	//the remaining piece is the main branch.

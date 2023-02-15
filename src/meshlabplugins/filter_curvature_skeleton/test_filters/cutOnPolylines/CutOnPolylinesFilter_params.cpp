@@ -33,6 +33,7 @@ RichParameterList CutOnPolylinesTestFilter::initParameterList(FilterPlugin const
 	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, 0, &m, "ORIGINAL MESH", ""));
 	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, 0, &m, "SKELETON MESH", ""));
 	parlst.addParam(RichMesh(PARAM_POLYLINE_MESH, 0, &m, "POLYLINE MESH", ""));
+	parlst.addParam(RichBool(PARAM_STRICT, false, "STRICT", ""));
 
 	return parlst;
 }

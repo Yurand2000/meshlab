@@ -30,6 +30,7 @@
 #define PARAM_ORIGINAL_MESH "original_mesh"
 #define PARAM_SKELETON_MESH "skeleton_mesh"
 #define PARAM_POLYLINE_MESH "polyline_mesh"
+#define PARAM_STRICT "strict"
 
 namespace curvatureSkeleton
 {
