@@ -112,6 +112,7 @@ namespace curvatureSkeleton
 		) );
 		frontier.push( { &converted_tree.vert[tree_root_index], 0 } );
 
+		//breadth-first search to extract branches
 		vcg::tri::UnMarkAll(converted_tree);
 		do
 		{
@@ -131,6 +132,9 @@ namespace curvatureSkeleton
 					auto adj_index = adj->Index();
 					auto adj_order_number = order_numbers[adj_index];
 
+					//if the order number of the adjacent vertex is (less) than the current branch's order number then
+					//this vertex is not part of the branch, but it is instead a children.
+					//otherwise it is part of the current branch.
 					if (less(adj_order_number, order_number))
 					{
 						branches.push_back( Branch(
@@ -179,24 +183,30 @@ namespace curvatureSkeleton
 
 		//get skeleton paths
 		auto& mesh = converted_skeleton;
-		for (auto& branch : branches) {
-
+		for (auto& branch : branches)
+		{
+			//corresponding points from tree to skeleton
 			for (int i = 0; i < branch.tree_vertices.size() - 1; i++)
 			{
 				auto* start = Utils<SkeletonMesh>::getVertexInMesh(tree.vert[branch.tree_vertices[i]].cP(), mesh);
-				auto* end   = Utils<SkeletonMesh>::getVertexInMesh(tree.vert[branch.tree_vertices[i+1]].cP(), mesh);
+				auto* end = Utils<SkeletonMesh>::getVertexInMesh(tree.vert[branch.tree_vertices[i + 1]].cP(), mesh);
 
 				auto path = EdgeMeshUtils<SkeletonMesh>::getVerticesPath(mesh, start, end);
 				for (auto it = path.rbegin(); it != path.rend(); it++) {
 					auto* vertex = *it;
 
+					//keep only the vertices with the same order number
 					if (order_numbers[vertex->Index()] == branch.order_number) {
 						branch.skeleton_vertices.push_back(vertex->Index());
-					} else {
+					}
+					else {
 						break;
 					}
 				}
+			}
 
+			if (branch.skeleton_vertices.size() > 2)
+			{
 				//fill the frontier for the flooding operation
 				auto& indices = branch.skeleton_vertices;
 				std::queue<SkeletonVertex*> frontier;
@@ -204,8 +214,8 @@ namespace curvatureSkeleton
 				vcg::tri::Mark(mesh, &mesh.vert[indices.front()]);
 				vcg::tri::Mark(mesh, &mesh.vert[indices.back()]);
 				for (size_t i = 1; i < indices.size() - 1; i++) {
-					frontier.push( &mesh.vert[indices[i]] );
-					vcg::tri::Mark( mesh, &mesh.vert[indices[i]] );
+					frontier.push(&mesh.vert[indices[i]]);
+					vcg::tri::Mark(mesh, &mesh.vert[indices[i]]);
 				}
 
 				//add vertices recursively by flooding

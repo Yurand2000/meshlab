@@ -55,6 +55,7 @@ struct EdgeToCollapse
 
 template<typename MESH> Scalarm getEdgeLengthSqr(typename MESH::EdgeType const* edge);
 template<typename MESH> void collapseTwoConnectedVertex(MESH& skeleton, typename MESH::VertexType& vertex, int root_node);
+template<typename MESH> void collapseShortLeafs(MESH& skeleton, int root_node, Scalarm min_length);
 
 }
 
@@ -91,45 +92,39 @@ void detail::collapseTwoConnectedVertex(MESH& skeleton, typename MESH::VertexTyp
 template<typename MESH>
 void SimplifySkeleton<MESH>::collapseShortEdges(MESH& skeleton, int root_node, Scalarm min_length)
 {
-	std::vector<detail::EdgeToCollapse<MESH>> edges_to_collapse;
-	min_length = min_length * min_length;
-
-	std::queue<typename MESH::VertexType*> frontier;
-	vcg::tri::UnMarkAll(skeleton);
-	auto root_vertex = &skeleton.vert[root_node];
-	frontier.push(root_vertex);
-
+	//collapse leafs with a fix-point algorithm. Tries to collapse leafs shorter than the given length until no more leafs are collapsed.
+	auto last_edge_count = 0;
+	auto edge_count = skeleton.EN();
 	do
 	{
-		auto*  vertex  = frontier.front();
-		vcg::tri::Mark(skeleton, vertex);
-		frontier.pop();
+		last_edge_count = edge_count;
+		detail::collapseShortLeafs(skeleton, root_node, min_length);
+		edge_count = skeleton.EN();
+	} while (last_edge_count != edge_count);
+}
 
-		auto it = vcg::edge::VEIterator<typename MESH::EdgeType>(vertex);
-		while (!it.End())
-		{
-			auto* edge      = it.E();
-			auto  root_idx  = (edge->V(0) == vertex) ? 0 : 1;
+template<typename MESH>
+void detail::collapseShortLeafs(MESH& skeleton, int root_node, Scalarm min_length)
+{
+	std::vector<detail::EdgeToCollapse<MESH>> edges_to_collapse;
+	auto min_length_sqr = min_length * min_length;
 
-			//delete edge if it is too short and the root node is never collapsed on any other vertex
-			if ( !vcg::tri::IsMarked(skeleton, edge) && edge->V1(root_idx) != root_vertex )
-			{
-				auto sqr_length = detail::getEdgeLengthSqr<MESH>(edge); 
-				if (sqr_length <= min_length)
-					edges_to_collapse.emplace_back(edge, root_idx);
+	for (auto& edge : skeleton.edge)
+	{
+		auto sqr_length = detail::getEdgeLengthSqr<MESH>(&edge);
+		if (sqr_length > min_length_sqr)
+			continue;
 
-				vcg::tri::Mark(skeleton, edge);
-			}
+		auto v0_adj_num = vcg::edge::VEDegree<MESH::EdgeType>( edge.V(0) );
+		auto v1_adj_num = vcg::edge::VEDegree<MESH::EdgeType>( edge.V(1) );
 
-			//visit edge children
-			auto* child = edge->V1(root_idx);
-			if ( !vcg::tri::IsMarked(skeleton, child) )
-				frontier.push(child);
-
-			++it;
+		if (v0_adj_num == 1) {
+			edges_to_collapse.emplace_back(&edge, 1);
+		}
+		else if (v1_adj_num == 1) {
+			edges_to_collapse.emplace_back(&edge, 0);
 		}
 	}
-	while (!frontier.empty());
 
 	std::sort(edges_to_collapse.begin(), edges_to_collapse.end(), typename detail::EdgeToCollapse<MESH>::less());
 	for (auto& edge_data : edges_to_collapse)
@@ -137,7 +132,7 @@ void SimplifySkeleton<MESH>::collapseShortEdges(MESH& skeleton, int root_node, S
 		if ( !edge_data.edge->IsD() )
 		{
 			auto updated_length = detail::getEdgeLengthSqr<MESH>(edge_data.edge);
-			if (updated_length <= min_length)
+			if (updated_length <= min_length_sqr)
 			{
 				auto& collapsing_vertex = *edge_data.edge->V0(edge_data.vertex_to_collapse_onto);
 				vcg::edge::VEEdgeCollapseNonManifold<MESH>(

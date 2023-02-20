@@ -83,11 +83,13 @@ void BranchTagger<MESH>::generateTreeMesh(MESH& tree, MESH const& skeleton, int 
 	if (!SimplifySkeleton<MESH>::isMeshConnected(converted_skeleton))
 		throw MLException("Given graph mesh must be connected.");
 
-	//collapse edges shorter than the minimum edge length
+	//generate the tree by removing two connected vertices
 	SimplifySkeleton<MESH>::collapseTwoConnectedVertices(converted_skeleton, root_index);
+
+	//collapse leaf edges shorter than the minimum edge length
 	SimplifySkeleton<MESH>::collapseShortEdges(converted_skeleton, root_index, min_length);
 
-	//collapse edges shorter than the given percentile
+	//collapse leaf edges shorter than the given percentile
 	vcg::Histogram<Scalarm> histogram;
 	vcg::tri::Stat<MESH>::ComputeEdgeLengthHistogram(converted_skeleton, histogram);
 	SimplifySkeleton<MESH>::collapseShortEdges(converted_skeleton, root_index, histogram.Percentile(percentile / 100.f));
