@@ -99,6 +99,7 @@ void SimplifySkeleton<MESH>::collapseShortEdges(MESH& skeleton, int root_node, S
 	{
 		last_edge_count = edge_count;
 		detail::collapseShortLeafs(skeleton, root_node, min_length);
+		vcg::tri::UpdateTopology<MESH>::VertexEdge(skeleton);
 		edge_count = skeleton.EN();
 	} while (last_edge_count != edge_count);
 }

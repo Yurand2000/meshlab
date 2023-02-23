@@ -35,7 +35,7 @@ namespace curvatureSkeleton
 {
 static Scalarm extractAvgRadiusBranch(CMeshO& original, CMeshO& skel_branch);
 static void movePolylineToParentBranch(PolylineMesh& polyline, CMeshO const& parent_branch, Scalarm avg_distance, Scalarm weight);
-static void movePolylinesApart(PolylineMesh& lpolyline, PolylineMesh const& rpolyline, Scalarm max_distance, Scalarm weight);
+static void movePolylinesApart(PolylineMesh& lpolyline, PolylineMesh const& rpolyline, Scalarm min_distance);
 static void polylineToParentBranchNormals(PolylineMesh& polyline, CMeshO const& parent_branch);
 static void extractSkeletonBranch(CMeshO& skeleton, CMeshO& out_branch, int branch_num);
 
@@ -63,8 +63,7 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 	auto smooth_w = rich_params.getDynamicFloat(PARAM_SMOOTH_WEIGTH);
 	auto proj_w = rich_params.getDynamicFloat(PARAM_PROJECT_WEIGTH);
 	auto force_w = rich_params.getDynamicFloat(PARAM_FORCE_WEIGTH);
-	auto separation_w = rich_params.getDynamicFloat(PARAM_SEPARATION_WEIGHT); 
-	auto max_distance = original.trBB().Diag() * rich_params.getDynamicFloat(PARAM_SEPARATION_MAX_DISTANCE);
+	auto min_distance = rich_params.getAbsPerc(PARAM_SEPARATION_MIN_DISTANCE);
 
 	{
 		auto attrib = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(polylines_mesh, ATTRIBUTE_BRANCH_NUMBER);
@@ -89,10 +88,6 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 	//split polyline in connected components
 	std::vector<std::pair<int, PolylineMesh::EdgeType*>> polylines_data;
 	vcg::tri::Clean<PolylineMesh>::edgeMeshConnectedComponents(converted_polylines, polylines_data);
-
-	PolylineMesh smoothed_polylines;
-	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(smoothed_polylines, ATTRIBUTE_BRANCH_NUMBER);
-	vcg::tri::Allocator<PolylineMesh>::AddPerVertexAttribute<Scalarm>(smoothed_polylines, ATTRIBUTE_BRANCH_ORDER);
 
 	std::vector<SinglePolylineData> single_polylines;
 	single_polylines.resize( polylines_data.size() );
@@ -132,6 +127,7 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 	//smooth-project
 	for (int iter = 0; iter < num_iter; iter++)
 	{
+		cb(num_iter * 100 / (iter + 1), "");
 		for (auto it = single_polylines.begin(); it != single_polylines.end(); it++)
 		{
 			auto& polyline = (*it).polyline;
@@ -139,14 +135,17 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 			auto& avg_radius = (*it).avg_radius;
 
 			//smooth project polyline
-			for (auto it2 = single_polylines.begin(); it2 != single_polylines.end(); it2++) {
-				if (it != it2)
-					movePolylinesApart(polyline, (*it2).polyline, max_distance, separation_w);
+			if (polyline.EN() > 0)
+			{
+				for (auto it2 = single_polylines.begin(); it2 != single_polylines.end(); it2++) {
+					if (it != it2)
+						movePolylinesApart(polyline, (*it2).polyline, min_distance);
+				}
+				movePolylineToParentBranch(polyline, parent_branch, avg_radius, force_w);
+				com.SmoothProject(polyline, 1, smooth_w, proj_w);
+				vcg::tri::Clean<PolylineMesh>::RemoveUnreferencedVertex(polyline);
+				vcg::tri::Allocator<PolylineMesh>::CompactEveryVector(polyline);
 			}
-			movePolylineToParentBranch(polyline, parent_branch, avg_radius, force_w);
-			com.SmoothProject(polyline, 1, smooth_w, proj_w);
-			vcg::tri::Clean<PolylineMesh>::RemoveUnreferencedVertex(polyline);
-			vcg::tri::Allocator<PolylineMesh>::CompactEveryVector(polyline);
 		}
 	}
 
@@ -168,14 +167,16 @@ std::map<std::string, QVariant> RefinePolylineTestFilter::applyFilter(
 		}
 
 		//debug show normals
-		polylineToParentBranchNormals(polyline, parent_branch);
-
-		//append polyline
-		vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshAppendConst(smoothed_polylines, polyline);
+		//polylineToParentBranchNormals(polyline, parent_branch);
 	}
 
-	vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopy(polylines_mesh, smoothed_polylines);
-	vcg::tri::UpdateSelection<CMeshO>::Clear(polylines_mesh);
+	//append polylines
+	polylines_mesh.Clear();
+	for (auto& polyline_tuple : single_polylines)
+	{
+		vcg::tri::Append<CMeshO, PolylineMesh>::MeshAppendConst(polylines_mesh, polyline_tuple.polyline);
+		vcg::tri::UpdateSelection<CMeshO>::Clear(polylines_mesh);
+	}
 
 	return {};
 }
@@ -205,18 +206,18 @@ Scalarm extractAvgRadiusBranch(CMeshO& original, CMeshO& skel_branch)
 	return (count > 0) ? branch / count : 0;
 }
 
-void movePolylinesApart(PolylineMesh& lpolyline, PolylineMesh const& rpolyline, Scalarm max_distance, Scalarm weight)
+void movePolylinesApart(PolylineMesh& lpolyline, PolylineMesh const& rpolyline, Scalarm min_distance)
 {
 	for (auto& lvert : lpolyline.vert) {
 		if (lvert.IsD()) continue;
 		for (auto& redge : rpolyline.edge) {
 			if (redge.IsD()) continue;
 
-			Scalarm distance = max_distance;
+			Scalarm distance = min_distance;
 			vcg::Point3<Scalarm> proj_point;
 			if (vcg::edge::PointDistance(redge, lvert.cP(), distance, proj_point)) {
-				auto difference_vec = proj_point - lvert.cP();
-				lvert.P() += difference_vec * max_distance * 100.0 * weight;
+				auto difference_vec = lvert.cP() - proj_point;
+				lvert.P() += difference_vec.normalized() * std::fmax(min_distance - distance, 0.0);
 			}
 		}
 	}

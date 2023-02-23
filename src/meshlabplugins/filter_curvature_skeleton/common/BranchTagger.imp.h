@@ -87,10 +87,12 @@ void BranchTagger<MESH>::generateTreeMesh(MESH& tree, MESH const& skeleton, int 
 	SimplifySkeleton<MESH>::collapseTwoConnectedVertices(converted_skeleton, root_index);
 
 	//collapse leaf edges shorter than the minimum edge length
+	vcg::tri::UpdateTopology<MESH>::VertexEdge(converted_skeleton);
 	SimplifySkeleton<MESH>::collapseShortEdges(converted_skeleton, root_index, min_length);
 
 	//collapse leaf edges shorter than the given percentile
 	vcg::Histogram<Scalarm> histogram;
+	vcg::tri::UpdateTopology<MESH>::VertexEdge(converted_skeleton);
 	vcg::tri::Stat<MESH>::ComputeEdgeLengthHistogram(converted_skeleton, histogram);
 	SimplifySkeleton<MESH>::collapseShortEdges(converted_skeleton, root_index, histogram.Percentile(percentile / 100.f));
 
