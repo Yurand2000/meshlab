@@ -116,8 +116,8 @@ void detail::collapseShortLeafs(MESH& skeleton, int root_node, Scalarm min_lengt
 		if (sqr_length > min_length_sqr)
 			continue;
 
-		auto v0_adj_num = vcg::edge::VEDegree<MESH::EdgeType>( edge.V(0) );
-		auto v1_adj_num = vcg::edge::VEDegree<MESH::EdgeType>( edge.V(1) );
+		auto v0_adj_num = vcg::edge::VEDegree<typename MESH::EdgeType>( edge.V(0) );
+		auto v1_adj_num = vcg::edge::VEDegree<typename MESH::EdgeType>( edge.V(1) );
 
 		if (v0_adj_num == 1) {
 			edges_to_collapse.emplace_back(&edge, 1);
