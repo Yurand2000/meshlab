@@ -66,12 +66,12 @@ namespace detail
 	inline static SkeletonLeaf::BranchIndices getBranchIndices(std::vector<SkeletonVertex const*> const& parents);
 
 	static std::vector<CVertexO const*> getMeshLeafVertices(SkeletonLeaf::BranchIndices vertices, CMeshO const& mesh);
-	static Point calculateBranchExtension(
+	static bool computeBranchExtension(
 		Point const& leaf_vertex,
 		std::vector<CVertexO const*> const& leaf_vertices,
 		Normal const& leaf_normal,
 		float         angle,
-		bool& valid_new_point);
+		Point& new_point);
 	inline static bool isContainedInCone(
 		Point const& origin, Point const& point,
 		Scalarm cone_angle, Normal cone_direction);
@@ -195,12 +195,9 @@ void detail::extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& 
 {
 	auto leaf_vertices = getMeshLeafVertices(leaf.branch_indices, mesh);
 	bool valid_new_point = false;
-	auto new_point = calculateBranchExtension(skeleton.vert[leaf.leaf_index].cP(), leaf_vertices, leaf.normal, angle, valid_new_point);
-	if (valid_new_point)
-	{
-		CMeshOAllocator::AddVertex(skeleton, new_point);
-		CMeshOAllocator::AddEdge(skeleton, leaf.leaf_index, (skeleton.VN() - 1));
-	}
+	Point new_point;
+	if ( computeBranchExtension(skeleton.vert[leaf.leaf_index].cP(), leaf_vertices, leaf.normal, angle, new_point) )
+		skeleton.vert[leaf.leaf_index].P() = new_point;
 }
 
 std::vector<CVertexO const*> detail::getMeshLeafVertices(detail::SkeletonLeaf::BranchIndices branch_vertices, CMeshO const& mesh)
@@ -230,12 +227,12 @@ std::vector<CVertexO const*> detail::getMeshLeafVertices(detail::SkeletonLeaf::B
 	return vertices;
 }
 
-Point detail::calculateBranchExtension(
+bool detail::computeBranchExtension(
 	Point const& leaf_vertex,
 	std::vector<CVertexO const*> const& leaf_vertices,
 	Normal const& leaf_normal,
 	float         angle,
-	bool&		  valid_new_point)
+	Point&		  new_point)
 {
 	Point  total = { 0, 0, 0 };
 	size_t count = 0;
@@ -250,13 +247,12 @@ Point detail::calculateBranchExtension(
 
 	if (count > 0)
 	{
-		valid_new_point = true;
-		return total / count;
+		new_point = total / count;
+		return true;
 	}
 	else
 	{
-		valid_new_point = false;
-		return Point();
+		return false;
 	}
 }
 
