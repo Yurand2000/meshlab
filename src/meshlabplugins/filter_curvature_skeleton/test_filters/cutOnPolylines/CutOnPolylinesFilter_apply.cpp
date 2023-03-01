@@ -32,6 +32,7 @@
 
 #define ATTRIBUTE_BRANCH_NUMBER "branch_number"
 #define ATTRIBUTE_BRANCH_ORDER "branch_order"
+#define ATTRIBUTE_BRANCH_BASE_POLYLINE "base_polyline"
 
 namespace curvatureSkeleton
 {
@@ -209,6 +210,32 @@ std::map<std::string, QVariant> CutOnPolylinesTestFilter::applyFilter(
 
 	logExecutionTime(plugin, clock, "Polyline Cutting");
 
+	//set which vertex is the base polyline
+	for (int i = 0; i < (cut_branches.size() - 1); i++) {
+		auto& polyline = std::get<0>(polylines[i]);
+		auto& branch = std::get<0>(cut_branches[i]);
+
+		auto attrib = vcg::tri::Allocator<PolylineMesh>::GetPerVertexAttribute<Scalarm>(branch, ATTRIBUTE_BRANCH_BASE_POLYLINE);
+		for (auto& vert : branch.vert)
+		{
+			attrib[vert] = 0;
+		}
+
+		for (auto& poly_vert : polyline.vert)
+		{
+			for (auto& vert : branch.vert)
+			{
+				if (vcg::SquaredDistance(poly_vert.cP(), vert.cP()) < 0.001f)
+				{
+					attrib[vert] = 1;
+					break;
+				}
+			}
+		}
+	}
+
+	logExecutionTime(plugin, clock, "Find Base Polyline");
+
 	//find parent branches
 	for (int i = 0; i < (cut_branches.size() - 1); i++) {
 		auto& parent_number = std::get<2>(cut_branches[i]);
@@ -249,6 +276,7 @@ std::map<std::string, QVariant> CutOnPolylinesTestFilter::applyFilter(
 		auto parent_branch = std::get<2>(cut_branches[i]);
 		auto new_mesh = document.addNewMesh("", QString::asprintf("Branch %d; Hack %.0f; Parent: %.0f", i, hack_number, parent_branch), false);
 		new_mesh->updateDataMask(MeshModel::MeshElement::MM_VERTCOLOR);
+		vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(new_mesh->cm, ATTRIBUTE_BRANCH_BASE_POLYLINE);
 		vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopy(new_mesh->cm, branch);
 	}
 

@@ -21,56 +21,29 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
-#define FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
+#ifndef FILTERCURVATURESKELETON_TEST_FILTER_MEASURE_BRANCH
+#define FILTERCURVATURESKELETON_TEST_FILTER_MEASURE_BRANCH
 
+#include "common/TemplateFilter.h"
 #include <common/plugins/interfaces/filter_plugin.h>
-#include "cgalAdapter/CGALMeshConverter.h"
-#include "cgalAdapter/CGALMeshSkeletonizer.h"
 
 namespace curvatureSkeleton
 {
 
-class AlgorithmSkeletonize
+class MeasureBranchTestFilter : public TemplateFilter
 {
 public:
-	typedef CGALMeshConverter<CMeshO>            Converter;
-	typedef CGALMeshSkeletonizer                 Skeletonizer;
-	typedef Skeletonizer::MeshToSkeletonVertices MeshToSkeleton;
+	MeasureBranchTestFilter();
 
-	struct Parameters
-	{
-		Skeletonizer::Parameters skeletonizer_params;
-		int                      max_iterations;
-		bool                     save_mesoskeletons;
-	};
-
-private:
-	typedef std::vector<CMeshO> NewMeshVector;
-
-public:
-	AlgorithmSkeletonize(
-		vcg::CallBackPos&		   callback_pos,
-		MeshLabPluginLogger const& logger);
-
-	CMeshO skeletonize(CMeshO& mesh, Parameters parameters, NewMeshVector* intermediate_meshes = nullptr);
-
-private:
-	void checkMesh(CMeshO& mesh) const;
-	int  skeletonize(Skeletonizer& skeletonizer, Parameters parameters, NewMeshVector* intermediate_meshes);
-	CMeshO generateSkeleton(CMeshO& mesh, Skeletonizer& skeletonizer);
-
-	void generateIntermediateMesh(Skeletonizer& skeletonizer, int current_iteration, NewMeshVector* intermediate_meshes);
-
-	void saveMeshToSkeletonIndex(CMeshO& mesh, MeshToSkeleton const& mesh_to_skeleton);
-	void saveMeshToSkeletonDistance(
-		CMeshO& mesh, CMeshO const& skeleton, MeshToSkeleton const& mesh_to_skeleton);
-
-private:
-	vcg::CallBackPos&          callback_pos;
-	MeshLabPluginLogger const& logger;
+	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
+	virtual std::map<std::string, QVariant> applyFilter(
+		FilterPlugin const&,
+		RichParameterList const&,
+		MeshDocument&,
+		unsigned int&,
+		vcg::CallBackPos*) override;
 };
 
 }
 
-#endif //FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
+#endif //FILTERCURVATURESKELETON_TEST_FILTER_MEASURE_BRANCH

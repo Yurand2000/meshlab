@@ -21,56 +21,15 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
-#define FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
-
-#include <common/plugins/interfaces/filter_plugin.h>
-#include "cgalAdapter/CGALMeshConverter.h"
-#include "cgalAdapter/CGALMeshSkeletonizer.h"
+#include "MeasureBranchFilter.h"
 
 namespace curvatureSkeleton
 {
 
-class AlgorithmSkeletonize
+RichParameterList MeasureBranchTestFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
 {
-public:
-	typedef CGALMeshConverter<CMeshO>            Converter;
-	typedef CGALMeshSkeletonizer                 Skeletonizer;
-	typedef Skeletonizer::MeshToSkeletonVertices MeshToSkeleton;
-
-	struct Parameters
-	{
-		Skeletonizer::Parameters skeletonizer_params;
-		int                      max_iterations;
-		bool                     save_mesoskeletons;
-	};
-
-private:
-	typedef std::vector<CMeshO> NewMeshVector;
-
-public:
-	AlgorithmSkeletonize(
-		vcg::CallBackPos&		   callback_pos,
-		MeshLabPluginLogger const& logger);
-
-	CMeshO skeletonize(CMeshO& mesh, Parameters parameters, NewMeshVector* intermediate_meshes = nullptr);
-
-private:
-	void checkMesh(CMeshO& mesh) const;
-	int  skeletonize(Skeletonizer& skeletonizer, Parameters parameters, NewMeshVector* intermediate_meshes);
-	CMeshO generateSkeleton(CMeshO& mesh, Skeletonizer& skeletonizer);
-
-	void generateIntermediateMesh(Skeletonizer& skeletonizer, int current_iteration, NewMeshVector* intermediate_meshes);
-
-	void saveMeshToSkeletonIndex(CMeshO& mesh, MeshToSkeleton const& mesh_to_skeleton);
-	void saveMeshToSkeletonDistance(
-		CMeshO& mesh, CMeshO const& skeleton, MeshToSkeleton const& mesh_to_skeleton);
-
-private:
-	vcg::CallBackPos&          callback_pos;
-	MeshLabPluginLogger const& logger;
-};
-
+	RichParameterList parlst;
+	return parlst;
 }
 
-#endif //FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
+}

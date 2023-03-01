@@ -39,6 +39,7 @@
 #include "test_filters/showMinRadius/ShowMinRadiusFilter.h"
 #include "test_filters/showPolylineParent/ShowPolylineParentFilter.h"
 #include "test_filters/closeHoles/CloseHolesFilter.h"
+#include "test_filters/measureBranch/MeasureBranchFilter.h"
 #endif
 
 #define PLUGIN_NAME "FilterCurvatureSkeleton"
@@ -69,6 +70,7 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	filters.push_back( std::make_unique<ShowMinRadiusTestFilter>() );
 	filters.push_back( std::make_unique<ShowPolylineParentTestFilter>() );
 	filters.push_back( std::make_unique<CloseHolesTestFilter>() );
+	filters.push_back( std::make_unique<MeasureBranchTestFilter>() );
 	typeList.push_back(TestFilters::FIND_PATH);
 	typeList.push_back(TestFilters::FIND_PATH_FILL);
 	typeList.push_back(TestFilters::COMPUTE_BRANCHES);
@@ -79,6 +81,7 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	typeList.push_back(TestFilters::SHOW_MIN_RADIUS);
 	typeList.push_back(TestFilters::SHOW_POLYLINE_PARENT);
 	typeList.push_back(TestFilters::CLOSE_HOLES);
+	typeList.push_back(TestFilters::MEASURE_BRANCH);
 #endif
 
 	for(ActionIDType tt : types())

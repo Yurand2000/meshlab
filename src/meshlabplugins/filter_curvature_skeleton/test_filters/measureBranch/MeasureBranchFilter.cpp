@@ -21,56 +21,24 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
-#define FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE
+#include "MeasureBranchFilter.h"
+#include "test_filters/testFilters.h"
 
-#include <common/plugins/interfaces/filter_plugin.h>
-#include "cgalAdapter/CGALMeshConverter.h"
-#include "cgalAdapter/CGALMeshSkeletonizer.h"
+#define F_FILTERID    TestFilters::MEASURE_BRANCH
+#define F_DISPLAYNAME "TEST - Measure Branch"
+#define F_DESCRIPTION ""
+#define F_CATEGORY    FilterPlugin::Other
+#define F_PYTHON_NAME "test_filter___measure_branch"
+#define F_ARITY       FilterPlugin::FilterArity::SINGLE_MESH
+#define F_PRECONDS    MeshModel::MM_NONE
+#define F_POSTCONDS   MeshModel::MM_NONE
 
 namespace curvatureSkeleton
 {
 
-class AlgorithmSkeletonize
-{
-public:
-	typedef CGALMeshConverter<CMeshO>            Converter;
-	typedef CGALMeshSkeletonizer                 Skeletonizer;
-	typedef Skeletonizer::MeshToSkeletonVertices MeshToSkeleton;
-
-	struct Parameters
-	{
-		Skeletonizer::Parameters skeletonizer_params;
-		int                      max_iterations;
-		bool                     save_mesoskeletons;
-	};
-
-private:
-	typedef std::vector<CMeshO> NewMeshVector;
-
-public:
-	AlgorithmSkeletonize(
-		vcg::CallBackPos&		   callback_pos,
-		MeshLabPluginLogger const& logger);
-
-	CMeshO skeletonize(CMeshO& mesh, Parameters parameters, NewMeshVector* intermediate_meshes = nullptr);
-
-private:
-	void checkMesh(CMeshO& mesh) const;
-	int  skeletonize(Skeletonizer& skeletonizer, Parameters parameters, NewMeshVector* intermediate_meshes);
-	CMeshO generateSkeleton(CMeshO& mesh, Skeletonizer& skeletonizer);
-
-	void generateIntermediateMesh(Skeletonizer& skeletonizer, int current_iteration, NewMeshVector* intermediate_meshes);
-
-	void saveMeshToSkeletonIndex(CMeshO& mesh, MeshToSkeleton const& mesh_to_skeleton);
-	void saveMeshToSkeletonDistance(
-		CMeshO& mesh, CMeshO const& skeleton, MeshToSkeleton const& mesh_to_skeleton);
-
-private:
-	vcg::CallBackPos&          callback_pos;
-	MeshLabPluginLogger const& logger;
-};
+MeasureBranchTestFilter::MeasureBranchTestFilter()
+	: TemplateFilter(
+		F_FILTERID, F_DISPLAYNAME, F_DESCRIPTION, F_CATEGORY,
+		F_PYTHON_NAME, F_ARITY, F_PRECONDS, F_POSTCONDS) { }
 
 }
-
-#endif //FILTERCURVATURESKELETON_ALGORITHM_SKELETONIZE

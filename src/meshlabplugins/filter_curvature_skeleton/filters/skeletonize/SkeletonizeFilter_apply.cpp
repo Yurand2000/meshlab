@@ -47,10 +47,33 @@ std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 {
 	try {
 		auto& selected_mesh = document.mm()->cm;
+		auto mesh_name = document.mm()->label();
 		checkParameters(rich_params, *callback);
 
+
+		//generate skeleton
 		auto params = getParameters(rich_params);
-		return AlgorithmSkeletonize(document, params, *callback, plugin).apply();
+		auto intermediate_meshes = std::vector<CMeshO>();
+		auto skeleton = AlgorithmSkeletonize(*callback, plugin)
+			.skeletonize(selected_mesh, params, &intermediate_meshes);
+
+		document.mm()->setMeshModified(true);
+
+		//save skeleton mesh
+		auto skeleton_mesh = document.addNewMesh(QString(), QString("Skeleton - %1").arg(mesh_name), false);
+		vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(skeleton_mesh->cm, skeleton);
+		skeleton_mesh->clearDataMask(MeshModel::MM_VERTQUALITY);
+
+		//save intermediate meshes
+		for (int i = 0; i < intermediate_meshes.size(); i++)
+		{
+			auto& intermediate_mesh = intermediate_meshes[i];
+			auto mesh = document.addNewMesh(QString(), QString("MesoSkeleton #%2 - %1").arg(mesh_name).arg(i + 1), false);
+			vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(mesh->cm, intermediate_mesh);
+			mesh->clearDataMask(MeshModel::MM_VERTQUALITY);
+		}
+
+		return {};
 	}
 	catch (MLException e) {
 		throw e;

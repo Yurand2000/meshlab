@@ -92,6 +92,12 @@ public:
 		{
 			min_edge_length = mesh.trBB().Diag() * 0.0005; 
 		}
+
+		template <typename MYMESH>
+		Parameters(MYMESH const& mesh, double min_edge_scale)
+		{
+			min_edge_length = mesh.trBB().Diag() * min_edge_scale;
+		}
 	};
 };
 
