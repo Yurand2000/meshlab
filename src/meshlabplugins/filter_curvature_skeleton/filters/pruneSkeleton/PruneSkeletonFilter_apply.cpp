@@ -70,17 +70,17 @@ std::map<std::string, QVariant> PruneSkeletonFilter::applyFilter(
 		min_lenght = std::fmax(histogram.Percentile(min_edge_percentile / 100.f), min_edge_lenght);
 	}
 
-	//add map to vertex index as special attribute (needed when remapping the vertices)
-	auto map = vcg::tri::Allocator<SkeletonMesh>::AddPerVertexAttribute<int>(c_skeleton, ATTRIBUTE_ORIGINAL_INDEX);
-	for (auto& vert : c_skeleton.vert)
-		map[vert] = vert.Index();
-
 	//perform fix-point pruning
 	bool fix_point_terminated = false;
 	while (!fix_point_terminated)
 	{
 		//update vertex-edge adjacency
 		vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(c_skeleton);
+
+		//add map to vertex index as special attribute (needed when remapping the vertices)
+		auto map = vcg::tri::Allocator<SkeletonMesh>::GetPerVertexAttribute<int>(c_skeleton, ATTRIBUTE_ORIGINAL_INDEX);
+		for (auto& vert : c_skeleton.vert)
+			map[vert] = vert.Index();
 
 		//compute leafs
 		using branch = std::pair<std::vector<SkeletonVertex*>, std::vector<SkeletonEdge*>>;
@@ -194,7 +194,7 @@ void findLeaf(SkeletonMesh& skeleton, SkeletonVertex* leaf_vertex, std::vector<S
 
 	vcg::tri::UnMarkAll(skeleton);
 
-	SkeletonVertex *old, *current = leaf_vertex;
+	SkeletonVertex *old = nullptr, *current = leaf_vertex;
 	std::vector<SkeletonEdge*> star;
 	vcg::edge::VEStarVE(current, star);
 
@@ -228,7 +228,7 @@ Scalarm computeLeafLenght(SkeletonMesh& skeleton, SkeletonVertex* leaf_vertex)
 	Scalarm lenght = 0;
 	vcg::tri::UnMarkAll(skeleton);
 
-	SkeletonVertex *old, *current = leaf_vertex;
+	SkeletonVertex *old = nullptr, *current = leaf_vertex;
 	std::vector<SkeletonVertex*> star;
 	do
 	{
