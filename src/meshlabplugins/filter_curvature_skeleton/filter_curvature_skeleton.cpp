@@ -25,6 +25,8 @@
 
 #include "filters/skeletonize/SkeletonizeFilter.h"
 #include "filters/pruneSkeleton/PruneSkeletonFilter.h"
+#include "filters/treeSegmentation/TreeSegmentationFilter.h"
+
 #include "filters/pruneExtend/PruneExtendFilter.h"
 #include "filters/orderCompute/OrderComputeFilter.h"
 
@@ -52,6 +54,7 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 {
 	filters.push_back( std::make_unique<SkeletonizeFilter>() );
 	filters.push_back( std::make_unique<PruneSkeletonFilter>() );
+	filters.push_back( std::make_unique<TreeSegmentationFilter>() );
 
 	filters.push_back( std::make_unique<PruneExtendFilter>() );
 	filters.push_back( std::make_unique<OrderComputeFilter>() );
@@ -59,6 +62,8 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	typeList = {
 		SKELETONIZE,
 		PRUNE_SKELETON,
+		TREE_SEGMENTATION,
+
 		PRUNE_AND_EXTEND,
 		COMPUTE_ORDER_NUMBERS,
 	};

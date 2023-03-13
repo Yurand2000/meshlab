@@ -46,29 +46,13 @@ std::map<std::string, QVariant> PruneSkeletonFilter::applyFilter(
 	auto  skeleton_mm = document.getMesh(params.getMeshId(PARAM_SKELETON_MESH));
 	auto& skeleton = skeleton_mm->cm;
 
-	auto  min_edge_lenght = params.getDynamicFloat(PARAM_MIN_EDGE_LENGHT);
-	auto  min_edge_percentile = params.getDynamicFloat(PARAM_MIN_EDGE_PERCENTILE);
+	auto  min_branch_lenght = params.getDynamicFloat(PARAM_MIN_EDGE_LENGHT);
 	auto  remove_selected = params.getBool(PARAM_REMOVE_SELECTED_LEAFS);
 
 	//convert to skeleton mesh
 	SkeletonMesh c_skeleton;
 	vcg::tri::Append<SkeletonMesh, CMeshO>::MeshCopyConst(c_skeleton, skeleton);
 	vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(c_skeleton);
-
-	//compute minimum edge lenght based on percentile
-	Scalarm min_lenght = 0.0;
-	{
-		vcg::Histogram<Scalarm> histogram;
-		histogram.SetRange(0.0, c_skeleton.bbox.Diag(), 10000);
-
-		for (auto& vert : c_skeleton.vert)
-		{
-			if (vcg::edge::VEDegree<SkeletonEdge>(&vert) == 1)
-				histogram.Add( computeLeafLenght(c_skeleton, &vert) );
-		}
-
-		min_lenght = std::fmax(histogram.Percentile(min_edge_percentile / 100.f), min_edge_lenght);
-	}
 
 	//perform fix-point pruning
 	bool fix_point_terminated = false;
@@ -120,7 +104,7 @@ std::map<std::string, QVariant> PruneSkeletonFilter::applyFilter(
 					}
 				}
 
-				bool leaf_has_to_be_removed = is_leaf_selected || leaf_lenghts[i] <= min_lenght;
+				bool leaf_has_to_be_removed = is_leaf_selected || leaf_lenghts[i] <= min_branch_lenght;
 				bool is_the_smallest_leaf = leaf_lenghts[i] <= min_leaf_lenght;
 				if (leaf_has_to_be_removed && is_the_smallest_leaf)
 				{

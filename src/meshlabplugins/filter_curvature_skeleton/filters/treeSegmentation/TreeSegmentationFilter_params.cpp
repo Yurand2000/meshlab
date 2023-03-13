@@ -21,7 +21,10 @@
  *                                                                           *
  ****************************************************************************/
 
-#include "PruneSkeletonFilter.h"
+#include "TreeSegmentationFilter.h"
+
+//defaults
+#define DEFAULT_FACETAG "segmentation_tag"
 
 // displayed strings
 #define MESH_CATEGORY "(0) Meshes"
@@ -30,11 +33,19 @@
 #define SKELETON_MESH_DISPLAYNAME "Skeleton Mesh"
 #define SKELETON_MESH_DESCRIPTION "The skeleton mesh."
 
-#define PARAMETER_CATEGORY "(1) Pruning"
-#define MIN_EDGE_LENGHT_DISPLAYNAME "Minimum branch lenght"
-#define MIN_EDGE_LENGHT_DESCRIPTION "Minimum branch lenght"
-#define REMOVE_SELECTED_LEAFS_DISPLAYNAME "Remove selected branches"
-#define REMOVE_SELECTED_LEAFS_DESCRIPTION "Remove selected branches"
+#define PARAMETER_CATEGORY "(1) Hack Order Computing"
+#define ROOT_SELECTED_DISPLAYNAME "Set root to selected vertex"
+#define ROOT_SELECTED_DESCRIPTION "If selected, the root of the skeleton is set to the selected point instead of taking the lowest point on the Y axis."
+#define SWAP_SELECTED_BRANCHES_DISPLAYNAME "Promote selected branch"
+#define SWAP_SELECTED_BRANCHES_DESCRIPTION "Promote selected branch when computing the Hack numbers"
+
+#define EXTRA_CATEGORY "(2) Extra"
+#define MAP_TO_COLOR_DISPLAYNAME "Display Hack orders with colors."
+#define MAP_TO_COLOR_DESCRIPTION "Display Hack orders with colors."
+#define SAVE_GRAPH_DISPLAYNAME "Save generated graph as mesh."
+#define SAVE_GRAPH_DESCRIPTION "Save generated graph as mesh."
+#define FACE_TAG_ID_DISPLAYNAME "Face Tag additional attribute name."
+#define FACE_TAG_ID_DESCRIPTION "Face Tag additional attribute name."
 
 namespace curvatureSkeleton
 {
@@ -42,25 +53,22 @@ namespace curvatureSkeleton
 static uint tryGetOriginalMeshIndex(MeshDocument const&);
 static uint tryGetSkeletonMeshIndex(MeshDocument const&);
 
-RichParameterList PruneSkeletonFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
+RichParameterList TreeSegmentationFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
 {
 	RichParameterList parlst;
 
 	auto* skeleton = m.getMesh(tryGetSkeletonMeshIndex(m));
-	auto skel_diagonal = skeleton->cm.bbox.Diag();
-
-	auto is_any_vertex_selected = skeleton->cm.svn > 0;
-
-	Scalarm average_edge_lenght = 0;
-	for (auto& edge : skeleton->cm.edge)
-		average_edge_lenght += vcg::edge::Length(edge);
-	average_edge_lenght /= skeleton->cm.EN();
+	auto* original = m.getMesh(tryGetOriginalMeshIndex(m));
 
 	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, tryGetOriginalMeshIndex(m), &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
 	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, tryGetSkeletonMeshIndex(m), &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
 
-	parlst.addParam(RichPercentage(PARAM_MIN_EDGE_LENGHT, 3.f * average_edge_lenght, 0.f, skel_diagonal, MIN_EDGE_LENGHT_DISPLAYNAME, MIN_EDGE_LENGHT_DESCRIPTION, false, PARAMETER_CATEGORY));
-	parlst.addParam(RichBool(PARAM_REMOVE_SELECTED_LEAFS, is_any_vertex_selected, REMOVE_SELECTED_LEAFS_DISPLAYNAME, REMOVE_SELECTED_LEAFS_DESCRIPTION, false, PARAMETER_CATEGORY));
+	parlst.addParam(RichBool(PARAM_SELECTED_ROOT, skeleton->cm.svn == 1, ROOT_SELECTED_DISPLAYNAME, ROOT_SELECTED_DESCRIPTION, false, PARAMETER_CATEGORY));
+	parlst.addParam(RichBool(PARAM_SELECTED_BRANCHES, original->cm.sfn > 1, SWAP_SELECTED_BRANCHES_DISPLAYNAME, SWAP_SELECTED_BRANCHES_DESCRIPTION, false, PARAMETER_CATEGORY));
+
+	parlst.addParam(RichBool(PARAM_MAP_TO_COLOR, true, MAP_TO_COLOR_DISPLAYNAME, MAP_TO_COLOR_DESCRIPTION, false, EXTRA_CATEGORY));
+	parlst.addParam(RichBool(PARAM_SAVE_GRAPH, false, SAVE_GRAPH_DISPLAYNAME, SAVE_GRAPH_DESCRIPTION, true, EXTRA_CATEGORY));
+	parlst.addParam(RichString(PARAM_FACE_TAG_ID, DEFAULT_FACETAG, FACE_TAG_ID_DISPLAYNAME, FACE_TAG_ID_DESCRIPTION, true, EXTRA_CATEGORY));
 
 	return parlst;
 }

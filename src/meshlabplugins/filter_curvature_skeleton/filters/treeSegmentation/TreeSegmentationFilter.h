@@ -21,37 +21,38 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_EDGE_MESH_UTILS
-#define FILTERCURVATURESKELETON_EDGE_MESH_UTILS
+#ifndef FILTERCURVATURESKELETON_FILTER_TREE_SEGMENTATION
+#define FILTERCURVATURESKELETON_FILTER_TREE_SEGMENTATION
 
-#include <common/ml_document/cmesh.h>
-#include <vector>
+#include "common/TemplateFilter.h"
+
+#include <common/plugins/interfaces/filter_plugin.h>
+
+#define PARAM_ORIGINAL_MESH "original_mesh"
+#define PARAM_SKELETON_MESH "skeleton_mesh"
+#define PARAM_SELECTED_ROOT "selected_root"
+#define PARAM_SELECTED_BRANCHES "selected_branches"
+#define PARAM_MAP_TO_COLOR "map_to_color"
+#define PARAM_SAVE_GRAPH "save_graph"
+#define PARAM_FACE_TAG_ID "facetag_id"
 
 namespace curvatureSkeleton
 {
-	template<typename MESH>
-	class EdgeMeshUtils
-	{
-	public:
-		static std::vector<typename MESH::VertexPointer> getVerticesInBetween(
-			MESH& mesh,
-			typename MESH::VertexPointer start_vertex,
-			typename MESH::VertexPointer end_vertex
-		);
 
-		//get a vector of vertices that make a path between the two provided vertices. It is unique if the edge mesh is an acyclic graph.
-		static std::vector<typename MESH::VertexPointer> getVerticesPath(
-			MESH& mesh,
-			typename MESH::VertexPointer start_vertex,
-			typename MESH::VertexPointer end_vertex
-		);
+class TreeSegmentationFilter : public TemplateFilter
+{
+public:
+	TreeSegmentationFilter();
 
-	private:
-		~EdgeMeshUtils() = delete;
-	};
+	virtual RichParameterList initParameterList(FilterPlugin const&, MeshDocument const&) override;
+	virtual std::map<std::string, QVariant> applyFilter(
+		FilterPlugin const&,
+		RichParameterList const&,
+		MeshDocument&,
+		unsigned int&,
+		vcg::CallBackPos*) override;
+};
 
 }
 
-#include "EdgeMeshUtils.imp.h"
-
-#endif // FILTERCURVATURESKELETON_EDGE_MESH_UTILS
+#endif //FILTERCURVATURESKELETON_FILTER_TREE_SEGMENTATION
