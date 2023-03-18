@@ -12,6 +12,7 @@ target_sources(${FILTER_NAME} PRIVATE ${SOURCES} ${HEADERS})
 add_subdirectory(skeletonize)
 add_subdirectory(pruneSkeleton)
 add_subdirectory(treeSegmentation)
+add_subdirectory(polylineCutting)
 
 add_subdirectory(pruneExtend)
 add_subdirectory(orderCompute)
