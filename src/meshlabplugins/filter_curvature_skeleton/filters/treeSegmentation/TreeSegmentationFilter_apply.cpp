@@ -330,43 +330,6 @@ std::map<std::string, QVariant> TreeSegmentationFilter::applyFilter(
 		}
 	}
 
-	//assign border faces to max priority of neighbors (fix point computation)
-	std::queue<CFaceO*> untagged_faces;
-	for (auto& face : original.face)
-	{
-		if (facetag[face] == -1)
-			untagged_faces.push(&face);
-	}
-
-	original.face.EnableFFAdjacency();
-	vcg::tri::UpdateTopology<CMeshO>::FaceFace(original);
-	while( !untagged_faces.empty() )
-	{
-		auto* face = untagged_faces.front(); untagged_faces.pop();
-
-		std::vector<CFaceO*> star;
-		vcg::face::FFExtendedStarFF(face, 1, star);
-
-		int min_tag = -1, min_order = std::numeric_limits<int>::max();
-		for (auto* face : star)
-		{
-			auto tag = facetag[face];
-			auto order = face_tag_to_hack_map[tag];
-
-			if (tag != -1 && order < min_order)
-			{
-				min_order = order;
-				min_tag = tag;
-			}
-		}
-
-		if (min_tag != -1)
-			facetag[face] = min_tag;
-		else
-			untagged_faces.push(face);
-	}
-	original.face.DisableFFAdjacency();
-
 	//save graph as mesh
 	if (save_graph)
 	{
