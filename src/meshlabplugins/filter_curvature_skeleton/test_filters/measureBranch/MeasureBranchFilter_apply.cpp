@@ -60,6 +60,7 @@ std::map<std::string, QVariant> MeasureBranchTestFilter::applyFilter(
 	auto params = AlgorithmSkeletonize::Parameters();
 	params.max_iterations = 200;
 	params.skeletonizer_params = AlgorithmSkeletonize::Skeletonizer::Parameters(branch, 0.002);
+	params.skeletonizer_params.medially_centering_speed_tradeoff = 200;
 	params.save_mesoskeletons = false;
 
 	auto skeleton_mesh = AlgorithmSkeletonize(*cb, plugin).skeletonize(branch, params);
