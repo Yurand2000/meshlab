@@ -28,7 +28,7 @@
  //defaults
 #define DEFAULT_FACETAG "segmentation_tag"
 
-#define POLYLINE_REFINE_CATEGORY "(1) Polyline Refinement"
+#define POLYLINE_REFINE_CATEGORY "(0) Polyline Refinement"
 #define REFINE_ITERATION_DISPLAYNAME "Iterations"
 #define REFINE_ITERATION_DESCRIPTION "Number of refinement iterations."
 #define REFINE_SMOOTHW_DISPLAYNAME "Smooth Weight"
@@ -42,9 +42,15 @@
 #define REFINE_SEPARATIONW_DISPLAYNAME "Polyline Separation Weight"
 #define REFINE_SEPARATIONW_DESCRIPTION "Polyline Separation Weight"
 
+#define CUTTING_CATEGORY "(1) Polyline Cutting"
+#define REFINE_HOLE_EDGE_LENGHT_DISPLAYNAME "Refine Holes Edge Lenght"
+#define REFINE_HOLE_EDGE_LENGHT_DESCRIPTION "Refine Holes Edge Lenght (% of bbox diag)"
+
 #define EXTRA_CATEGORY "(2) Extra"
 #define FACE_TAG_ID_DISPLAYNAME "Face Tag additional attribute name."
 #define FACE_TAG_ID_DESCRIPTION "Face Tag additional attribute name."
+#define GENERATE_POLYLINES_DISPLAYNAME "Generate Polylines"
+#define GENERATE_POLYLINES_DESCRIPTION "Generate Polylines"
 
 namespace curvatureSkeleton
 {
@@ -70,6 +76,7 @@ RichParameterList PolylineCuttingFilter::initParameterList(FilterPlugin const& p
 		avg_length /= (mesh.FN() * 3);
 
 	parlst.addParam(RichString(PARAM_FACE_TAG_ID, DEFAULT_FACETAG, FACE_TAG_ID_DISPLAYNAME, FACE_TAG_ID_DESCRIPTION, true, EXTRA_CATEGORY));
+	parlst.addParam(RichBool(PARAM_GENERATE_POLYLINES, false, GENERATE_POLYLINES_DISPLAYNAME, GENERATE_POLYLINES_DESCRIPTION, true, EXTRA_CATEGORY));
 
 	parlst.addParam(RichInt(PARAM_REFINE_ITERATIONS, 100, REFINE_ITERATION_DISPLAYNAME, REFINE_ITERATION_DESCRIPTION, false, POLYLINE_REFINE_CATEGORY));
 	parlst.addParam(RichDynamicFloat(PARAM_REFINE_SMOOTH_WEIGTH, 0.6f, 0.f, 1.f, REFINE_SMOOTHW_DISPLAYNAME, REFINE_SMOOTHW_DESCRIPTION, false, POLYLINE_REFINE_CATEGORY));
@@ -77,6 +84,8 @@ RichParameterList PolylineCuttingFilter::initParameterList(FilterPlugin const& p
 	parlst.addParam(RichDynamicFloat(PARAM_REFINE_FIT_PLANE_WEIGTH, 0.3f, 0.f, 1.f, REFINE_FIT_PLANEW_DISPLAYNAME, REFINE_FIT_PLANEW_DESCRIPTION, false, POLYLINE_REFINE_CATEGORY));
 	parlst.addParam(RichDynamicFloat(PARAM_REFINE_SEPARATION_WEIGHT, 1.f, 0.f, 1.f, REFINE_SEPARATIONW_DISPLAYNAME, REFINE_SEPARATIONW_DESCRIPTION, false, POLYLINE_REFINE_CATEGORY));
 	parlst.addParam(RichPercentage(PARAM_REFINE_SEPARATION_MIN_DISTANCE, 2 * avg_length, 0.f, mesh.bbox.Diag(), REFINE_SEPARATION_DIST_DISPLAYNAME, REFINE_SEPARATION_DIST_DESCRIPTION, false, POLYLINE_REFINE_CATEGORY));
+
+	parlst.addParam(RichPercentage(PARAM_REFINE_HOLE_EDGE_LENGHT, 2 * avg_length, 0.f, mesh.bbox.Diag(), REFINE_HOLE_EDGE_LENGHT_DISPLAYNAME, REFINE_HOLE_EDGE_LENGHT_DESCRIPTION, false, CUTTING_CATEGORY));
 
 	return parlst;
 }

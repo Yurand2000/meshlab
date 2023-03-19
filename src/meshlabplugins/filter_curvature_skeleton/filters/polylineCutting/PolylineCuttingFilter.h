@@ -29,6 +29,8 @@
 #include <common/plugins/interfaces/filter_plugin.h>
 
 #define PARAM_FACE_TAG_ID "facetag_id"
+#define PARAM_GENERATE_POLYLINES "generate_polylines"
+#define PARAM_REFINE_HOLE_EDGE_LENGHT "refine_hole_edge_lenght"
 
 #define PARAM_REFINE_ITERATIONS "iterations"
 #define PARAM_REFINE_SMOOTH_WEIGTH "smooth_weigth"
@@ -36,6 +38,7 @@
 #define PARAM_REFINE_FIT_PLANE_WEIGTH "fit_plane_weight"
 #define PARAM_REFINE_SEPARATION_WEIGHT "separation_weight"
 #define PARAM_REFINE_SEPARATION_MIN_DISTANCE "separation_min_distance"
+
 
 namespace curvatureSkeleton
 {
