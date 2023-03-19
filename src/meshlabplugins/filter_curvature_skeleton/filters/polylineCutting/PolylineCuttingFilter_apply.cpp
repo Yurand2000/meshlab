@@ -349,7 +349,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 					}
 				}
 
-				if (closeHoles)
+				if (close_holes)
 				{
 					//close hole on the first piece
 					closeHoles(part0, refine_hole_lenght);
@@ -380,7 +380,30 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	for (int i = 0; i < pieces.size(); i++)
 	{
 		auto& piece = pieces[i];
-		auto* piece_mm = document.addNewMesh(QString(), QString("Piece %1").arg(i), false);
+		std::unordered_map<int, int> tag_count; int max_tag = 0, max_count = 0;
+		auto facetag = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(piece, facetag_id.toStdString());
+		for (auto& tag : facetag._handle->data)
+		{
+			if (tag_count.count(tag) > 0)
+				tag_count[tag]++;
+			else
+				tag_count.emplace(tag, 0);
+
+			if (tag_count[tag] > max_count)
+			{
+				max_tag = tag;
+				max_count = tag_count[tag];
+			}
+		}
+
+		auto* piece_mm = document.addNewMesh(QString(), QString("Piece #%1; Tag %2").arg(i).arg(max_tag), false);
+		if (original.face.IsColorEnabled())
+		{
+			piece_mm->updateDataMask(piece_mm->MM_FACECOLOR);
+			piece_mm->cm.face.EnableColor();
+		}
+		if (original_mm->hasPerVertexColor())
+			piece_mm->updateDataMask(piece_mm->MM_VERTCOLOR);
 		vcg::tri::Allocator<CMeshO>::AddPerFaceAttribute<Scalarm>(piece_mm->cm, facetag_id.toStdString());
 		vcg::tri::Append<CMeshO, PolylineMesh>::MeshAppendConst(piece_mm->cm, piece);
 		piece_mm->updateBoxAndNormals();
@@ -480,18 +503,10 @@ void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght)
 	params.smoothFlag = true;
 	params.projectFlag = false;
 	params.surfDistCheck = false;
+	params.SetTargetLen(refine_lenght);
+	params.iter = 5;
 
-	for (int k = 0; k < 3; k++)
-	{
-		params.SetTargetLen(refine_lenght * 3.0); params.iter = 5;
-		vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
-
-		params.SetTargetLen(refine_lenght / 3.0); params.iter = 3;
-		vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
-
-		params.SetTargetLen(refine_lenght); params.iter = 2;
-		vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
-	}
+	vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
 }
 
 }

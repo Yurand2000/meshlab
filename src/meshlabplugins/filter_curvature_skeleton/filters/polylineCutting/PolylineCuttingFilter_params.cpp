@@ -91,7 +91,7 @@ RichParameterList PolylineCuttingFilter::initParameterList(FilterPlugin const& p
 	parlst.addParam(RichPercentage(PARAM_REFINE_SEPARATION_MIN_DISTANCE, 2 * avg_length, 0.f, mesh.bbox.Diag(), REFINE_SEPARATION_DIST_DISPLAYNAME, REFINE_SEPARATION_DIST_DESCRIPTION, false, POLYLINE_REFINE_CATEGORY));
 
 	parlst.addParam(RichBool(PARAM_CLOSE_HOLES, true, CLOSE_HOLES_DISPLAYNAME, CLOSE_HOLES_DESCRIPTION, false, CUTTING_CATEGORY));
-	parlst.addParam(RichPercentage(PARAM_REFINE_HOLE_EDGE_LENGHT, 2 * avg_length, 0.f, mesh.bbox.Diag(), REFINE_HOLE_EDGE_LENGHT_DISPLAYNAME, REFINE_HOLE_EDGE_LENGHT_DESCRIPTION, false, CUTTING_CATEGORY));
+	parlst.addParam(RichPercentage(PARAM_REFINE_HOLE_EDGE_LENGHT, avg_length, 0.f, mesh.bbox.Diag(), REFINE_HOLE_EDGE_LENGHT_DISPLAYNAME, REFINE_HOLE_EDGE_LENGHT_DESCRIPTION, false, CUTTING_CATEGORY));
 
 	return parlst;
 }
