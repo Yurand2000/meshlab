@@ -58,6 +58,10 @@ template <class T> class Normal3m: public NormalAbs<vcg::Point3<Scalarm>, T> {
 public:  static void Name(std::vector<std::string> & name){name.push_back(std::string("Normal3m"));T::Name(name);}
 };
 
+template <class T> class Qualitym : public Quality<Scalarm, T> {
+public: static void Name(std::vector<std::string>& name) { name.push_back(std::string("Qualitym")); T::Name(name); }
+};
+
 template <class T> class QualitymOcf: public QualityOcf<Scalarm, T> {
 public:  static void Name(std::vector<std::string> & name){name.push_back(std::string("QualitymOcf"));T::Name(name);}
 };

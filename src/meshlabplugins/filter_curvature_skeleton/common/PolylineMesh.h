@@ -67,6 +67,8 @@ namespace curvatureSkeleton
 	class PolylineFace : public vcg::Face<PolylineUsedTypes,
 		vcg::face::VertexRef,
 		vcg::face::Normal3m,
+		vcg::face::Qualitym,
+		vcg::face::Color4b,
 		vcg::face::FFAdj,
 		vcg::face::VFAdj,
 		vcg::face::Mark,
