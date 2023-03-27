@@ -100,19 +100,6 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 			.toStdString()
 		);
 
-		/*
-		longest_path = 0.0;
-		for (auto& edge : c_skeleton.edge)
-			longest_path += vcg::Distance(edge.V(0)->cP(), edge.V(1)->cP());
-
-		plugin.log(
-			QString("%2 - Edge Sum: %1")
-			.arg(longest_path, 0, 'f', 3)
-			.arg(mesh_mm->label())
-			.toStdString()
-		);
-		*/
-
 		//save skeleton
 		if (save_skeletons)
 		{
@@ -123,55 +110,6 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 
 	return {};
 }
-
-/*Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base)
-{
-	std::stack< std::pair<SkeletonVertex*, std::vector<SkeletonVertex*>> > frontier;
-	auto longest_path = vcg::tri::Allocator<SkeletonMesh>::AddPerVertexAttribute<Scalarm>(mesh);
-	for (auto& vert : mesh.vert)
-		longest_path[vert] = 0;
-
-	vcg::tri::UnMarkAll(mesh);
-	vcg::tri::Mark(mesh, base);
-
-	std::vector<SkeletonVertex*> star;
-	vcg::edge::VVStarVE(base, star);
-	frontier.emplace(base, star);
-
-	while( !frontier.empty() )
-	{
-		auto* current = frontier.top().first;
-		auto& current_star = frontier.top().second;
-
-		if (current_star.empty())
-		{
-			frontier.pop();
-			vcg::edge::VVStarVE(current, star);
-
-			for (auto* adj : star)
-			{
-				auto distance = vcg::Distance(current->cP(), adj->cP());
-				longest_path[current] = std::max(longest_path[current], distance + longest_path[adj]);
-			}
-		}
-		else
-		{
-			auto* adj = current_star.back();
-			current_star.pop_back();
-			if ( !vcg::tri::IsMarked(mesh, adj) )
-			{
-				vcg::tri::Mark(mesh, adj);
-
-				vcg::edge::VVStarVE(adj, star);
-				frontier.emplace(adj, star);
-			}
-		}
-	}
-
-	auto longest_path_lenght = longest_path[0];
-	vcg::tri::Allocator<SkeletonMesh>::DeletePerVertexAttribute(mesh, longest_path);
-	return longest_path_lenght;
-}*/
 
 Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base)
 {

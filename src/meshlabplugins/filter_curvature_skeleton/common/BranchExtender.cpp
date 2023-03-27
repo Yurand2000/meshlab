@@ -55,11 +55,11 @@ namespace detail
 		Normal        normal;
 	};
 
-	static std::vector<SkeletonLeaf> findSkeletonLeafs(SkeletonMesh const& skeleton);
+	static std::vector<SkeletonLeaf> findSkeletonLeafs(SkeletonMesh const& skeleton, int max_depth = 5);
 	static void extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& skeleton, float angle);
 
 	inline static bool isLeafVertex(SkeletonVertex const& vertex);
-	inline static SkeletonLeaf getSkeletonLeafData(SkeletonVertex const& vertex);
+	inline static SkeletonLeaf getSkeletonLeafData(SkeletonVertex const& vertex, int max_depth = 5);
 	static std::vector<SkeletonVertex const*> getNthParents(SkeletonVertex const& vertex, int max_depth = 5);
 	static void getNthParentsRecursive(std::vector<SkeletonVertex const*>& branch, SkeletonVertex const* vertex, SkeletonVertex const* parent, int depth);
 	inline static Normal getVertexNormal(SkeletonVertex const& vertex, std::vector<SkeletonVertex const*> const& parents);
@@ -93,12 +93,12 @@ void BranchExtender::extendBranch(CMeshO const& mesh, CMeshO& skeleton, int vert
 	}
 }
 
-void BranchExtender::extendLeafs(CMeshO const& mesh, CMeshO& skeleton, float angle)
+void BranchExtender::extendLeafs(CMeshO const& mesh, CMeshO& skeleton, float angle, int normal_search_depth)
 {
 	SkeletonMesh converted_skeleton;
 	CMeshOToSkeletonAppend::MeshCopyConst(converted_skeleton, skeleton);
 	SkeletonMeshTopology::VertexEdge(converted_skeleton);
-	auto vertices = detail::findSkeletonLeafs(converted_skeleton);
+	auto vertices = detail::findSkeletonLeafs(converted_skeleton, normal_search_depth);
 
 	for (auto& leaf : vertices)
 	{
@@ -106,14 +106,14 @@ void BranchExtender::extendLeafs(CMeshO const& mesh, CMeshO& skeleton, float ang
 	}
 }
 
-std::vector<detail::SkeletonLeaf> detail::findSkeletonLeafs(SkeletonMesh const& skeleton)
+std::vector<detail::SkeletonLeaf> detail::findSkeletonLeafs(SkeletonMesh const& skeleton, int max_depth)
 {
 	std::vector<detail::SkeletonLeaf> leafs;
 	for (auto& vertex : skeleton.vert)
 	{
 		if (detail::isLeafVertex(vertex))
 			leafs.push_back(
-				detail::getSkeletonLeafData(vertex)
+				detail::getSkeletonLeafData(vertex, max_depth)
 			);
 	}
 	return leafs;
@@ -124,9 +124,9 @@ inline static bool detail::isLeafVertex(SkeletonVertex const& vertex)
 	return vcg::edge::VEDegree<SkeletonEdge>(&vertex) == 1;
 }
 
-inline static detail::SkeletonLeaf detail::getSkeletonLeafData(SkeletonVertex const& vertex)
+inline static detail::SkeletonLeaf detail::getSkeletonLeafData(SkeletonVertex const& vertex, int max_depth)
 {
-	auto parents = getNthParents(vertex);
+	auto parents = getNthParents(vertex, max_depth);
 
 	return {
 		vertex.Index(),

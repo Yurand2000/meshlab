@@ -13,6 +13,7 @@ add_subdirectory(skeletonize)
 add_subdirectory(pruneSkeleton)
 add_subdirectory(treeSegmentation)
 add_subdirectory(polylineCutting)
+add_subdirectory(branchMeasure)
 
 add_subdirectory(pruneExtend)
 add_subdirectory(orderCompute)

@@ -33,7 +33,7 @@ class BranchExtender
 {
 public:
 	static void extendBranch(CMeshO const& mesh, CMeshO& skeleton, int vertex, float angle);
-	static void extendLeafs(CMeshO const& mesh, CMeshO& skeleton, float angle);
+	static void extendLeafs(CMeshO const& mesh, CMeshO& skeleton, float angle, int normal_search_depth = 5);
 
 private:
 	~BranchExtender() = delete;

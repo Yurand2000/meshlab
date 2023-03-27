@@ -55,7 +55,7 @@ std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 		auto params = getParameters(rich_params);
 		auto intermediate_meshes = std::vector<CMeshO>();
 		auto skeleton = AlgorithmSkeletonize(*callback, plugin)
-			.skeletonize(selected_mesh, params, &intermediate_meshes);
+			.skeletonize(selected_mesh, params, true, &intermediate_meshes);
 
 		document.mm()->setMeshModified(true);
 

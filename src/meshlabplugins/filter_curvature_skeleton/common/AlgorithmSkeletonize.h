@@ -53,7 +53,7 @@ public:
 		vcg::CallBackPos&		   callback_pos,
 		MeshLabPluginLogger const& logger);
 
-	CMeshO skeletonize(CMeshO& mesh, Parameters parameters, NewMeshVector* intermediate_meshes = nullptr);
+	CMeshO skeletonize(CMeshO& mesh, Parameters parameters, bool log_output = true, NewMeshVector* intermediate_meshes = nullptr);
 
 private:
 	void checkMesh(CMeshO& mesh) const;

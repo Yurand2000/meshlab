@@ -278,6 +278,21 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 
 				//prepare curve on manifold for the mesh
 				vcg::tri::UpdateTopology<PolylineMesh>::FaceFace(mesh);
+
+				try
+				{
+					vcg::tri::MeshAssert<PolylineMesh>::FFTwoManifoldEdge(mesh);
+				}
+				catch (std::runtime_error e)
+				{
+					plugin.log( e.what() );
+					auto error_mesh = document.addNewMesh("", "Error Branch", false);
+					vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopyConst(error_mesh->cm, mesh);
+					auto error_poly = document.addNewMesh("", "Error Polyline", false);
+					vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopyConst(error_poly->cm, polyline);
+					break;
+				}
+
 				vcg::tri::UpdateTopology<PolylineMesh>::VertexFace(mesh);
 				vcg::tri::UpdateTopology<PolylineMesh>::VertexEdge(mesh);
 				vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh);
@@ -304,8 +319,10 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 				}
 				else if (conn_comps.size() < 2) {
 					plugin.log("Less than 2 connected components on single polyline!");
-					auto mesh = document.addNewMesh("", "Error Branch here", false);
-					vcg::tri::Allocator<CMeshO>::AddVertex(mesh->cm, polyline.vert[0].cP());
+					auto error_mesh = document.addNewMesh("", "Error Branch", false);
+					vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopyConst(error_mesh->cm, mesh);
+					auto error_poly = document.addNewMesh("", "Error Polyline", false);
+					vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopyConst(error_poly->cm, polyline);
 					break;
 					//throw MLException("Less than 2 connected components on single polyline!");
 				}

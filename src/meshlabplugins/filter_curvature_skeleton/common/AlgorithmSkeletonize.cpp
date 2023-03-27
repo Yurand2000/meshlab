@@ -38,7 +38,7 @@ AlgorithmSkeletonize::AlgorithmSkeletonize(
 		logger(logger)
 { }
 
-CMeshO AlgorithmSkeletonize::skeletonize(CMeshO& mesh, Parameters parameters, NewMeshVector* intermediate_meshes)
+CMeshO AlgorithmSkeletonize::skeletonize(CMeshO& mesh, Parameters parameters, bool log_output, NewMeshVector* intermediate_meshes)
 {
 	checkMesh(mesh);
 
@@ -49,7 +49,8 @@ CMeshO AlgorithmSkeletonize::skeletonize(CMeshO& mesh, Parameters parameters, Ne
 	int total_iterations = skeletonize(skeletonizer, parameters, intermediate_meshes);
 	auto skeleton = generateSkeleton(mesh, skeletonizer);
 
-	logger.log("Algorithm terminated after " + std::to_string(total_iterations) + " iterations.");
+	if(log_output)
+		logger.log("Algorithm terminated after " + std::to_string(total_iterations) + " iterations.");
 	callback_pos(100, "Done!");
 	return skeleton;
 }
