@@ -29,9 +29,6 @@
 #include "filters/polylineCutting/PolylineCuttingFilter.h"
 #include "filters/branchMeasure/BranchMeasureFilter.h"
 
-#include "filters/pruneExtend/PruneExtendFilter.h"
-#include "filters/orderCompute/OrderComputeFilter.h"
-
 #ifdef CURVATURE_SKELETON_TEST
 #include "test_filters/testFilters.h"
 #include "test_filters/findPath/FindPathFilter.h"
@@ -59,8 +56,6 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 	filters.push_back( std::make_unique<TreeSegmentationFilter>() );
 	filters.push_back( std::make_unique<PolylineCuttingFilter>() );
 	filters.push_back( std::make_unique<BranchMeasureFilter>() );
-	//filters.push_back( std::make_unique<PruneExtendFilter>() );
-	//filters.push_back( std::make_unique<OrderComputeFilter>() );
 
 	typeList = {
 		SKELETONIZE,
@@ -68,8 +63,6 @@ FilterCurvatureSkeleton::FilterCurvatureSkeleton()
 		TREE_SEGMENTATION,
 		POLYLINE_CUTTING,
 		BRANCH_MEASURE
-		//PRUNE_AND_EXTEND,
-		//COMPUTE_ORDER_NUMBERS,
 	};
 
 #ifdef CURVATURE_SKELETON_TEST
