@@ -35,6 +35,7 @@
 namespace curvatureSkeleton
 {
 
+static Scalarm getPolylineLenght(std::vector<vcg::Point3<Scalarm>> &const outlines);
 static void movePolylineToFittingPlane(PolylineMesh& polyline, vcg::Plane3<Scalarm> const& plane, Scalarm weight);
 static void movePolylinesApart(PolylineMesh& lpolyline, PolylineMesh const& rpolyline, Scalarm min_distance, Scalarm weight);
 static Scalarm getMinVVDistance(PolylineMesh const& mesh0, PolylineMesh const& mesh1);
@@ -72,91 +73,197 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	{
 		cb(0, "Computing polylines...");
 
-		//find faces with unset facetag
-		auto facetag = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(original, facetag_id.toStdString());
-		std::vector<CFaceO*> untagged_faces;
-		for (auto& face : original.face)
+		//clone original mesh;
+		CMeshO mesh;
+		auto facetag = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, facetag_id.toStdString());
+		vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(mesh, original);
+
+		mesh.face.EnableMark();
+		mesh.face.EnableFFAdjacency();
+		mesh.vert.EnableVFAdjacency();
+		mesh.face.EnableVFAdjacency();
+		vcg::tri::InitFaceIMark(mesh);
+
+		//count how many different tags there are
+		int different_tags = 0;
 		{
-			if(facetag[face] == -1)
-				untagged_faces.emplace_back(&face);
+			std::unordered_set<Scalarm> tags;
+			for (auto& face : mesh.face)
+				tags.emplace(facetag[face]);
+			different_tags = tags.size();
 		}
 
-		//find untagged connected components
-		std::vector< std::vector<CFaceO*> > connected_components;
-		
-		original.face.EnableMark();
-		original.face.EnableFFAdjacency();
-		vcg::tri::UpdateTopology<CMeshO>::FaceFace(original);
-		vcg::tri::InitFaceIMark(original);
-		vcg::tri::UnMarkAll(original);
-
-		for (auto* face : untagged_faces)
+		different_tags -= 1; //number of iterations is at most the number of tags minus one.
+		for(int i = 0; i < different_tags; i++)
 		{
-			if (vcg::tri::IsMarked(original, face))
-				continue;
+			cb((i + 1) * 100.0 / different_tags, "Computing polylines...");
 
-			connected_components.emplace_back();
-			auto& component = connected_components.back();
-
-			std::queue<CFaceO*> frontier;
-			frontier.push(face);
-
-			while ( !frontier.empty() )
+			//find tagged connected components
+			auto facetag = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, facetag_id.toStdString());
+			std::unordered_map<Scalarm, std::vector<CFaceO*>> tagged_faces;
+			for (auto& face : mesh.face)
 			{
-				auto* face = frontier.front(); frontier.pop();
-				component.emplace_back(face);
-				vcg::tri::Mark(original, face);
+				auto tag = facetag[face];
+				if (tagged_faces.count(tag) > 0)
+					tagged_faces[tag].emplace_back(&face);
+				else
+					tagged_faces.insert({ tag, {&face} });
+			}
+			tagged_faces.erase(-1);
+
+			//get the connected component that has fewer holes, in case of parity pick the smallest in polylines lenght
+			vcg::tri::UpdateTopology<CMeshO>::FaceFace(mesh);
+			vcg::tri::UpdateTopology<CMeshO>::VertexFace(mesh);
+
+			Scalarm best_tag = -1; Scalarm best_outlines_total_lenght = 0;
+			std::vector< std::vector<vcg::Point3<Scalarm>> > best_outlines;
+			for (auto& pair : tagged_faces)
+			{
+				auto tag = pair.first;
+				auto& faces = pair.second;
+
+				vcg::tri::UpdateSelection<CMeshO>::FaceClear(mesh);
+				vcg::tri::UpdateSelection<CMeshO>::VertexClear(mesh);
+				for (auto* face : faces)
+					face->SetS();
+
+				//get borders
+				CMeshO tagged_component;
+				vcg::tri::Append<CMeshO, CMeshO>::MeshCopy(tagged_component, mesh, true);
+
+				tagged_component.face.EnableFFAdjacency();
+				vcg::tri::UpdateTopology<CMeshO>::FaceFace(tagged_component);
+				std::vector< std::vector<vcg::Point3<Scalarm>> > outlines;
+				vcg::tri::OutlineUtil<Scalarm>::ConvertMeshBoundaryToOutline3Vec(tagged_component, outlines);
+
+				Scalarm outlines_total_lenght = 0;
+				for (auto& outline : outlines)
+					outlines_total_lenght += getPolylineLenght(outline);
+
+				//save borders only if less than the best found borders
+				if (best_tag == -1 || outlines.size() < best_outlines.size() ||
+					(outlines.size() == best_outlines.size() && outlines_total_lenght < best_outlines_total_lenght)
+				) {
+					outlines.swap(best_outlines);
+					best_tag = tag;
+					best_outlines_total_lenght = outlines_total_lenght;
+				}
+			}
+
+			//get which neighbor has the most faces adjacent on the currently selected tag
+			Scalarm neighbor_with_most_adjacent_faces = -1;
+
+			//select border faces (the ones with tag == -1)
+			vcg::tri::UpdateSelection<CMeshO>::FaceClear(mesh);
+			for (auto* face : tagged_faces[best_tag])
+				face->SetS();
+			vcg::tri::UpdateSelection<CMeshO>::FaceDilate(mesh);
+			for (auto* face : tagged_faces[best_tag])
+				face->ClearS();
+
+			//compute biggest neighbor
+			std::unordered_map<Scalarm, int> neighbor_tag_count;
+			Scalarm best_count = 0;
+			for (auto& face : mesh.face)
+			{
+				if (!face.IsS())
+					continue;
 
 				std::vector<CFaceO*> star;
-				vcg::face::FFExtendedStarFF(face, 1, star);
+				vcg::face::FFExtendedStarFF(&face, 1, star);
 
 				for (auto* adj : star)
 				{
-					if (!vcg::tri::IsMarked(original, adj) && facetag[adj] == -1)
-						frontier.push(adj);
+					auto adj_tag = facetag[adj];
+					if (adj_tag != -1 && adj_tag != best_tag)
+					{
+						if (neighbor_tag_count.count(adj_tag) > 0)
+							neighbor_tag_count[adj_tag] += 1;
+						else
+							neighbor_tag_count[adj_tag] = 0;
+
+						auto count = neighbor_tag_count[adj_tag];
+						if (count > best_count) {
+							best_count = count;
+							neighbor_with_most_adjacent_faces = adj_tag;
+						}
+					}
 				}
 			}
-		}
 
-		original.face.DisableMark();
-		original.face.DisableFFAdjacency();
+			//add the polylines to the polyline set
+			std::move(best_outlines.begin(), best_outlines.end(), std::back_inserter(polylines));
 
-		//foreach component
-		vcg::tri::UpdateSelection<CMeshO>::Clear(original);
-		for (auto& component : connected_components)
-		{
-			for (auto* face : component)
-				face->SetS();
+			//select border of untagged faces
+			std::vector<CFaceO*> notag_faces;
+			std::queue<CFaceO*> frontier;
+			vcg::tri::UnMarkAll(mesh);
+			for (auto& face : tagged_faces[best_tag]) {
+				frontier.push(face);
+				vcg::tri::Mark(mesh, face);
+			}
 
-			CMeshO conn_comp;
-			vcg::tri::UpdateSelection<CMeshO>::VertexFromFaceLoose(original);
-			vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(conn_comp, original, true);
-			vcg::tri::UpdateSelection<CMeshO>::Clear(original);
-
-			//extract polylines
-			std::vector< std::vector<vcg::Point3<Scalarm>> > outlines;
-			conn_comp.face.EnableFFAdjacency();
-			vcg::tri::UpdateTopology<CMeshO>::FaceFace(conn_comp);
-			vcg::tri::OutlineUtil<Scalarm>::ConvertMeshBoundaryToOutline3Vec(conn_comp, outlines);
-
-			//remove longest polyline
-			auto compute_polyline_lenght = [](std::vector<vcg::Point3<Scalarm>> const& poly)
+			while (!frontier.empty())
 			{
-				Scalarm lenght = 0;
-				for (int i = 0; i < poly.size() - 1; i++)
-					lenght += vcg::Distance(poly[i], poly[i + 1]);
-				lenght += vcg::Distance(poly[poly.size() - 1], poly[0]);
-				return lenght;
-			};
+				auto* face = frontier.front(); frontier.pop();
 
-			std::sort(outlines.begin(), outlines.end(),
-				[compute_polyline_lenght](std::vector<vcg::Point3<Scalarm>> const& l, std::vector<vcg::Point3<Scalarm>> const& r) {
-					return compute_polyline_lenght(l) < compute_polyline_lenght(r);
+				std::vector<CFaceO*> star;
+				vcg::face::FFExtendedStarFF(face, 1, star);
+				for (auto* adj : star)
+				{
+					if (vcg::tri::IsMarked(mesh, adj))
+						continue;
+
+					vcg::tri::Mark(mesh, adj);
+					if (facetag[adj] == -1)
+					{
+						notag_faces.push_back(adj);
+						frontier.push(adj);
+					}
 				}
-			);
+			}
 
-			outlines.pop_back();
-			std::copy(outlines.begin(), outlines.end(), std::back_inserter(polylines));
+			//set the current connected component to the neighbors with most adj faces
+			for (auto& face : tagged_faces[best_tag])
+				facetag[face] = neighbor_with_most_adjacent_faces;
+
+			int last_size = -1;
+			while(notag_faces.size() != last_size)
+			{
+				last_size = notag_faces.size();
+				std::vector<CFaceO*> new_notag_faces;
+				for (auto* face : notag_faces)
+				{
+					bool has_current_neighbor = false;
+					bool has_other_neighbors = false;
+
+					std::unordered_set<CFaceO*> star;
+					for (int i = 0; i < 3; i++) {
+						std::vector<CFaceO*> vstar; std::vector<int> indices;
+						vcg::face::VFStarVF(face->V(i), vstar, indices);
+						for (auto* face : vstar)
+							star.emplace(face);
+					}
+
+					for (auto* adj : star)
+					{
+						if (facetag[adj] != -1 && facetag[adj] != neighbor_with_most_adjacent_faces)
+							has_other_neighbors = true;
+
+						if (facetag[adj] == neighbor_with_most_adjacent_faces)
+							has_current_neighbor = true;
+					}
+
+					if (!has_other_neighbors) {
+						if (!has_current_neighbor)
+							new_notag_faces.push_back(face);
+						else
+							facetag[face] = neighbor_with_most_adjacent_faces;
+					}
+				}
+
+				new_notag_faces.swap(notag_faces);
+			}
 		}
 	}
 
@@ -524,6 +631,16 @@ void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght)
 	params.iter = 5;
 
 	vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
+}
+
+Scalarm getPolylineLenght(std::vector<vcg::Point3<Scalarm>>& const outlines)
+{
+	Scalarm lenght = 0;
+	lenght += vcg::Distance(outlines[0], outlines[outlines.size() - 1]);
+	for (int i = 1; i < outlines.size(); i++)
+		lenght += vcg::Distance(outlines[i-1], outlines[i]);
+
+	return lenght;
 }
 
 }
