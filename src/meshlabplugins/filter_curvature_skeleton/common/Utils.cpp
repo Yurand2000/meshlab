@@ -21,32 +21,40 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef FILTERCURVATURESKELETON_UTILITY_FUNCTIONS
-#define FILTERCURVATURESKELETON_UTILITY_FUNCTIONS
-
-#include <common/ml_document/cmesh.h>
-#include <common/plugins/interfaces/filter_plugin.h>
-#include <vector>
+#include "Utils.h"
 
 namespace curvatureSkeleton
 {
-    template <typename MESH>
-    class Utils
+    bool MeshDocumentUtils::tryGetOriginalMeshIndex(MeshDocument const& document, int& out)
     {
-    public:
-        static typename MESH::VertexType const* getVertexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
-        static typename MESH::VertexType* getVertexInMesh(vcg::Point3<Scalarm> point, MESH& mesh);
-        static int getVertexIndexInMesh(vcg::Point3<Scalarm> point, MESH const& mesh);
-    };
+        auto skeleton_id = 0, mesh_id = 0;
+        if (document.meshNumber() == 2 && tryGetSkeletonMeshIndex(document, skeleton_id))
+        {
+            for (auto& mesh : document.meshIterator())
+            {
+                if (mesh.id() != skeleton_id)
+                    mesh_id = mesh.id();
+            }
 
-    class MeshDocumentUtils
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    bool MeshDocumentUtils::tryGetSkeletonMeshIndex(MeshDocument const& document, int& out)
     {
-    public:
-        static bool tryGetOriginalMeshIndex(MeshDocument const& document, int& out);
-        static bool tryGetSkeletonMeshIndex(MeshDocument const& document, int& out);
-    };
+        int count = 0;
+        for (auto& mesh : document.meshIterator())
+        {
+            if (mesh.label().contains("skel", Qt::CaseSensitivity::CaseInsensitive))
+            {
+                out = mesh.id();
+                count++;
+            }
+        }
+        return count == 1;
+    }
 }
-
-#include "Utils.imp.h"
-
-#endif // FILTERCURVATURESKELETON_UTILITY_FUNCTIONS

@@ -22,6 +22,7 @@
  ****************************************************************************/
 
 #include "PruneSkeletonFilter.h"
+#include "common/Utils.h"
 
 // displayed strings
 #define MESH_CATEGORY "(0) Meshes"
@@ -39,49 +40,35 @@
 namespace curvatureSkeleton
 {
 
-static uint tryGetOriginalMeshIndex(MeshDocument const&);
-static uint tryGetSkeletonMeshIndex(MeshDocument const&);
-
 RichParameterList PruneSkeletonFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
 {
 	RichParameterList parlst;
 
-	auto* skeleton = m.getMesh(tryGetSkeletonMeshIndex(m));
-	auto skel_diagonal = skeleton->cm.bbox.Diag();
+	auto skeleton_index = 0, mesh_index = 0;
+	Scalarm average_edge_lenght = 0, skeleton_diagonal = -1.0;
+	bool is_any_vertex_selected = false;
+	if (MeshDocumentUtils::tryGetSkeletonMeshIndex(m, skeleton_index) && MeshDocumentUtils::tryGetOriginalMeshIndex(m, mesh_index))
+	{
+		auto* skeleton = m.getMesh(skeleton_index);
+		skeleton_diagonal = skeleton->cm.bbox.Diag();
 
-	auto is_any_vertex_selected = skeleton->cm.svn > 0;
+		is_any_vertex_selected = skeleton->cm.svn > 0;
 
-	Scalarm average_edge_lenght = 0;
-	for (auto& edge : skeleton->cm.edge)
-		average_edge_lenght += vcg::edge::Length(edge);
-	average_edge_lenght /= skeleton->cm.EN();
+		for (auto& edge : skeleton->cm.edge)
+			average_edge_lenght += vcg::edge::Length(edge);
+		average_edge_lenght /= skeleton->cm.EN();
+	}
 
-	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, tryGetOriginalMeshIndex(m), &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
-	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, tryGetSkeletonMeshIndex(m), &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, mesh_index, &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, skeleton_index, &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
 
-	parlst.addParam(RichPercentage(PARAM_MIN_EDGE_LENGHT, 3.f * average_edge_lenght, 0.f, skel_diagonal, MIN_EDGE_LENGHT_DISPLAYNAME, MIN_EDGE_LENGHT_DESCRIPTION, false, PARAMETER_CATEGORY));
+	if (skeleton_diagonal >= 0)
+		parlst.addParam(RichPercentage(PARAM_MIN_EDGE_LENGHT, 3.f * average_edge_lenght, 0.f, skeleton_diagonal, MIN_EDGE_LENGHT_DISPLAYNAME, MIN_EDGE_LENGHT_DESCRIPTION, false, PARAMETER_CATEGORY));
+	else
+		parlst.addParam(RichFloat(PARAM_MIN_EDGE_LENGHT, 0.0, MIN_EDGE_LENGHT_DISPLAYNAME, MIN_EDGE_LENGHT_DESCRIPTION, false, PARAMETER_CATEGORY));
 	parlst.addParam(RichBool(PARAM_REMOVE_SELECTED_LEAFS, is_any_vertex_selected, REMOVE_SELECTED_LEAFS_DISPLAYNAME, REMOVE_SELECTED_LEAFS_DESCRIPTION, false, PARAMETER_CATEGORY));
 
 	return parlst;
-}
-
-uint tryGetSkeletonMeshIndex(MeshDocument const& m)
-{
-	for (uint i = 0; i < m.meshNumber(); i++)
-	{
-		auto mesh = m.getMesh(i);
-		if (mesh->label().contains("skel", Qt::CaseSensitivity::CaseInsensitive))
-			return i;
-	}
-	return 0;
-}
-
-uint tryGetOriginalMeshIndex(MeshDocument const& m)
-{
-	if (m.meshNumber() == 2)
-		return 1 - tryGetSkeletonMeshIndex(m);
-	else
-		return 0;
 }
 
 }

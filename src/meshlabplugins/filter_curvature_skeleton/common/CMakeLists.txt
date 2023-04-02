@@ -1,7 +1,9 @@
 #filter_curvature_skeleton/common
 set (SOURCES
 	"TemplateFilter.cpp"
-	
+
+	"Utils.cpp"
+
 	"AlgorithmSkeletonize.cpp"
 	"BranchExtender.cpp"
 	"ComputeBranches.cpp"

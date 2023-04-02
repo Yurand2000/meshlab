@@ -22,6 +22,7 @@
  ****************************************************************************/
 
 #include "TreeSegmentationFilter.h"
+#include "common/Utils.h"
 
 //defaults
 #define DEFAULT_FACETAG "segmentation_tag"
@@ -50,46 +51,29 @@
 namespace curvatureSkeleton
 {
 
-static uint tryGetOriginalMeshIndex(MeshDocument const&);
-static uint tryGetSkeletonMeshIndex(MeshDocument const&);
-
 RichParameterList TreeSegmentationFilter::initParameterList(FilterPlugin const& p, MeshDocument const& m)
 {
 	RichParameterList parlst;
 
-	auto* skeleton = m.getMesh(tryGetSkeletonMeshIndex(m));
-	auto* original = m.getMesh(tryGetOriginalMeshIndex(m));
+	auto skeleton_index = 0, mesh_index = 0;
+	auto selected_root = false, selected_branches = false;
+	if (MeshDocumentUtils::tryGetSkeletonMeshIndex(m, skeleton_index) && MeshDocumentUtils::tryGetOriginalMeshIndex(m, mesh_index))
+	{
+		selected_root = m.getMesh(skeleton_index)->cm.svn == 1;
+		selected_branches = m.getMesh(mesh_index)->cm.sfn > 1;
+	}
 
-	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, tryGetOriginalMeshIndex(m), &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
-	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, tryGetSkeletonMeshIndex(m), &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, mesh_index, &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, skeleton_index, &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
 
-	parlst.addParam(RichBool(PARAM_SELECTED_ROOT, skeleton->cm.svn == 1, ROOT_SELECTED_DISPLAYNAME, ROOT_SELECTED_DESCRIPTION, false, PARAMETER_CATEGORY));
-	parlst.addParam(RichBool(PARAM_SELECTED_BRANCHES, original->cm.sfn > 1, SWAP_SELECTED_BRANCHES_DISPLAYNAME, SWAP_SELECTED_BRANCHES_DESCRIPTION, false, PARAMETER_CATEGORY));
+	parlst.addParam(RichBool(PARAM_SELECTED_ROOT, selected_root, ROOT_SELECTED_DISPLAYNAME, ROOT_SELECTED_DESCRIPTION, false, PARAMETER_CATEGORY));
+	parlst.addParam(RichBool(PARAM_SELECTED_BRANCHES, selected_branches, SWAP_SELECTED_BRANCHES_DISPLAYNAME, SWAP_SELECTED_BRANCHES_DESCRIPTION, false, PARAMETER_CATEGORY));
 
 	parlst.addParam(RichBool(PARAM_MAP_TO_COLOR, true, MAP_TO_COLOR_DISPLAYNAME, MAP_TO_COLOR_DESCRIPTION, false, EXTRA_CATEGORY));
 	parlst.addParam(RichBool(PARAM_SAVE_GRAPH, false, SAVE_GRAPH_DISPLAYNAME, SAVE_GRAPH_DESCRIPTION, true, EXTRA_CATEGORY));
 	parlst.addParam(RichString(PARAM_FACE_TAG_ID, DEFAULT_FACETAG, FACE_TAG_ID_DISPLAYNAME, FACE_TAG_ID_DESCRIPTION, true, EXTRA_CATEGORY));
 
 	return parlst;
-}
-
-uint tryGetSkeletonMeshIndex(MeshDocument const& m)
-{
-	for (uint i = 0; i < m.meshNumber(); i++)
-	{
-		auto mesh = m.getMesh(i);
-		if (mesh->label().contains("skel", Qt::CaseSensitivity::CaseInsensitive))
-			return i;
-	}
-	return 0;
-}
-
-uint tryGetOriginalMeshIndex(MeshDocument const& m)
-{
-	if (m.meshNumber() == 2)
-		return 1 - tryGetSkeletonMeshIndex(m);
-	else
-		return 0;
 }
 
 }
