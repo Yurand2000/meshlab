@@ -339,6 +339,14 @@ std::map<std::string, QVariant> TreeSegmentationFilter::applyFilter(
 		vcg::tri::Append<CMeshO, SkeletonMesh>::MeshCopyConst(graph_mm->cm, graph);
 	}
 
+	//save per face hack number attribute
+	auto faceorder = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(original, ATTRIBUTE_HACK_ORDER_NUMBER);
+	for (auto& face : original.face)
+		faceorder[face] = -1;
+
+	for (auto& face : original.face)
+		faceorder[face] = face_tag_to_hack_map[ facetag[face] ];
+
 	//map to color
 	if (map_to_color)
 	{

@@ -97,10 +97,12 @@ std::map<std::string, QVariant> PruneSkeletonFilter::applyFilter(
 			for (int i = 0; i < leafs.size(); i++)
 			{
 				bool is_leaf_selected = false;
-				for (auto* vert : leafs[i].first) {
-					if (vert->IsS()) {
-						is_leaf_selected = true;
-						break;
+				if (remove_selected) {
+					for (auto* vert : leafs[i].first) {
+						if (vert->IsS()) {
+							is_leaf_selected = true;
+							break;
+						}
 					}
 				}
 
