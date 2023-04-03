@@ -29,6 +29,7 @@
 #define DEFAULT_FACETAG "segmentation_tag"
 #define DEFAULT_CLOSEHOLE_ADJ_FACETAG "hole_adj_segmentation_tag"
 
+// displayed strings
 #define POLYLINE_REFINE_CATEGORY "(0) Polyline Refinement"
 #define REFINE_DO_DISPLAYNAME "Refine Polylines"
 #define REFINE_DO_DESCRIPTION "Refine Polylines"
