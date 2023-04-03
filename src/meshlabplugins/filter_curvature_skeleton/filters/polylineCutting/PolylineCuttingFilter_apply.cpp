@@ -35,7 +35,7 @@
 namespace curvatureSkeleton
 {
 
-static Scalarm getPolylineLenght(std::vector<vcg::Point3<Scalarm>> &const outlines);
+static Scalarm getPolylineLenght(std::vector<vcg::Point3<Scalarm>> const& outlines);
 static void movePolylineToFittingPlane(PolylineMesh& polyline, vcg::Plane3<Scalarm> const& plane, Scalarm weight);
 static void movePolylinesApart(PolylineMesh& lpolyline, PolylineMesh const& rpolyline, Scalarm min_distance, Scalarm weight);
 static Scalarm getMinVVDistance(PolylineMesh const& mesh0, PolylineMesh const& mesh1);
@@ -633,7 +633,7 @@ void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght)
 	vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
 }
 
-Scalarm getPolylineLenght(std::vector<vcg::Point3<Scalarm>>& const outlines)
+Scalarm getPolylineLenght(std::vector<vcg::Point3<Scalarm>> const& outlines)
 {
 	Scalarm lenght = 0;
 	lenght += vcg::Distance(outlines[0], outlines[outlines.size() - 1]);
