@@ -54,7 +54,8 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	auto facetag_id = params.getString(PARAM_FACE_TAG_ID);
 	auto generate_polylines = params.getBool(PARAM_GENERATE_POLYLINES);
 	auto refine_polylines = params.getBool(PARAM_DO_REFINE_POLYLINES);
-	auto close_holes = params.getBool(PARAM_CLOSE_HOLES);
+	auto close_holes = params.getBool(PARAM_CLOSE_HOLES); 
+	auto holes_adj_facetag_id = params.getString(PARAM_HOLE_ADJ_TAG_ID);
 
 	//refine parameters
 	auto num_iter = params.getInt(PARAM_REFINE_ITERATIONS); if (num_iter < 1) { num_iter = 1; }
@@ -69,7 +70,8 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	selection.push();
 
 	//compute polylines
-	std::vector< std::vector<vcg::Point3<Scalarm>> > polylines;
+	using PolylineTags = std::pair<Scalarm, Scalarm>;
+	std::vector< std::pair<std::vector<vcg::Point3<Scalarm>>, PolylineTags> > polylines;
 	{
 		cb(0, "Computing polylines...");
 
@@ -192,7 +194,11 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 			}
 
 			//add the polylines to the polyline set
-			std::move(best_outlines.begin(), best_outlines.end(), std::back_inserter(polylines));
+			for (int i = 0; i < best_outlines.size(); i++)
+				polylines.emplace_back(
+					std::move(best_outlines[i]),
+					std::make_pair(best_tag, neighbor_with_most_adjacent_faces)
+				);
 
 			//select border of untagged faces
 			std::vector<CFaceO*> notag_faces;
@@ -268,11 +274,12 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	}
 
 	//convert polylines to PolylineMesh
-	std::vector< PolylineMesh > polyline_meshes(polylines.size());
+	std::vector< std::pair<PolylineMesh, PolylineTags> > polyline_meshes(polylines.size());
 	for (int i = 0; i < polylines.size(); i++)
 	{
-		auto& polyline_vec = polylines[i];
-		auto& polyline = polyline_meshes[i];
+		auto& polyline_vec = polylines[i].first;
+		auto& polyline = polyline_meshes[i].first;
+		polyline_meshes[i].second = polylines[i].second;
 		vcg::tri::OutlineUtil<Scalarm>::ConvertOutline3VecToEdgeMesh(polyline_vec, polyline);
 	}
 
@@ -283,7 +290,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		std::vector< std::pair<PolylineMesh, vcg::Plane3<Scalarm>> > single_polylines(polylines.size());
 
 		for (int i = 0; i < polyline_meshes.size(); i++)
-			std::swap(single_polylines[i].first, polyline_meshes[i]);
+			std::swap(single_polylines[i].first, polyline_meshes[i].first);
 
 		PolylineMesh c_original;
 		vcg::tri::Append<PolylineMesh, CMeshO>::MeshCopyConst(c_original, original);
@@ -293,7 +300,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		//generate fitting planes
 		for (int i = 0; i < polylines.size(); i++)
 		{
-			auto& polyline_vec = polylines[i];
+			auto& polyline_vec = polylines[i].first;
 			auto& fitting_plane = single_polylines[i].second;
 			vcg::FitPlaneToPointSet(polyline_vec, fitting_plane);
 		}
@@ -325,7 +332,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		}
 
 		for (int i = 0; i < single_polylines.size(); i++)
-			std::swap(polyline_meshes[i], single_polylines[i].first);
+			std::swap(polyline_meshes[i].first, single_polylines[i].first);
 	}
 
 	//generate polylines mesh
@@ -333,7 +340,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	{
 		auto* polylines_mm = document.addNewMesh(QString(), QString("Polylines"), false);
 		for (auto& polyline : polyline_meshes)
-			vcg::tri::Append<CMeshO, PolylineMesh>::MeshAppendConst(polylines_mm->cm, polyline);
+			vcg::tri::Append<CMeshO, PolylineMesh>::MeshAppendConst(polylines_mm->cm, polyline.first);
 	}
 
 	//cut branches based on polylines
@@ -342,7 +349,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		int current_polyline = 0;
 		int num_polylines = polyline_meshes.size();
 		cb(0, "Cutting polylines...");
-		std::queue< std::pair<PolylineMesh, std::vector<PolylineMesh>> > split_queue;
+		std::queue< std::pair<PolylineMesh, std::vector<std::pair<PolylineMesh, PolylineTags>>> > split_queue;
 
 		//first split-queue pair is the main mesh and all the (valid) polylines
 		split_queue.emplace();
@@ -350,16 +357,11 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(c_original, facetag_id.toStdString());
 		vcg::tri::Append<PolylineMesh, CMeshO>::MeshCopyConst(c_original, original);
 
-		std::vector<PolylineMesh>& polylines = split_queue.back().second;
-		polylines.reserve(polyline_meshes.size());
-		for (auto& polyline : polyline_meshes)
-		{
-			if (polyline.EN() > 0)
-			{
-				polylines.emplace_back();
-				std::swap(polylines.back(), polyline);
-			}
-		}
+		auto holes_adj = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(c_original, holes_adj_facetag_id.toStdString());
+		for (auto& face : c_original.face)
+			holes_adj[face] = -1;
+
+		split_queue.back().second.swap(polyline_meshes);
 
 		//foreach mesh polylines pair
 		while( !split_queue.empty() )
@@ -367,7 +369,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 			cb( (current_polyline + 1) * 100 / num_polylines, "Cutting polylines...");
 
 			PolylineMesh mesh;
-			std::vector<PolylineMesh> polylines;
+			std::vector<std::pair<PolylineMesh, PolylineTags>> polylines;
 			std::swap(split_queue.front().first, mesh);
 			std::swap(split_queue.front().second, polylines);
 			current_polyline++;
@@ -381,7 +383,8 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 			}
 			else //cut on any polyline
 			{
-				auto& polyline = polylines[0];
+				auto& polyline = polylines[0].first;
+				auto& polyline_adj_tags = polylines[0].second;
 
 				//prepare curve on manifold for the mesh
 				vcg::tri::UpdateTopology<PolylineMesh>::FaceFace(mesh);
@@ -406,7 +409,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 				auto com = vcg::tri::CoM<PolylineMesh>(mesh);
 				com.Init();
 
-				//refine the mesh on the polyline and cut
+				//refine the mesh on the polyline
 				com.RefineCurveByBaseMesh(polyline);
 				com.SplitMeshWithPolyline(polyline);
 				com.TagFaceEdgeSelWithPolyLine(polyline);
@@ -438,7 +441,9 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 
 				//keep face tags on each piece
 				vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part0, facetag_id.toStdString());
+				vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part0, holes_adj_facetag_id.toStdString());
 				vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part1, facetag_id.toStdString());
+				vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part1, holes_adj_facetag_id.toStdString());
 
 				conn_comps[index0].second->SetS();
 				vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(mesh);
@@ -453,14 +458,14 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 				vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh);
 
 				//compute which of the remaining polylines cut the part 0 and which the part 1
-				std::vector<PolylineMesh> part0_polys, part1_polys;
+				std::vector<std::pair<PolylineMesh, PolylineTags>> part0_polys, part1_polys;
 
 				//skip the first polyline because we used it to cut the mesh
 				for (int i = 1; i < polylines.size(); i++)
 				{
 					auto& polyline = polylines[i];
-					auto distance0 = getMinVVDistance(polyline, part0);
-					auto distance1 = getMinVVDistance(polyline, part1);
+					auto distance0 = getMinVVDistance(polyline.first, part0);
+					auto distance1 = getMinVVDistance(polyline.first, part1);
 					if (distance0 < distance1)
 					{
 						part0_polys.emplace_back();
@@ -475,6 +480,26 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 
 				if (close_holes)
 				{
+					//compute which part has generated the polyline (needed to set the adjacency tag for the closed holes)
+					auto part0_adj_tag = polyline_adj_tags.first;
+					auto part1_adj_tag = polyline_adj_tags.second;
+
+					{
+						int part0count = 0, part1count = 0;
+						auto facetag0 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part0, facetag_id.toStdString());
+						for (auto& face : part0.face)
+							if (facetag0[face] == part0_adj_tag)
+								part0count++;
+
+						auto facetag1 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part1, facetag_id.toStdString());
+						for (auto& face : part1.face)
+							if (facetag1[face] == part0_adj_tag)
+								part1count++;
+
+						if (part0count > part1count)
+							std::swap(part0_adj_tag, part1_adj_tag);
+					}
+
 					//close hole on the first piece
 					closeHoles(part0, refine_hole_lenght);
 
@@ -483,6 +508,23 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 					vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshAppendConst(part1, part0, true);
 					vcg::tri::Clean<PolylineMesh>::FlipMesh(part1, true);
 					vcg::tri::Clean<PolylineMesh>::MergeCloseVertex(part1, 1.0E-7);
+
+					//update the hole adjacency tags
+					auto adj_facetag0 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part0, holes_adj_facetag_id.toStdString());
+					for (auto& face : part0.face) {
+						if (face.IsS())
+							adj_facetag0[face] = part0_adj_tag;
+						else if (adj_facetag0[face] == 0)
+							adj_facetag0[face] = -1;
+					}
+
+					auto adj_facetag1 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part1, holes_adj_facetag_id.toStdString());
+					for (auto& face : part1.face) {
+						if (face.IsS())
+							adj_facetag1[face] = part1_adj_tag;
+						else if (adj_facetag1[face] == 0)
+							adj_facetag1[face] = -1;
+					}
 				}
 
 				//add the new pieces to the queue
@@ -529,6 +571,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		if (original_mm->hasPerVertexColor())
 			piece_mm->updateDataMask(piece_mm->MM_VERTCOLOR);
 		vcg::tri::Allocator<CMeshO>::AddPerFaceAttribute<Scalarm>(piece_mm->cm, facetag_id.toStdString());
+		vcg::tri::Allocator<CMeshO>::AddPerFaceAttribute<Scalarm>(piece_mm->cm, holes_adj_facetag_id.toStdString());
 		vcg::tri::Append<CMeshO, PolylineMesh>::MeshAppendConst(piece_mm->cm, piece);
 		piece_mm->updateBoxAndNormals();
 	}

@@ -27,6 +27,7 @@
 
  //defaults
 #define DEFAULT_FACETAG "segmentation_tag"
+#define DEFAULT_CLOSEHOLE_ADJ_FACETAG "hole_adj_segmentation_tag"
 
 #define POLYLINE_REFINE_CATEGORY "(0) Polyline Refinement"
 #define REFINE_DO_DISPLAYNAME "Refine Polylines"
@@ -45,16 +46,18 @@
 #define REFINE_SEPARATIONW_DESCRIPTION "Polyline Separation Weight"
 
 #define CUTTING_CATEGORY "(1) Polyline Cutting"
-#define REFINE_HOLE_EDGE_LENGHT_DISPLAYNAME "Refine Holes Edge Lenght"
-#define REFINE_HOLE_EDGE_LENGHT_DESCRIPTION "Refine Holes Edge Lenght (% of bbox diag)"
-
-#define EXTRA_CATEGORY "(2) Extra"
-#define FACE_TAG_ID_DISPLAYNAME "Face Tag additional attribute name"
-#define FACE_TAG_ID_DESCRIPTION "Face Tag additional attribute name"
-#define GENERATE_POLYLINES_DISPLAYNAME "Generate Polylines"
-#define GENERATE_POLYLINES_DESCRIPTION "Generate Polylines"
 #define CLOSE_HOLES_DISPLAYNAME "Close Holes"
 #define CLOSE_HOLES_DESCRIPTION "Close Holes in generated pieces."
+#define REFINE_HOLE_EDGE_LENGHT_DISPLAYNAME "Refine Holes Edge Lenght"
+#define REFINE_HOLE_EDGE_LENGHT_DESCRIPTION "Refine Holes Edge Lenght (% of bbox diag)"
+#define CLOSE_HOLES_ADJACENCY_TAG_ID_DISPLAYNAME "Close Hole Face Tag attribute name"
+#define CLOSE_HOLES_ADJACENCY_TAG_ID_DESCRIPTION "Close Hole Face Tag attribute name"
+
+#define EXTRA_CATEGORY "(2) Extra"
+#define FACE_TAG_ID_DISPLAYNAME "Face Tag attribute name"
+#define FACE_TAG_ID_DESCRIPTION "Face Tag attribute name"
+#define GENERATE_POLYLINES_DISPLAYNAME "Generate Polylines"
+#define GENERATE_POLYLINES_DESCRIPTION "Generate Polylines"
 
 namespace curvatureSkeleton
 {
@@ -91,6 +94,7 @@ RichParameterList PolylineCuttingFilter::initParameterList(FilterPlugin const& p
 	parlst.addParam(RichPercentage(PARAM_REFINE_SEPARATION_MIN_DISTANCE, 2 * avg_length, 0.f, mesh.bbox.Diag(), REFINE_SEPARATION_DIST_DISPLAYNAME, REFINE_SEPARATION_DIST_DESCRIPTION, false, POLYLINE_REFINE_CATEGORY));
 
 	parlst.addParam(RichBool(PARAM_CLOSE_HOLES, true, CLOSE_HOLES_DISPLAYNAME, CLOSE_HOLES_DESCRIPTION, false, CUTTING_CATEGORY));
+	parlst.addParam(RichString(PARAM_HOLE_ADJ_TAG_ID, DEFAULT_CLOSEHOLE_ADJ_FACETAG, CLOSE_HOLES_ADJACENCY_TAG_ID_DISPLAYNAME, CLOSE_HOLES_ADJACENCY_TAG_ID_DESCRIPTION, true, CUTTING_CATEGORY));
 	parlst.addParam(RichPercentage(PARAM_REFINE_HOLE_EDGE_LENGHT, avg_length, 0.f, mesh.bbox.Diag(), REFINE_HOLE_EDGE_LENGHT_DISPLAYNAME, REFINE_HOLE_EDGE_LENGHT_DESCRIPTION, false, CUTTING_CATEGORY));
 
 	return parlst;
