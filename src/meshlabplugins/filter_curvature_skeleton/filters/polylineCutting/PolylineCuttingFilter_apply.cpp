@@ -545,24 +545,8 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	//for each new piece add a new mesh
 	for (int i = 0; i < pieces.size(); i++)
 	{
-		auto& piece = pieces[i];
-		std::unordered_map<int, int> tag_count; int max_tag = 0, max_count = 0;
-		auto facetag = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(piece, facetag_id.toStdString());
-		for (auto& tag : facetag._handle->data)
-		{
-			if (tag_count.count(tag) > 0)
-				tag_count[tag]++;
-			else
-				tag_count.emplace(tag, 0);
-
-			if (tag_count[tag] > max_count)
-			{
-				max_tag = tag;
-				max_count = tag_count[tag];
-			}
-		}
-
-		auto* piece_mm = document.addNewMesh(QString(), QString("Piece #%1; Tag %2").arg(i).arg(max_tag), false);
+		//add the new mesh
+		auto* piece_mm = document.addNewMesh(QString(), QString(), false);
 		if (original.face.IsColorEnabled())
 		{
 			piece_mm->updateDataMask(piece_mm->MM_FACECOLOR);
@@ -572,7 +556,29 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 			piece_mm->updateDataMask(piece_mm->MM_VERTCOLOR);
 		vcg::tri::Allocator<CMeshO>::AddPerFaceAttribute<Scalarm>(piece_mm->cm, facetag_id.toStdString());
 		vcg::tri::Allocator<CMeshO>::AddPerFaceAttribute<Scalarm>(piece_mm->cm, holes_adj_facetag_id.toStdString());
-		vcg::tri::Append<CMeshO, PolylineMesh>::MeshAppendConst(piece_mm->cm, piece);
+		vcg::tri::Append<CMeshO, PolylineMesh>::MeshAppendConst(piece_mm->cm, pieces[i]);
+
+		//find the most occurring tag of the piece and set it as label
+		Scalarm max_tag = 0;
+		{
+			std::unordered_map<int, int> tag_count; int max_count = 0;
+			auto facetag = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(piece_mm->cm, facetag_id.toStdString());
+			for (auto& face : piece_mm->cm.face)
+			{
+				auto tag = facetag[face];
+				if (tag_count.count(tag) > 0)
+					tag_count[tag]++;
+				else
+					tag_count.emplace(tag, 0);
+
+				if (tag > 0 && tag_count[tag] > max_count)
+				{
+					max_tag = tag;
+					max_count = tag_count[tag];
+				}
+			}
+		}
+		piece_mm->setLabel(QString("Piece #%1; Tag %2").arg(i).arg(max_tag));
 		piece_mm->updateBoxAndNormals();
 	}
 
