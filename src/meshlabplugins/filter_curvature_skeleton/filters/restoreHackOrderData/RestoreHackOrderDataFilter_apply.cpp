@@ -23,7 +23,7 @@
 
 #include "RestoreHackOrderDataFilter.h"
 
-#include <QRegularExpression.h>
+#include <qregularexpression.h>
 
 #define ATTRIBUTE_ORIGINAL_INDEX "original_index"
 #define ATTRIBUTE_HACK_ORDER_NUMBER "hack_order"
