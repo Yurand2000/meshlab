@@ -319,13 +319,14 @@ std::map<std::string, QVariant> TreeSegmentationFilter::applyFilter(
 				vert->SetS();
 
 			vcg::tri::UpdateSelection<CMeshO>::FaceFromVertexStrict(original);
+			auto tag = tip_vertex->Index() + 10;
 			for (auto& face : original.face)
 			{
 				if (!face.IsD() && face.IsS())
-					facetag[face] = tip_vertex->Index();
+					facetag[face] = tag;
 			}
 
-			face_tag_to_hack_map.emplace(tip_vertex->Index(), current_hack_number);
+			face_tag_to_hack_map.emplace(tag, current_hack_number);
 
 			selection.pop();
 		}

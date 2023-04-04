@@ -69,6 +69,9 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	vcg::tri::SelectionStack<CMeshO> selection(original);
 	selection.push();
 
+	original.face.EnableFFAdjacency();
+	vcg::tri::UpdateTopology<CMeshO>::FaceFace(original);
+
 	//compute polylines
 	using PolylineTags = std::pair<Scalarm, Scalarm>;
 	std::vector< std::pair<std::vector<vcg::Point3<Scalarm>>, PolylineTags> > polylines;
@@ -152,53 +155,56 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 				}
 			}
 
-			//get which neighbor has the most faces adjacent on the currently selected tag
+			//get which neighbor has the most faces adjacent on the currently selected tag on the original mesh
 			Scalarm neighbor_with_most_adjacent_faces = -1;
-
-			//select border faces (the ones with tag == -1)
-			vcg::tri::UpdateSelection<CMeshO>::FaceClear(mesh);
-			for (auto* face : tagged_faces[best_tag])
-				face->SetS();
-			vcg::tri::UpdateSelection<CMeshO>::FaceDilate(mesh);
-			for (auto* face : tagged_faces[best_tag])
-				face->ClearS();
-
-			//compute biggest neighbor
-			std::unordered_map<Scalarm, int> neighbor_tag_count;
-			Scalarm best_count = 0;
-			for (auto& face : mesh.face)
 			{
-				if (!face.IsS())
-					continue;
+				//select border faces (the ones with tag == -1)
+				auto facetag = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(original, facetag_id.toStdString());
+				vcg::tri::UpdateSelection<CMeshO>::FaceClear(original);
+				for (auto& face : tagged_faces[best_tag])
+					original.face[face->Index()].SetS();
+				vcg::tri::UpdateSelection<CMeshO>::FaceDilate(original);
+				for (auto* face : tagged_faces[best_tag])
+					original.face[face->Index()].ClearS();
 
-				std::vector<CFaceO*> star;
-				vcg::face::FFExtendedStarFF(&face, 1, star);
-
-				for (auto* adj : star)
+				//compute biggest neighbor
+				std::unordered_map<Scalarm, int> neighbor_tag_count;
+				Scalarm best_count = 0;
+				for (auto& face : original.face)
 				{
-					auto adj_tag = facetag[adj];
-					if (adj_tag != -1 && adj_tag != best_tag)
-					{
-						if (neighbor_tag_count.count(adj_tag) > 0)
-							neighbor_tag_count[adj_tag] += 1;
-						else
-							neighbor_tag_count[adj_tag] = 0;
+					if (!face.IsS())
+						continue;
 
-						auto count = neighbor_tag_count[adj_tag];
-						if (count > best_count) {
-							best_count = count;
-							neighbor_with_most_adjacent_faces = adj_tag;
+					std::vector<CFaceO*> star;
+					vcg::face::FFExtendedStarFF(&face, 1, star);
+
+					for (auto* adj : star)
+					{
+						auto adj_tag = facetag[adj];
+						if (adj_tag != -1 && adj_tag != best_tag)
+						{
+							if (neighbor_tag_count.count(adj_tag) > 0)
+								neighbor_tag_count[adj_tag] += 1;
+							else
+								neighbor_tag_count[adj_tag] = 0;
+
+							auto count = neighbor_tag_count[adj_tag];
+							if (count > best_count) {
+								best_count = count;
+								neighbor_with_most_adjacent_faces = adj_tag;
+							}
 						}
 					}
 				}
 			}
 
 			//add the polylines to the polyline set
-			for (int i = 0; i < best_outlines.size(); i++)
+			for (int i = 0; i < best_outlines.size(); i++) {
 				polylines.emplace_back(
 					std::move(best_outlines[i]),
 					std::make_pair(best_tag, neighbor_with_most_adjacent_faces)
 				);
+			}
 
 			//select border of untagged faces
 			std::vector<CFaceO*> notag_faces;
@@ -383,8 +389,9 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 			}
 			else //cut on any polyline
 			{
-				auto& polyline = polylines[0].first;
-				auto& polyline_adj_tags = polylines[0].second;
+				auto polyline = std::move(polylines.back().first);
+				auto polyline_adj_tags = std::move(polylines.back().second);
+				polylines.pop_back();
 
 				//prepare curve on manifold for the mesh
 				vcg::tri::UpdateTopology<PolylineMesh>::FaceFace(mesh);
@@ -423,121 +430,118 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 				int index0 = 0, index1 = 1;
 				if (conn_comps.size() > 2)
 				{
-					plugin.log("More than 2 connected components on single polyline!");
-					break;
-					//throw MLException("More than 2 connected components on single polyline!");
+					throw MLException("More than 2 connected components on single polyline!");
 				}
 				else if (conn_comps.size() < 2) {
-					plugin.log("Less than 2 connected components on single polyline!");
-					auto error_mesh = document.addNewMesh("", "Error Branch", false);
-					vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopyConst(error_mesh->cm, mesh);
-					auto error_poly = document.addNewMesh("", "Error Polyline", false);
-					vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopyConst(error_poly->cm, polyline);
-					break;
-					//throw MLException("Less than 2 connected components on single polyline!");
+					vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh);
+
+					split_queue.emplace();
+					std::swap(split_queue.back().first, mesh);
+					std::swap(split_queue.back().second, polylines);
 				}
-
-				PolylineMesh part0, part1;
-
-				//keep face tags on each piece
-				vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part0, facetag_id.toStdString());
-				vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part0, holes_adj_facetag_id.toStdString());
-				vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part1, facetag_id.toStdString());
-				vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part1, holes_adj_facetag_id.toStdString());
-
-				conn_comps[index0].second->SetS();
-				vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(mesh);
-				vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(part0, mesh, true);
-				vcg::tri::UpdateSelection<PolylineMesh>::Clear(part0);
-				vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh);
-
-				conn_comps[index1].second->SetS();
-				vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(mesh);
-				vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(part1, mesh, true);
-				vcg::tri::UpdateSelection<PolylineMesh>::Clear(part1);
-				vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh);
-
-				//compute which of the remaining polylines cut the part 0 and which the part 1
-				std::vector<std::pair<PolylineMesh, PolylineTags>> part0_polys, part1_polys;
-
-				//skip the first polyline because we used it to cut the mesh
-				for (int i = 1; i < polylines.size(); i++)
+				else
 				{
-					auto& polyline = polylines[i];
-					auto distance0 = getMinVVDistance(polyline.first, part0);
-					auto distance1 = getMinVVDistance(polyline.first, part1);
-					if (distance0 < distance1)
+					PolylineMesh part0, part1;
+
+					//keep face tags on each piece
+					vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part0, facetag_id.toStdString());
+					vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part0, holes_adj_facetag_id.toStdString());
+					vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part1, facetag_id.toStdString());
+					vcg::tri::Allocator<PolylineMesh>::AddPerFaceAttribute<Scalarm>(part1, holes_adj_facetag_id.toStdString());
+
+					conn_comps[index0].second->SetS();
+					vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(mesh);
+					vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(part0, mesh, true);
+					vcg::tri::UpdateSelection<PolylineMesh>::Clear(part0);
+					vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh);
+
+					conn_comps[index1].second->SetS();
+					vcg::tri::UpdateSelection<PolylineMesh>::FaceConnectedFF(mesh);
+					vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshCopy(part1, mesh, true);
+					vcg::tri::UpdateSelection<PolylineMesh>::Clear(part1);
+					vcg::tri::UpdateSelection<PolylineMesh>::Clear(mesh);
+
+					//compute which of the remaining polylines cut the part 0 and which the part 1
+					std::vector<std::pair<PolylineMesh, PolylineTags>> part0_polys, part1_polys;
+
+					for (int i = 0; i < polylines.size(); i++)
 					{
-						part0_polys.emplace_back();
-						std::swap(polyline, part0_polys.back());
+						auto& polyline = polylines[i];
+						auto distance0 = getMinVVDistance(polyline.first, part0);
+						auto distance1 = getMinVVDistance(polyline.first, part1);
+						if (distance0 < distance1)
+						{
+							part0_polys.emplace_back();
+							std::swap(polyline, part0_polys.back());
+						}
+						else
+						{
+							part1_polys.emplace_back();
+							std::swap(polyline, part1_polys.back());
+						}
 					}
-					else
+
+					if (close_holes)
 					{
-						part1_polys.emplace_back();
-						std::swap(polyline, part1_polys.back());
+						//compute which part has generated the polyline (needed to set the adjacency tag for the closed holes)
+						auto part0_adj_tag = polyline_adj_tags.first;
+						auto part1_adj_tag = polyline_adj_tags.second;
+
+						{
+							int part0count = 0, part1count = 0;
+							auto facetag0 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part0, facetag_id.toStdString());
+							for (auto& face : part0.face)
+								if (facetag0[face] == part0_adj_tag)
+									part0count++;
+
+							auto facetag1 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part1, facetag_id.toStdString());
+							for (auto& face : part1.face)
+								if (facetag1[face] == part0_adj_tag)
+									part1count++;
+
+							if (part0count > part1count)
+								std::swap(part0_adj_tag, part1_adj_tag);
+						}
+
+						//close hole on the first piece
+						closeHoles(part0, refine_hole_lenght);
+
+						//duplicate the cap onto the other mesh and merge close vertices
+						vcg::tri::UpdateSelection<PolylineMesh>::VertexFromFaceLoose(part0);
+						vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshAppendConst(part1, part0, true);
+						vcg::tri::Clean<PolylineMesh>::FlipMesh(part1, true);
+						vcg::tri::Clean<PolylineMesh>::MergeCloseVertex(part1, 1.0E-7);
+
+						//update the hole adjacency tags
+						auto adj_facetag0 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part0, holes_adj_facetag_id.toStdString());
+						for (auto& face : part0.face) {
+							if (face.IsS())
+								adj_facetag0[face] = part0_adj_tag;
+							else if (adj_facetag0[face] == 0)
+								adj_facetag0[face] = -1;
+						}
+
+						auto adj_facetag1 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part1, holes_adj_facetag_id.toStdString());
+						for (auto& face : part1.face) {
+							if (face.IsS())
+								adj_facetag1[face] = part1_adj_tag;
+							else if (adj_facetag1[face] == 0)
+								adj_facetag1[face] = -1;
+						}
 					}
+
+					//add the new pieces to the queue
+					vcg::tri::UpdateSelection<PolylineMesh>::Clear(part0);
+					vcg::tri::UpdateSelection<PolylineMesh>::Clear(part1);
+
+					split_queue.emplace();
+					std::swap(split_queue.back().first, part0);
+					std::swap(split_queue.back().second, part0_polys);
+
+					split_queue.emplace();
+					std::swap(split_queue.back().first, part1);
+					std::swap(split_queue.back().second, part1_polys);
 				}
-
-				if (close_holes)
-				{
-					//compute which part has generated the polyline (needed to set the adjacency tag for the closed holes)
-					auto part0_adj_tag = polyline_adj_tags.first;
-					auto part1_adj_tag = polyline_adj_tags.second;
-
-					{
-						int part0count = 0, part1count = 0;
-						auto facetag0 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part0, facetag_id.toStdString());
-						for (auto& face : part0.face)
-							if (facetag0[face] == part0_adj_tag)
-								part0count++;
-
-						auto facetag1 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part1, facetag_id.toStdString());
-						for (auto& face : part1.face)
-							if (facetag1[face] == part0_adj_tag)
-								part1count++;
-
-						if (part0count > part1count)
-							std::swap(part0_adj_tag, part1_adj_tag);
-					}
-
-					//close hole on the first piece
-					closeHoles(part0, refine_hole_lenght);
-
-					//duplicate the cap onto the other mesh and merge close vertices
-					vcg::tri::UpdateSelection<PolylineMesh>::VertexFromFaceLoose(part0);
-					vcg::tri::Append<PolylineMesh, PolylineMesh>::MeshAppendConst(part1, part0, true);
-					vcg::tri::Clean<PolylineMesh>::FlipMesh(part1, true);
-					vcg::tri::Clean<PolylineMesh>::MergeCloseVertex(part1, 1.0E-7);
-
-					//update the hole adjacency tags
-					auto adj_facetag0 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part0, holes_adj_facetag_id.toStdString());
-					for (auto& face : part0.face) {
-						if (face.IsS())
-							adj_facetag0[face] = part0_adj_tag;
-						else if (adj_facetag0[face] == 0)
-							adj_facetag0[face] = -1;
-					}
-
-					auto adj_facetag1 = vcg::tri::Allocator<PolylineMesh>::GetPerFaceAttribute<Scalarm>(part1, holes_adj_facetag_id.toStdString());
-					for (auto& face : part1.face) {
-						if (face.IsS())
-							adj_facetag1[face] = part1_adj_tag;
-						else if (adj_facetag1[face] == 0)
-							adj_facetag1[face] = -1;
-					}
-				}
-
-				//add the new pieces to the queue
-				vcg::tri::UpdateSelection<PolylineMesh>::Clear(part0);
-				vcg::tri::UpdateSelection<PolylineMesh>::Clear(part1);
-
-				split_queue.emplace();
-				std::swap(split_queue.back().first, part0);
-				std::swap(split_queue.back().second, part0_polys);
-
-				split_queue.emplace();
-				std::swap(split_queue.back().first, part1);
-				std::swap(split_queue.back().second, part1_polys);
 			}
 		}
 	}
