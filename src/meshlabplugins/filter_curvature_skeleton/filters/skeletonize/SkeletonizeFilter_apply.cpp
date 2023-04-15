@@ -63,6 +63,7 @@ std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 		auto skeleton_mesh = document.addNewMesh(QString(), QString("Skeleton - %1").arg(mesh_name), false);
 		vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(skeleton_mesh->cm, skeleton);
 		skeleton_mesh->clearDataMask(MeshModel::MM_VERTQUALITY);
+		skeleton_mesh->updateBoxAndNormals();
 
 		//save intermediate meshes
 		for (int i = 0; i < intermediate_meshes.size(); i++)
@@ -71,6 +72,7 @@ std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 			auto mesh = document.addNewMesh(QString(), QString("MesoSkeleton #%2 - %1").arg(mesh_name).arg(i + 1), false);
 			vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(mesh->cm, intermediate_mesh);
 			mesh->clearDataMask(MeshModel::MM_VERTQUALITY);
+			mesh->updateBoxAndNormals();
 		}
 
 		return {};

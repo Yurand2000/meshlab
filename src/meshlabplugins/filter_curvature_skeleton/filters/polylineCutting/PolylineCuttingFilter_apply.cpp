@@ -347,6 +347,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		auto* polylines_mm = document.addNewMesh(QString(), QString("Polylines"), false);
 		for (auto& polyline : polyline_meshes)
 			vcg::tri::Append<CMeshO, PolylineMesh>::MeshAppendConst(polylines_mm->cm, polyline.first);
+		polylines_mm->updateBoxAndNormals();
 	}
 
 	//cut branches based on polylines
@@ -405,8 +406,10 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 					plugin.log( e.what() );
 					auto error_mesh = document.addNewMesh("", "Error Branch", false);
 					vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopyConst(error_mesh->cm, mesh);
+					error_mesh->updateBoxAndNormals();
 					auto error_poly = document.addNewMesh("", "Error Polyline", false);
 					vcg::tri::Append<CMeshO, PolylineMesh>::MeshCopyConst(error_poly->cm, polyline);
+					error_poly->updateBoxAndNormals();
 					break;
 				}
 
@@ -561,6 +564,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		vcg::tri::Allocator<CMeshO>::AddPerFaceAttribute<Scalarm>(piece_mm->cm, facetag_id.toStdString());
 		vcg::tri::Allocator<CMeshO>::AddPerFaceAttribute<Scalarm>(piece_mm->cm, holes_adj_facetag_id.toStdString());
 		vcg::tri::Append<CMeshO, PolylineMesh>::MeshAppendConst(piece_mm->cm, pieces[i]);
+		piece_mm->updateBoxAndNormals();
 
 		//find the most occurring tag of the piece and set it as label
 		Scalarm max_tag = 0;

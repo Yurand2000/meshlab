@@ -338,6 +338,7 @@ std::map<std::string, QVariant> TreeSegmentationFilter::applyFilter(
 		auto graph_mm = document.addNewMesh(QString(), QString("Graph - %1").arg( original_mm->label() ), false);
 		vcg::tri::Allocator<CMeshO>::AddPerVertexAttribute<Scalarm>(graph_mm->cm, ATTRIBUTE_HACK_ORDER_NUMBER);
 		vcg::tri::Append<CMeshO, SkeletonMesh>::MeshCopyConst(graph_mm->cm, graph);
+		graph_mm->updateBoxAndNormals();
 	}
 
 	//save per face hack number attribute

@@ -105,6 +105,7 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		{
 			auto* save_skeleton_mm = document.addNewMesh(QString(), QString("%1 - Skeleton").arg(mesh_mm->label()), false);
 			vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(save_skeleton_mm->cm, skeleton);
+			save_skeleton_mm->updateBoxAndNormals();
 		}
 	}
 
