@@ -51,6 +51,8 @@
 #define CLOSE_HOLES_DESCRIPTION "Close Holes in generated pieces."
 #define REFINE_HOLE_EDGE_LENGHT_DISPLAYNAME "Refine Holes Edge Lenght"
 #define REFINE_HOLE_EDGE_LENGHT_DESCRIPTION "Refine Holes Edge Lenght (% of bbox diag)"
+#define REFINE_HOLE_FAST_DISPLAYNAME "Fast Hole Refinement"
+#define REFINE_HOLE_FAST_DESCRIPTION "Use a coarser but faster Hole Refinement process."
 #define CLOSE_HOLES_ADJACENCY_TAG_ID_DISPLAYNAME "Close Hole Face Tag attribute name"
 #define CLOSE_HOLES_ADJACENCY_TAG_ID_DESCRIPTION "Close Hole Face Tag attribute name"
 
@@ -97,6 +99,7 @@ RichParameterList PolylineCuttingFilter::initParameterList(FilterPlugin const& p
 	parlst.addParam(RichBool(PARAM_CLOSE_HOLES, true, CLOSE_HOLES_DISPLAYNAME, CLOSE_HOLES_DESCRIPTION, false, CUTTING_CATEGORY));
 	parlst.addParam(RichString(PARAM_HOLE_ADJ_TAG_ID, DEFAULT_CLOSEHOLE_ADJ_FACETAG, CLOSE_HOLES_ADJACENCY_TAG_ID_DISPLAYNAME, CLOSE_HOLES_ADJACENCY_TAG_ID_DESCRIPTION, true, CUTTING_CATEGORY));
 	parlst.addParam(RichPercentage(PARAM_REFINE_HOLE_EDGE_LENGHT, avg_length, 0.f, mesh.bbox.Diag(), REFINE_HOLE_EDGE_LENGHT_DISPLAYNAME, REFINE_HOLE_EDGE_LENGHT_DESCRIPTION, false, CUTTING_CATEGORY));
+	parlst.addParam(RichBool(PARAM_REFINE_HOLE_FAST, false, REFINE_HOLE_FAST_DISPLAYNAME, REFINE_HOLE_FAST_DESCRIPTION, true, CUTTING_CATEGORY));
 
 	return parlst;
 }

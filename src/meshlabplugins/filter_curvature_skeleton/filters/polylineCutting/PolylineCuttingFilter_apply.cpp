@@ -39,7 +39,7 @@ static Scalarm getPolylineLenght(std::vector<vcg::Point3<Scalarm>> const& outlin
 static void movePolylineToFittingPlane(PolylineMesh& polyline, vcg::Plane3<Scalarm> const& plane, Scalarm weight);
 static void movePolylinesApart(PolylineMesh& lpolyline, PolylineMesh const& rpolyline, Scalarm min_distance, Scalarm weight);
 static Scalarm getMinVVDistance(PolylineMesh const& mesh0, PolylineMesh const& mesh1);
-static void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght);
+static void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght, bool refine_fast);
 
 std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	FilterPlugin const&      plugin,
@@ -54,7 +54,8 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	auto facetag_id = params.getString(PARAM_FACE_TAG_ID);
 	auto generate_polylines = params.getBool(PARAM_GENERATE_POLYLINES);
 	auto refine_polylines = params.getBool(PARAM_DO_REFINE_POLYLINES);
-	auto close_holes = params.getBool(PARAM_CLOSE_HOLES); 
+	auto close_holes = params.getBool(PARAM_CLOSE_HOLES);
+	auto refine_holes_fast = params.getBool(PARAM_REFINE_HOLE_FAST);
 	auto holes_adj_facetag_id = params.getString(PARAM_HOLE_ADJ_TAG_ID);
 
 	//refine parameters
@@ -507,7 +508,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 						}
 
 						//close hole on the first piece
-						closeHoles(part0, refine_hole_lenght);
+						closeHoles(part0, refine_hole_lenght, refine_holes_fast);
 
 						//duplicate the cap onto the other mesh and merge close vertices
 						vcg::tri::UpdateSelection<PolylineMesh>::VertexFromFaceLoose(part0);
@@ -639,7 +640,7 @@ Scalarm getMinVVDistance(PolylineMesh const& mesh0, PolylineMesh const& mesh1)
 	return min_dist;
 }
 
-void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght)
+void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght, bool refine_fast)
 {
 	//code adapted from meshfilter.cpp
 
@@ -684,10 +685,24 @@ void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght)
 	params.smoothFlag = true;
 	params.projectFlag = false;
 	params.surfDistCheck = false;
-	params.SetTargetLen(refine_lenght);
-	params.iter = 5;
 
-	vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
+	if (refine_fast) {
+		params.SetTargetLen(refine_lenght); params.iter = 5;
+		vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
+	}
+	else {
+		for (int k = 0; k < 3; k++)
+		{
+			params.SetTargetLen(refine_lenght * 3.0); params.iter = 5;
+			vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
+
+			params.SetTargetLen(refine_lenght / 3.0); params.iter = 3;
+			vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
+
+			params.SetTargetLen(refine_lenght); params.iter = 2;
+			vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
+		}
+	}
 }
 
 Scalarm getPolylineLenght(std::vector<vcg::Point3<Scalarm>> const& outlines)
