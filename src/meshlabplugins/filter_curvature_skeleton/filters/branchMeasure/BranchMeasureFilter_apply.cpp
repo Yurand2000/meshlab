@@ -37,6 +37,7 @@ namespace curvatureSkeleton
 static CMeshO duplicateAndExtendMeshBase(CMeshO& mesh);
 static void cutSkeletonToOriginalMesh(CMeshO& mesh, SkeletonMesh& skeleton);
 static Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base);
+static Scalarm computeLinearLenght(CMeshO& mesh, SkeletonVertex* tip);
 
 std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 	FilterPlugin const&      plugin,
@@ -99,10 +100,13 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(c_skeleton);
 
 		Scalarm longest_path = 0.0;
+		Scalarm longest_linear_path = 0.0;
 		for (auto& vert : c_skeleton.vert)
 		{
-			if ( !vert.IsD() && vcg::edge::VEDegree<SkeletonEdge>(&vert) == 1 )
+			if (!vert.IsD() && vcg::edge::VEDegree<SkeletonEdge>(&vert) == 1) {
 				longest_path = std::max(longest_path, computeLongestPath(c_skeleton, &vert));
+				longest_linear_path = std::max(longest_linear_path, computeLinearLenght(mesh, &vert));
+			}
 		}
 
 		plugin.log(
@@ -111,6 +115,15 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 			.arg(mesh_label)
 			.toStdString()
 		);
+
+		if (longest_linear_path > 0) {
+			plugin.log(
+				QString("%2 - Linear Lenght: %1")
+				.arg(longest_linear_path, 0, 'f', 3)
+				.arg(mesh_label)
+				.toStdString()
+			);
+		}
 
 		//save skeleton
 		if (save_skeletons)
@@ -325,6 +338,29 @@ Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base)
 
 	vcg::tri::Allocator<SkeletonMesh>::DeletePerVertexAttribute(mesh, longest_path);
 	return longest_path_lenght;
+}
+
+Scalarm computeLinearLenght(CMeshO& mesh, SkeletonVertex* tip)
+{
+	//from the interface of the mesh compute the average distance from the skeleton tip
+	Scalarm distance = 0;
+	int count = 0;
+	auto parent_hole = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, ATTRIBUTE_PARENT_HOLE_FACES);
+	for (auto& face : mesh.face)
+	{
+		if (parent_hole[face] == 1) {
+			distance +=
+			   (vcg::Distance(face.cP(0), tip->cP()) +
+				vcg::Distance(face.cP(1), tip->cP()) +
+				vcg::Distance(face.cP(2), tip->cP())   ) / 3.0;
+			count++;
+		}
+	}
+
+	if (count > 0)
+		return distance / count;
+	else
+		return 0;
 }
 
 }
