@@ -27,16 +27,18 @@ namespace curvatureSkeleton
 {
     bool MeshDocumentUtils::tryGetOriginalMeshIndex(MeshDocument const& document, int& out)
     {
-        auto skeleton_id = 0, mesh_id = 0;
+        auto skeleton_id = 0;
         if (document.meshNumber() == 2 && tryGetSkeletonMeshIndex(document, skeleton_id))
         {
             for (auto& mesh : document.meshIterator())
             {
-                if (mesh.id() != skeleton_id)
-                    mesh_id = mesh.id();
+                if (mesh.id() != skeleton_id) {
+                    out = mesh.id();
+                    return true;
+                }
             }
 
-            return true;
+            return false;
         }
         else
         {
@@ -46,15 +48,14 @@ namespace curvatureSkeleton
 
     bool MeshDocumentUtils::tryGetSkeletonMeshIndex(MeshDocument const& document, int& out)
     {
-        int count = 0;
         for (auto& mesh : document.meshIterator())
         {
-            if (mesh.label().contains("skel", Qt::CaseSensitivity::CaseInsensitive))
+            if (mesh.label() != nullptr && mesh.label().contains("skel", Qt::CaseSensitivity::CaseInsensitive))
             {
                 out = mesh.id();
-                count++;
+                return true;
             }
         }
-        return count == 1;
+        return false;
     }
 }
