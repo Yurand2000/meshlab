@@ -45,6 +45,12 @@ namespace curvatureSkeleton
         static bool tryGetOriginalMeshIndex(MeshDocument const& document, int& out);
         static bool tryGetSkeletonMeshIndex(MeshDocument const& document, int& out);
     };
+
+    class HackOrderUtils
+    {
+    public:
+        static vcg::Color4b hackOrderToColor(int hack_order_number);
+    };
 }
 
 #include "Utils.imp.h"

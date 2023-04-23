@@ -23,6 +23,8 @@
 
 #include "Utils.h"
 
+#include <vcg/space/colormap.h>
+
 namespace curvatureSkeleton
 {
     bool MeshDocumentUtils::tryGetOriginalMeshIndex(MeshDocument const& document, int& out)
@@ -57,5 +59,10 @@ namespace curvatureSkeleton
             }
         }
         return false;
+    }
+
+    vcg::Color4b HackOrderUtils::hackOrderToColor(int hack_order_number)
+    {
+        return vcg::GetColorMapping((hack_order_number - 1) % 6, 0, 5, vcg::Plasma);
     }
 }

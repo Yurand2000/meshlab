@@ -23,6 +23,7 @@
 
 #include "RestoreHackOrderDataFilter.h"
 
+#include "common/Utils.h"
 #include <qregularexpression.h>
 
 #define ATTRIBUTE_ORIGINAL_INDEX "original_index"
@@ -104,6 +105,7 @@ std::map<std::string, QVariant> RestoreHackOrderDataFilter::applyFilter(
 		}
 
 		//update the label with the hack order and parent numbers
+		auto hack_order = tag_to_hack_order[tag];
 		if (parent_tag != tag) {
 			mesh_mm->setLabel(QString("Piece #%1; Hack %2; Parent: #%3")
 				.arg(piece_id).arg(tag_to_hack_order[tag]).arg(mesh_tags[parent_tag].first)
@@ -115,18 +117,22 @@ std::map<std::string, QVariant> RestoreHackOrderDataFilter::applyFilter(
 			);
 		}
 
-		//assign the hack numbers to each face given its tag
+		//paint the mesh given its hack number
+		for (auto& vertex : mesh.vert)
+			vertex.C() = HackOrderUtils::hackOrderToColor(hack_order);
+
+		//assign the mesh tag and hack number to each of its face
 		{
 			auto facetag = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, facetag_id.toStdString());
 			auto faceorder = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, ATTRIBUTE_HACK_ORDER_NUMBER);
 			for (auto& face : mesh.face)
 			{
-				auto tag = facetag[face];
-				faceorder[face] = tag_to_hack_order[tag];
+				facetag[face] = tag;
+				faceorder[face] = hack_order;
 			}
 		}
 
-		//get which of the close hole surfaces is adjacent to the parent
+		//set which of the close hole surfaces is adjacent to the parent
 		{
 			auto adj_facetag = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, holes_adj_facetag_id.toStdString());
 			auto parent_hole_tag = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, ATTRIBUTE_PARENT_HOLE_FACES);
@@ -139,6 +145,7 @@ std::map<std::string, QVariant> RestoreHackOrderDataFilter::applyFilter(
 					parent_hole_tag[face] = 0;
 			}
 		}
+
 	}
 
 	return {};

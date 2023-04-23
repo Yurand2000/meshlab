@@ -102,7 +102,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		different_tags -= 1; //number of iterations is at most the number of tags minus one.
 		for(int i = 0; i < different_tags; i++)
 		{
-			cb((i + 1) * 100.0 / different_tags, "Computing polylines...");
+			cb( ((i + 1) * 100.0 / different_tags) / 3, "Computing polylines...");
 
 			//find tagged connected components
 			auto facetag = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, facetag_id.toStdString());
@@ -293,7 +293,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	//refine polylines
 	if(refine_polylines)
 	{
-		cb(0, "Refining polylines...");
+		cb(33, "Refining polylines...");
 		std::vector< std::pair<PolylineMesh, vcg::Plane3<Scalarm>> > single_polylines(polylines.size());
 
 		for (int i = 0; i < polyline_meshes.size(); i++)
@@ -315,7 +315,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		//smooth-project
 		for (int iter = 0; iter < num_iter; iter++)
 		{
-			cb( (iter + 1) * 100 / num_iter, "Refining polylines...");
+			cb( ((iter + 1) * 100 / num_iter) / 3 + (100 / 3), "Refining polylines...");
 			for (auto& pair : single_polylines)
 			{
 				auto& polyline = pair.first;
@@ -356,7 +356,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	{
 		int current_polyline = 0;
 		int num_polylines = polyline_meshes.size();
-		cb(0, "Cutting polylines...");
+		cb(66, "Cutting polylines...");
 		std::queue< std::pair<PolylineMesh, std::vector<std::pair<PolylineMesh, PolylineTags>>> > split_queue;
 
 		//first split-queue pair is the main mesh and all the (valid) polylines
@@ -374,7 +374,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		//foreach mesh polylines pair
 		while( !split_queue.empty() )
 		{
-			cb( (current_polyline + 1) * 100 / num_polylines, "Cutting polylines...");
+			cb( ((current_polyline + 1) * 100 / num_polylines) / 3 + (200 / 3), "Cutting polylines...");
 
 			PolylineMesh mesh;
 			std::vector<std::pair<PolylineMesh, PolylineTags>> polylines;

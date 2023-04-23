@@ -26,7 +26,7 @@
 #include "common/SkeletonMesh.h"
 #include "common/SimplifySkeleton.h"
 #include "common/EdgeMeshUtils.h"
-#include <vcg/space/colormap.h>
+#include "common/Utils.h"
 
 #define ATTRIBUTE_ORIGINAL_INDEX "original_index"
 #define ATTRIBUTE_MESH_TO_SKELETON "skeleton_index"
@@ -365,7 +365,7 @@ std::map<std::string, QVariant> TreeSegmentationFilter::applyFilter(
 			if (face_id >= 0)
 			{
 				auto hack_number = face_tag_to_hack_map[face_id];
-				auto color = vcg::GetColorMapping((hack_number - 1) % 6, 0, 5, vcg::Plasma);
+				auto color = HackOrderUtils::hackOrderToColor(hack_number);
 				face.C() = color;
 			}
 			else

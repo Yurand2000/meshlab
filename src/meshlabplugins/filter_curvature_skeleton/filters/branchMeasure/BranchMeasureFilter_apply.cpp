@@ -38,6 +38,9 @@ static CMeshO duplicateAndExtendMeshBase(CMeshO& mesh);
 static void cutSkeletonToOriginalMesh(CMeshO& mesh, SkeletonMesh& skeleton);
 static Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base);
 static Scalarm computeLinearLenght(CMeshO& mesh, SkeletonVertex* tip);
+static Scalarm computeBorderLinearLenght(CMeshO& mesh, SkeletonVertex* tip);
+static Scalarm computeMeshArea(CMeshO& mesh);
+static Scalarm computeMeshVolume(CMeshO& mesh);
 
 std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 	FilterPlugin const&      plugin,
@@ -100,12 +103,14 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(c_skeleton);
 
 		Scalarm longest_path = 0.0;
-		Scalarm longest_linear_path = 0.0;
+		Scalarm longest_linear_lenght = 0.0;
+		Scalarm longest_border_linear_lenght = 0.0;
 		for (auto& vert : c_skeleton.vert)
 		{
 			if (!vert.IsD() && vcg::edge::VEDegree<SkeletonEdge>(&vert) == 1) {
 				longest_path = std::max(longest_path, computeLongestPath(c_skeleton, &vert));
-				longest_linear_path = std::max(longest_linear_path, computeLinearLenght(mesh, &vert));
+				longest_linear_lenght = std::max(longest_linear_lenght, computeLinearLenght(mesh, &vert));
+				longest_border_linear_lenght = std::max(longest_border_linear_lenght, computeBorderLinearLenght(mesh, &vert));
 			}
 		}
 
@@ -116,14 +121,37 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 			.toStdString()
 		);
 
-		if (longest_linear_path > 0) {
+		if (longest_linear_lenght > 0) {
 			plugin.log(
 				QString("%2 - Linear Lenght: %1")
-				.arg(longest_linear_path, 0, 'f', 3)
+				.arg(longest_linear_lenght, 0, 'f', 3)
 				.arg(mesh_label)
 				.toStdString()
 			);
 		}
+
+		if (longest_border_linear_lenght > 0) {
+			plugin.log(
+				QString("%2 - Border Linear Lenght: %1")
+				.arg(longest_border_linear_lenght, 0, 'f', 3)
+				.arg(mesh_label)
+				.toStdString()
+			);
+		}
+
+		plugin.log(
+			QString("%2 - Surface Area: %1")
+			.arg(computeMeshArea(mesh), 0, 'f', 3)
+			.arg(mesh_label)
+			.toStdString()
+		);
+
+		plugin.log(
+			QString("%2 - Volume: %1")
+			.arg(computeMeshVolume(mesh), 0, 'f', 3)
+			.arg(mesh_label)
+			.toStdString()
+		);
 
 		//save skeleton
 		if (save_skeletons)
@@ -361,6 +389,62 @@ Scalarm computeLinearLenght(CMeshO& mesh, SkeletonVertex* tip)
 		return distance / count;
 	else
 		return 0;
+}
+
+Scalarm computeBorderLinearLenght(CMeshO& mesh, SkeletonVertex* tip)
+{
+	//from the interface border of the mesh compute the average distance from the skeleton tip
+	Scalarm distance = 0;
+	int count = 0;
+
+	vcg::tri::UpdateSelection<CMeshO>::FaceClear(mesh);
+	auto parent_hole = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, ATTRIBUTE_PARENT_HOLE_FACES);
+	for (auto& face : mesh.face)
+	{
+		if (parent_hole[face] == 1)
+			face.SetS();
+	}
+
+	//select only the vertices on the border of the interface
+	vcg::tri::UpdateSelection<CMeshO>::VertexFromFaceStrict(mesh);
+	vcg::tri::UpdateSelection<CMeshO>::FaceInvert(mesh);
+	vcg::tri::UpdateSelection<CMeshO>::VertexFromFaceStrict(mesh, true);
+	vcg::tri::UpdateSelection<CMeshO>::VertexInvert(mesh);
+	vcg::tri::UpdateSelection<CMeshO>::FaceClear(mesh);
+
+	for (auto& vertex : mesh.vert)
+	{
+		if (vertex.IsS()) {
+			distance += vcg::Distance(vertex.cP(), tip->cP());
+			count++;
+		}
+	}
+
+	vcg::tri::UpdateSelection<CMeshO>::VertexClear(mesh);
+
+	if (count > 0)
+		return distance / count;
+	else
+		return 0;
+}
+
+Scalarm computeMeshArea(CMeshO& mesh)
+{
+	Scalarm area = 0;
+	auto parent_hole = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, ATTRIBUTE_PARENT_HOLE_FACES);
+	for (auto& face : mesh.face)
+	{
+		if (parent_hole[face] == 0) {
+			area += vcg::DoubleArea(face);
+		}
+	}
+
+	return area / 2.0;
+}
+
+Scalarm computeMeshVolume(CMeshO& mesh)
+{
+	return vcg::tri::Stat<CMeshO>::ComputeMeshVolume(mesh);
 }
 
 }

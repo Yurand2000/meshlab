@@ -31,7 +31,7 @@
 #define F_PYTHON_NAME "tree_segmentation"
 #define F_ARITY       FilterPlugin::FilterArity::FIXED
 #define F_PRECONDS    MeshModel::MM_NONE
-#define F_POSTCONDS   MeshModel::MM_NONE
+#define F_POSTCONDS   MeshModel::MM_FACECOLOR
 
 namespace curvatureSkeleton
 {
