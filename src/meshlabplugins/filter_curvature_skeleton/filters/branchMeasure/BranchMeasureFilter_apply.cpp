@@ -29,6 +29,7 @@
 
 #include <vcg/complex/algorithms/isotropic_remeshing.h>
 
+#define SEPARATOR ','
 #define ATTRIBUTE_PARENT_HOLE_FACES "parent_hole"
 
 namespace curvatureSkeleton
@@ -36,6 +37,7 @@ namespace curvatureSkeleton
 
 static CMeshO duplicateAndExtendMeshBase(CMeshO& mesh);
 static void cutSkeletonToOriginalMesh(CMeshO& mesh, SkeletonMesh& skeleton);
+static void removeButOneSkeletalConnectedComponents(SkeletonMesh& skeleton);
 static Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base);
 static Scalarm computeLinearLenght(CMeshO& mesh, SkeletonVertex* tip);
 static Scalarm computeBorderLinearLenght(CMeshO& mesh, SkeletonVertex* tip);
@@ -52,6 +54,8 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 	//get parameters
 	auto only_selected = params.getBool(PARAM_MEASURE_ONLY_SELECTED);
 	auto save_skeletons = params.getBool(PARAM_SAVE_SKELETONS);
+	auto save_on_file = params.getSaveFileName(PARAM_SAVE_FILE);
+	auto overwrite_save_file = params.getBool(PARAM_OVERWRITE_SAVE_FILE);
 
 	std::vector<MeshModel*> models;
 	if (only_selected)
@@ -66,6 +70,22 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 				models.emplace_back(&mesh_mm);
 		}
 	}
+
+	//prepare structure to save on file
+	bool save_on_file_enabled = false;
+	if ( !save_on_file.isEmpty() )
+	{
+		QFile out_file(save_on_file);
+		if (out_file.exists() && !overwrite_save_file)
+			save_on_file_enabled = false;
+		else
+			save_on_file_enabled = true;
+	}
+
+	QString output_data;
+	QTextStream output_stream(&output_data);
+	output_stream << "Mesh Name" << SEPARATOR << "Curved Lenght" << SEPARATOR << "Linear Lenght" << SEPARATOR
+		<< "Border Linear Lenght" << SEPARATOR << "Surface Area" << SEPARATOR << "Volume" << Qt::endl;
 
 	//foreach mesh
 	for (int i = 0; i < models.size(); i++)
@@ -99,7 +119,7 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		vcg::tri::InitVertexIMark(c_skeleton);
 
 		cutSkeletonToOriginalMesh(mesh, c_skeleton);
-		vcg::tri::Allocator<SkeletonMesh>::CompactEveryVector(c_skeleton);
+		removeButOneSkeletalConnectedComponents(c_skeleton);
 		vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(c_skeleton);
 
 		Scalarm longest_path = 0.0;
@@ -114,44 +134,32 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 			}
 		}
 
-		plugin.log(
-			QString("%2 - Curved Lenght: %1")
-			.arg(longest_path, 0, 'f', 3)
-			.arg(mesh_label)
-			.toStdString()
-		);
+		//Log Curved Lenght
+		plugin.log( QString("%2 - Curved Lenght: %1").arg(longest_path, 0, 'f', 3).arg(mesh_label).toStdString() );
 
+		//Log Linear Lenght
 		if (longest_linear_lenght > 0) {
-			plugin.log(
-				QString("%2 - Linear Lenght: %1")
-				.arg(longest_linear_lenght, 0, 'f', 3)
-				.arg(mesh_label)
-				.toStdString()
-			);
+			plugin.log( QString("%2 - Linear Lenght: %1").arg(longest_linear_lenght, 0, 'f', 3).arg(mesh_label).toStdString() );
+		}
+		else {
+			longest_linear_lenght = NAN;
 		}
 
+		//Log Linear Lenght from Border
 		if (longest_border_linear_lenght > 0) {
-			plugin.log(
-				QString("%2 - Border Linear Lenght: %1")
-				.arg(longest_border_linear_lenght, 0, 'f', 3)
-				.arg(mesh_label)
-				.toStdString()
-			);
+			plugin.log( QString("%2 - Border Linear Lenght: %1").arg(longest_border_linear_lenght, 0, 'f', 3).arg(mesh_label).toStdString() );
+		}
+		else {
+			longest_border_linear_lenght = NAN;
 		}
 
-		plugin.log(
-			QString("%2 - Surface Area: %1")
-			.arg(computeMeshArea(mesh), 0, 'f', 3)
-			.arg(mesh_label)
-			.toStdString()
-		);
+		//Log Surface Area
+		auto mesh_area = computeMeshArea(mesh);
+		plugin.log( QString("%2 - Surface Area: %1").arg(mesh_area, 0, 'f', 3).arg(mesh_label).toStdString() );
 
-		plugin.log(
-			QString("%2 - Volume: %1")
-			.arg(computeMeshVolume(mesh), 0, 'f', 3)
-			.arg(mesh_label)
-			.toStdString()
-		);
+		//Log Volume
+		auto mesh_volume = computeMeshVolume(mesh);
+		plugin.log( QString("%2 - Volume: %1").arg(mesh_volume, 0, 'f', 3).arg(mesh_label).toStdString() );
 
 		//save skeleton
 		if (save_skeletons)
@@ -159,6 +167,29 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 			auto* save_skeleton_mm = document.addNewMesh(QString(), QString("%1 - Skeleton").arg(mesh_label), false);
 			vcg::tri::Append<CMeshO, SkeletonMesh>::MeshCopyConst(save_skeleton_mm->cm, c_skeleton);
 			save_skeleton_mm->updateBoxAndNormals();
+		}
+
+		//save per mesh data on file
+		if (save_on_file_enabled)
+		{
+			output_stream << mesh_label << SEPARATOR << longest_path << SEPARATOR << longest_linear_lenght << SEPARATOR
+				<< longest_border_linear_lenght << SEPARATOR << mesh_area << SEPARATOR << mesh_volume << Qt::endl;
+		}
+
+	}
+
+	if (!save_on_file.isEmpty())
+	{
+		QFile out_file(save_on_file);
+		if (out_file.exists() && !overwrite_save_file)
+			plugin.log(QString("Given file %1 already exists! Overwrite disabled.").arg(save_on_file).toStdString());
+		else if (!out_file.open(QIODevice::WriteOnly | QIODevice::Text))
+			plugin.log(QString("Unable to open file %1").arg(save_on_file).toStdString());
+		else {
+			QTextStream out_file_stream(&out_file);
+			output_stream.flush();
+			out_file_stream << output_data;
+			out_file.close();
 		}
 	}
 
@@ -277,46 +308,72 @@ void cutSkeletonToOriginalMesh(CMeshO& mesh, SkeletonMesh& skeleton)
 	if (hole_interface.empty())
 		return;
 
-	std::vector<SkeletonEdge*> edges_to_remove;
-	std::unordered_set<SkeletonVertex*> vertices_to_remove;
+	//find edges that intersect the interface
+	vcg::tri::UnMarkAll(skeleton);
 	std::unordered_set<SkeletonVertex*> vertices_on_the_border;
-
-	//find edges and vertices that are outside of the mesh's interface
-	for (auto& vertex : skeleton.vert) {
-		vcg::Point3<Scalarm> min_closest_point(vertex.cP()), closest_normal(0, 0, 0);
-		Scalarm min_distance = std::numeric_limits<Scalarm>::max();
+	for (auto& edge : skeleton.edge) {
 		for (auto* face : hole_interface)
 		{
-			Scalarm distance = std::numeric_limits<Scalarm>::max();
-			vcg::Point3<Scalarm> closest_point(vertex.cP());
-			vcg::face::PointDistanceBase(*face, vertex.cP(), distance, closest_point);
+			Scalarm barycentric_coords[3];
+			if (vcg::IntersectionSegmentTriangle(
+				vcg::Segment3<Scalarm>(edge.cP(0), edge.cP(1)),
+				vcg::Triangle3<Scalarm>(face->cP(0), face->cP(1), face->cP(2)),
+				barycentric_coords[1], barycentric_coords[2])
+			) {
+				barycentric_coords[0] = 1.0 - barycentric_coords[1] - barycentric_coords[2];
+				auto intersection_point =
+					face->cP(0) * barycentric_coords[0] +
+					face->cP(1) * barycentric_coords[1] +
+					face->cP(2) * barycentric_coords[2];
 
-			if (distance < min_distance) {
-				closest_normal = face->N();
-				min_distance = distance;
-				min_closest_point = closest_point;
+				bool is_vertex_0_outside = (edge.cP(0) - intersection_point).dot(face->cN()) > 0;
+				if (is_vertex_0_outside) {
+					vertices_on_the_border.insert(edge.V(0));
+					edge.P(0) = intersection_point;
+					vcg::tri::Mark(skeleton, edge.V(1));
+				}
+				else {
+					vertices_on_the_border.insert(edge.V(1));
+					edge.P(1) = intersection_point;
+					vcg::tri::Mark(skeleton, edge.V(0));
+				}
+
+				break;
 			}
-		}
-
-		bool is_vertex_outside = (vertex.cP() - min_closest_point).dot(closest_normal) > 0;
-		if (is_vertex_outside) {
-			vertices_to_remove.insert(&vertex);
-			vertex.P() = min_closest_point;
 		}
 	}
 
+	//find vertices and edges that are outside of the mesh's interface
+	std::queue<SkeletonVertex*> vertices_outside;
+	for (auto* vertex : vertices_on_the_border)
+		vertices_outside.push(vertex);
+
+	std::unordered_set<SkeletonVertex*> vertices_to_remove;
+	while ( !vertices_outside.empty() )
+	{
+		auto* curr = vertices_outside.front();
+		vertices_outside.pop();
+
+		vcg::tri::Mark(skeleton, curr);
+		vertices_to_remove.insert(curr);
+
+		std::vector<SkeletonVertex*> star;
+		vcg::edge::VVStarVE(curr, star);
+		for (auto* adj : star)
+		{
+			if (!vcg::tri::IsMarked(skeleton, adj)) {
+				vertices_outside.push(adj);
+			}
+		}
+	}
+
+	std::vector<SkeletonEdge*> edges_to_remove;
 	for (auto& edge : skeleton.edge) {
-		bool is_vertex0_outside = vertices_to_remove.count(edge.V(0));
-		bool is_vertex1_outside = vertices_to_remove.count(edge.V(1));
+		bool is_vertex0_outside = vertices_to_remove.count(edge.V(0)) > 0;
+		bool is_vertex1_outside = vertices_to_remove.count(edge.V(1)) > 0;
 
 		if (is_vertex0_outside && is_vertex1_outside) {
 			edges_to_remove.push_back(&edge);
-		}
-		else if (is_vertex0_outside) {
-			vertices_on_the_border.insert(edge.V(0));
-		}
-		else if (is_vertex1_outside) {
-			vertices_on_the_border.insert(edge.V(1));
 		}
 	}
 
@@ -324,11 +381,40 @@ void cutSkeletonToOriginalMesh(CMeshO& mesh, SkeletonMesh& skeleton)
 	for (auto* edge : edges_to_remove)
 		vcg::tri::Allocator<SkeletonMesh>::DeleteEdge(skeleton, *edge);
 
-	for (auto* vertex : vertices_to_remove)
-	{
-		if(vertices_on_the_border.count(vertex) == 0)
+	for (auto* vertex : vertices_to_remove) {
+		if (vertices_on_the_border.count(vertex) == 0)
 			vcg::tri::Allocator<SkeletonMesh>::DeleteVertex(skeleton, *vertex);
 	}
+
+	vcg::tri::Allocator<SkeletonMesh>::CompactEveryVector(skeleton);
+}
+
+void removeButOneSkeletalConnectedComponents(SkeletonMesh& skeleton)
+{
+	std::vector<std::pair<int, SkeletonEdge*>> conn_comps;
+	vcg::tri::Clean<SkeletonMesh>::edgeMeshConnectedComponents(skeleton, conn_comps);
+
+	std::sort(conn_comps.begin(), conn_comps.end(),
+		[](std::pair<int, SkeletonEdge*>& lpair, std::pair<int, SkeletonEdge*>& rpair) { return lpair.first > rpair.first; });
+
+	vcg::tri::EdgeConnectedComponentIterator<SkeletonMesh> iterator;
+	for (int i = 1; i < conn_comps.size(); i++)
+	{
+		for (iterator.start(skeleton, conn_comps[i].second); !iterator.completed(); ++iterator) {
+			auto* edge = *iterator;
+
+			if( !edge->IsD() )
+			{
+				vcg::tri::Allocator<SkeletonMesh>::DeleteEdge(skeleton, *edge);
+				if ( !edge->V(0)->IsD() )
+					vcg::tri::Allocator<SkeletonMesh>::DeleteVertex(skeleton, *edge->V(0));
+				if ( !edge->V(1)->IsD() )
+					vcg::tri::Allocator<SkeletonMesh>::DeleteVertex(skeleton, *edge->V(1));
+			}
+		}
+	}
+
+	vcg::tri::Allocator<SkeletonMesh>::CompactEveryVector(skeleton);
 }
 
 Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base)

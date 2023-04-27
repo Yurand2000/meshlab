@@ -30,6 +30,8 @@
 
 #define PARAM_MEASURE_ONLY_SELECTED "selected_only"
 #define PARAM_SAVE_SKELETONS "save_skeletons"
+#define PARAM_OVERWRITE_SAVE_FILE "overwrite_save_file"
+#define PARAM_SAVE_FILE "save_on_file"
 
 namespace curvatureSkeleton
 {
