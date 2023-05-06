@@ -31,8 +31,6 @@
 #define PARAM_FACE_TAG_ID "facetag_id"
 #define PARAM_HOLE_ADJ_TAG_ID "hole_adj_facetag_id"
 #define PARAM_GENERATE_POLYLINES "generate_polylines"
-#define PARAM_REFINE_HOLE_EDGE_LENGHT "refine_hole_edge_lenght"
-#define PARAM_REFINE_HOLE_FAST "refine_hole_fast"
 #define PARAM_CLOSE_HOLES "close_holes"
 
 #define PARAM_DO_REFINE_POLYLINES "do_refine"

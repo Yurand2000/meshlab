@@ -38,9 +38,10 @@ namespace curvatureSkeleton
 static CMeshO duplicateAndExtendMeshBase(CMeshO& mesh);
 static void cutSkeletonToOriginalMesh(CMeshO& mesh, SkeletonMesh& skeleton);
 static void removeButOneSkeletalConnectedComponents(SkeletonMesh& skeleton);
-static Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base);
-static Scalarm computeLinearLenght(CMeshO& mesh, SkeletonVertex* tip);
-static Scalarm computeBorderLinearLenght(CMeshO& mesh, SkeletonVertex* tip);
+static Scalarm computeLongestCurvedPath(SkeletonMesh& mesh, SkeletonVertex* base);
+static Scalarm computeLongestLinearPath(SkeletonMesh& mesh, SkeletonVertex* base);
+static Scalarm computeInterfaceLinearLenght(CMeshO& mesh, SkeletonVertex* tip);
+static Scalarm computeBorderLenght(CMeshO& mesh, SkeletonVertex* tip);
 static Scalarm computeMeshArea(CMeshO& mesh);
 static Scalarm computeMeshVolume(CMeshO& mesh);
 
@@ -55,7 +56,6 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 	auto only_selected = params.getBool(PARAM_MEASURE_ONLY_SELECTED);
 	auto save_skeletons = params.getBool(PARAM_SAVE_SKELETONS);
 	auto save_on_file = params.getSaveFileName(PARAM_SAVE_FILE);
-	auto overwrite_save_file = params.getBool(PARAM_OVERWRITE_SAVE_FILE);
 
 	std::vector<MeshModel*> models;
 	if (only_selected)
@@ -71,21 +71,10 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		}
 	}
 
-	//prepare structure to save on file
-	bool save_on_file_enabled = false;
-	if ( !save_on_file.isEmpty() )
-	{
-		QFile out_file(save_on_file);
-		if (out_file.exists() && !overwrite_save_file)
-			save_on_file_enabled = false;
-		else
-			save_on_file_enabled = true;
-	}
-
 	QString output_data;
 	QTextStream output_stream(&output_data);
-	output_stream << "Mesh Name" << SEPARATOR << "Curved Lenght" << SEPARATOR << "Linear Lenght" << SEPARATOR
-		<< "Border Linear Lenght" << SEPARATOR << "Surface Area" << SEPARATOR << "Volume" << Qt::endl;
+	output_stream << "Mesh Name" << SEPARATOR << "Curved Lenght" << SEPARATOR << "Linear Lenght" << SEPARATOR << "Interface Lenght" << SEPARATOR
+		<< "Border Lenght" << SEPARATOR << "Surface Area" << SEPARATOR << "Volume" << Qt::endl;
 
 	//foreach mesh
 	for (int i = 0; i < models.size(); i++)
@@ -122,35 +111,40 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		removeButOneSkeletalConnectedComponents(c_skeleton);
 		vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(c_skeleton);
 
-		Scalarm longest_path = 0.0;
-		Scalarm longest_linear_lenght = 0.0;
-		Scalarm longest_border_linear_lenght = 0.0;
+		Scalarm longest_curved_path = 0.0;
+		Scalarm longest_linear_path = 0.0;
+		Scalarm longest_interface_lenght = 0.0;
+		Scalarm longest_border_lenght = 0.0;
 		for (auto& vert : c_skeleton.vert)
 		{
 			if (!vert.IsD() && vcg::edge::VEDegree<SkeletonEdge>(&vert) == 1) {
-				longest_path = std::max(longest_path, computeLongestPath(c_skeleton, &vert));
-				longest_linear_lenght = std::max(longest_linear_lenght, computeLinearLenght(mesh, &vert));
-				longest_border_linear_lenght = std::max(longest_border_linear_lenght, computeBorderLinearLenght(mesh, &vert));
+				longest_curved_path = std::max(longest_curved_path, computeLongestCurvedPath(c_skeleton, &vert));
+				longest_linear_path = std::max(longest_linear_path, computeLongestLinearPath(c_skeleton, &vert));
+				longest_interface_lenght = std::max(longest_interface_lenght, computeInterfaceLinearLenght(mesh, &vert));
+				longest_border_lenght = std::max(longest_border_lenght, computeBorderLenght(mesh, &vert));
 			}
 		}
 
 		//Log Curved Lenght
-		plugin.log( QString("%2 - Curved Lenght: %1").arg(longest_path, 0, 'f', 3).arg(mesh_label).toStdString() );
+		plugin.log( QString("%2 - Curved Lenght: %1").arg(longest_curved_path, 0, 'f', 3).arg(mesh_label).toStdString() );
 
 		//Log Linear Lenght
-		if (longest_linear_lenght > 0) {
-			plugin.log( QString("%2 - Linear Lenght: %1").arg(longest_linear_lenght, 0, 'f', 3).arg(mesh_label).toStdString() );
+		plugin.log(QString("%2 - Linear Lenght: %1").arg(longest_linear_path, 0, 'f', 3).arg(mesh_label).toStdString());
+
+		//Log Lenght from Interface
+		if (longest_interface_lenght > 0) {
+			plugin.log( QString("%2 - Interface Lenght: %1").arg(longest_interface_lenght, 0, 'f', 3).arg(mesh_label).toStdString() );
 		}
 		else {
-			longest_linear_lenght = NAN;
+			longest_interface_lenght = NAN;
 		}
 
-		//Log Linear Lenght from Border
-		if (longest_border_linear_lenght > 0) {
-			plugin.log( QString("%2 - Border Linear Lenght: %1").arg(longest_border_linear_lenght, 0, 'f', 3).arg(mesh_label).toStdString() );
+		//Log Lenght from Border
+		if (longest_border_lenght > 0) {
+			plugin.log( QString("%2 - Border Lenght: %1").arg(longest_border_lenght, 0, 'f', 3).arg(mesh_label).toStdString() );
 		}
 		else {
-			longest_border_linear_lenght = NAN;
+			longest_border_lenght = NAN;
 		}
 
 		//Log Surface Area
@@ -170,20 +164,15 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		}
 
 		//save per mesh data on file
-		if (save_on_file_enabled)
-		{
-			output_stream << mesh_label << SEPARATOR << longest_path << SEPARATOR << longest_linear_lenght << SEPARATOR
-				<< longest_border_linear_lenght << SEPARATOR << mesh_area << SEPARATOR << mesh_volume << Qt::endl;
-		}
+		output_stream << mesh_label << SEPARATOR << longest_curved_path << SEPARATOR << longest_linear_path << SEPARATOR
+			<< longest_interface_lenght << SEPARATOR << longest_border_lenght << SEPARATOR << mesh_area << SEPARATOR << mesh_volume << Qt::endl;
 
 	}
 
 	if (!save_on_file.isEmpty())
 	{
 		QFile out_file(save_on_file);
-		if (out_file.exists() && !overwrite_save_file)
-			plugin.log(QString("Given file %1 already exists! Overwrite disabled.").arg(save_on_file).toStdString());
-		else if (!out_file.open(QIODevice::WriteOnly | QIODevice::Text))
+		if (!out_file.open(QIODevice::WriteOnly | QIODevice::Text))
 			plugin.log(QString("Unable to open file %1").arg(save_on_file).toStdString());
 		else {
 			QTextStream out_file_stream(&out_file);
@@ -417,7 +406,7 @@ void removeButOneSkeletalConnectedComponents(SkeletonMesh& skeleton)
 	vcg::tri::Allocator<SkeletonMesh>::CompactEveryVector(skeleton);
 }
 
-Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base)
+Scalarm computeLongestCurvedPath(SkeletonMesh& mesh, SkeletonVertex* base)
 {
 	std::queue< SkeletonVertex* >frontier;
 	auto longest_path = vcg::tri::Allocator<SkeletonMesh>::AddPerVertexAttribute<Scalarm>(mesh);
@@ -454,7 +443,16 @@ Scalarm computeLongestPath(SkeletonMesh& mesh, SkeletonVertex* base)
 	return longest_path_lenght;
 }
 
-Scalarm computeLinearLenght(CMeshO& mesh, SkeletonVertex* tip)
+Scalarm computeLongestLinearPath(SkeletonMesh& mesh, SkeletonVertex* base)
+{
+	Scalarm max_distance = 0.0;
+	for (auto& vertex : mesh.vert)
+		max_distance = std::max(max_distance, vcg::Distance(vertex.cP(), base->cP()));
+
+	return max_distance;
+}
+
+Scalarm computeInterfaceLinearLenght(CMeshO& mesh, SkeletonVertex* tip)
 {
 	//from the interface of the mesh compute the average distance from the skeleton tip
 	Scalarm distance = 0;
@@ -477,7 +475,7 @@ Scalarm computeLinearLenght(CMeshO& mesh, SkeletonVertex* tip)
 		return 0;
 }
 
-Scalarm computeBorderLinearLenght(CMeshO& mesh, SkeletonVertex* tip)
+Scalarm computeBorderLenght(CMeshO& mesh, SkeletonVertex* tip)
 {
 	//from the interface border of the mesh compute the average distance from the skeleton tip
 	Scalarm distance = 0;

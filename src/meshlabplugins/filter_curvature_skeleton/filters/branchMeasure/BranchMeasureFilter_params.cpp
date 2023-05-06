@@ -27,8 +27,6 @@
 #define MEASURE_ONLY_SELECTED_DESCRIPTION "Measure only the selected mesh instead of all the visible meshes."
 #define GENERATE_SKELETONS_DISPLAYNAME "Generate Skeletons"
 #define GENERATE_SKELETONS_DESCRIPTION "Save generated skeleton meshes."
-#define OVERWRITE_SAVE_FILE_DISPLAYNAME "Overwrite save measures file"
-#define OVERWRITE_SAVE_FILE_DESCRIPTION "Overwrite save measures file if it already exists."
 #define SAVE_ON_FILE_DISPLAYNAME "Save measures on file"
 #define SAVE_ON_FILE_DESCRIPTION "Save generated measures on file."
 
@@ -42,7 +40,6 @@ RichParameterList BranchMeasureFilter::initParameterList(FilterPlugin const& p, 
 
 	parlst.addParam(RichBool(PARAM_MEASURE_ONLY_SELECTED, false, MEASURE_ONLY_SELECTED_DISPLAYNAME, MEASURE_ONLY_SELECTED_DESCRIPTION));
 	parlst.addParam(RichBool(PARAM_SAVE_SKELETONS, false, GENERATE_SKELETONS_DISPLAYNAME, GENERATE_SKELETONS_DESCRIPTION));
-	parlst.addParam(RichBool(PARAM_OVERWRITE_SAVE_FILE, false, OVERWRITE_SAVE_FILE_DISPLAYNAME, OVERWRITE_SAVE_FILE_DESCRIPTION));
 	parlst.addParam(RichFileSave(PARAM_SAVE_FILE, "", ".csv", SAVE_ON_FILE_DISPLAYNAME, SAVE_ON_FILE_DESCRIPTION));
 
 	return parlst;

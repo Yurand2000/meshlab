@@ -42,6 +42,7 @@ std::map<std::string, QVariant> RestoreHackOrderDataFilter::applyFilter(
 {
 	auto  original_mm = document.getMesh(params.getMeshId(PARAM_ORIGINAL_MESH));
 	auto& original = original_mm->cm;
+	auto  original_name = original_mm->label().remove( QRegularExpression("\\.\\w+$") );
 
 	auto facetag_id = params.getString(PARAM_FACE_TAG_ID);
 	auto holes_adj_facetag_id = params.getString(PARAM_HOLE_ADJ_TAG_ID);
@@ -63,10 +64,10 @@ std::map<std::string, QVariant> RestoreHackOrderDataFilter::applyFilter(
 	//foreach visibile mesh
 	std::unordered_map<int, std::pair<int, MeshModel*>> mesh_tags;
 	{
-		auto regex = QRegularExpression(QString("Piece\\s+#(\\d+);\\s+Tag\\s+(\\d+)"));
+		auto regex = QRegularExpression(QString("Part\\s+#(\\d+);\\s+Tag\\s+(\\d+)"));
 		for (auto& mesh_mm : document.meshIterator())
 		{
-			if (!mesh_mm.isVisible() || mesh_mm.id() == original_mm->id())
+			if (mesh_mm.id() == original_mm->id() || !mesh_mm.label().contains(original_name))
 				continue;
 
 			//get the mesh tag from the mesh label
@@ -107,13 +108,13 @@ std::map<std::string, QVariant> RestoreHackOrderDataFilter::applyFilter(
 		//update the label with the hack order and parent numbers
 		auto hack_order = tag_to_hack_order[tag];
 		if (parent_tag != tag) {
-			mesh_mm->setLabel(QString("Piece #%1; Hack %2; Parent: #%3")
-				.arg(piece_id).arg(tag_to_hack_order[tag]).arg(mesh_tags[parent_tag].first)
+			mesh_mm->setLabel(QString("%4 - Branch #%1; Hack %2; Parent: #%3")
+				.arg(piece_id).arg(tag_to_hack_order[tag]).arg(mesh_tags[parent_tag].first).arg(original_name)
 			);
 		}
 		else {
-			mesh_mm->setLabel(QString("Piece #%1; Hack %2")
-				.arg(piece_id).arg(tag_to_hack_order[tag])
+			mesh_mm->setLabel(QString("%3 - Branch #%1; Hack %2")
+				.arg(piece_id).arg(tag_to_hack_order[tag]).arg(original_name)
 			);
 		}
 

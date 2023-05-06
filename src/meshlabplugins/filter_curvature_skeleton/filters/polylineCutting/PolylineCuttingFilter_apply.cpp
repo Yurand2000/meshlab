@@ -31,6 +31,7 @@
 #include <vcg/complex/algorithms/hole.h>
 #include <vcg/complex/algorithms/isotropic_remeshing.h>
 #include <vcg/space/fitting3.h>
+#include <qregularexpression.h>
 
 namespace curvatureSkeleton
 {
@@ -39,7 +40,7 @@ static Scalarm getPolylineLenght(std::vector<vcg::Point3<Scalarm>> const& outlin
 static void movePolylineToFittingPlane(PolylineMesh& polyline, vcg::Plane3<Scalarm> const& plane, Scalarm weight);
 static void movePolylinesApart(PolylineMesh& lpolyline, PolylineMesh const& rpolyline, Scalarm min_distance, Scalarm weight);
 static Scalarm getMinVVDistance(PolylineMesh const& mesh0, PolylineMesh const& mesh1);
-static void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght, bool refine_fast);
+static void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght);
 
 std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	FilterPlugin const&      plugin,
@@ -51,11 +52,11 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	//parameters
 	auto* original_mm = document.mm();
 	auto& original = original_mm->cm;
+	auto  original_name = original_mm->label().remove( QRegularExpression("\\.\\w+$") );
 	auto facetag_id = params.getString(PARAM_FACE_TAG_ID);
 	auto generate_polylines = params.getBool(PARAM_GENERATE_POLYLINES);
 	auto refine_polylines = params.getBool(PARAM_DO_REFINE_POLYLINES);
 	auto close_holes = params.getBool(PARAM_CLOSE_HOLES);
-	auto refine_holes_fast = params.getBool(PARAM_REFINE_HOLE_FAST);
 	auto holes_adj_facetag_id = params.getString(PARAM_HOLE_ADJ_TAG_ID);
 
 	//refine parameters
@@ -65,7 +66,9 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	auto fit_plane_w = params.getDynamicFloat(PARAM_REFINE_FIT_PLANE_WEIGTH);
 	auto separation_w = params.getDynamicFloat(PARAM_REFINE_SEPARATION_WEIGHT);
 	auto min_distance = params.getAbsPerc(PARAM_REFINE_SEPARATION_MIN_DISTANCE);
-	auto refine_hole_lenght = params.getAbsPerc(PARAM_REFINE_HOLE_EDGE_LENGHT);
+
+	if (original.face.empty())
+		throw MLException("The given mesh has no faces.");
 
 	vcg::tri::SelectionStack<CMeshO> selection(original);
 	selection.push();
@@ -508,7 +511,20 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 						}
 
 						//close hole on the first piece
-						closeHoles(part0, refine_hole_lenght, refine_holes_fast);
+						Scalarm refine_hole_lenght = 0;
+						for (auto& face : original.face)
+						{
+							if (face.IsD()) continue;
+							refine_hole_lenght +=
+								vcg::Distance(face.V(0)->cP(), face.V(1)->cP()) +
+								vcg::Distance(face.V(1)->cP(), face.V(2)->cP()) +
+								vcg::Distance(face.V(2)->cP(), face.V(0)->cP());
+						}
+
+						if (mesh.FN() > 0)
+							refine_hole_lenght /= (mesh.FN() * 3);
+
+						closeHoles(part0, refine_hole_lenght);
 
 						//duplicate the cap onto the other mesh and merge close vertices
 						vcg::tri::UpdateSelection<PolylineMesh>::VertexFromFaceLoose(part0);
@@ -587,7 +603,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 				}
 			}
 		}
-		piece_mm->setLabel(QString("Piece #%1; Tag %2").arg(i).arg(max_tag));
+		piece_mm->setLabel(QString("%3 - Part #%1; Tag %2").arg(i).arg(max_tag).arg(original_name));
 		piece_mm->updateBoxAndNormals();
 	}
 
@@ -640,7 +656,7 @@ Scalarm getMinVVDistance(PolylineMesh const& mesh0, PolylineMesh const& mesh1)
 	return min_dist;
 }
 
-void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght, bool refine_fast)
+void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght)
 {
 	//code adapted from meshfilter.cpp
 
@@ -686,22 +702,16 @@ void closeHoles(PolylineMesh& mesh, Scalarm refine_lenght, bool refine_fast)
 	params.projectFlag = false;
 	params.surfDistCheck = false;
 
-	if (refine_fast) {
-		params.SetTargetLen(refine_lenght); params.iter = 5;
+	for (int k = 0; k < 3; k++)
+	{
+		params.SetTargetLen(refine_lenght * 3.0); params.iter = 5;
 		vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
-	}
-	else {
-		for (int k = 0; k < 3; k++)
-		{
-			params.SetTargetLen(refine_lenght * 3.0); params.iter = 5;
-			vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
 
-			params.SetTargetLen(refine_lenght / 3.0); params.iter = 3;
-			vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
+		params.SetTargetLen(refine_lenght / 3.0); params.iter = 3;
+		vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
 
-			params.SetTargetLen(refine_lenght); params.iter = 2;
-			vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
-		}
+		params.SetTargetLen(refine_lenght); params.iter = 2;
+		vcg::tri::IsotropicRemeshing<PolylineMesh>::Do(mesh, params);
 	}
 }
 
