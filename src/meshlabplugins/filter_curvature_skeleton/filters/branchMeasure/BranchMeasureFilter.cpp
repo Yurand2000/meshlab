@@ -26,10 +26,10 @@
 
 #define F_FILTERID    FilterCurvatureSkeleton::BRANCH_MEASURE
 #define F_DISPLAYNAME "Measure Branches"
-#define F_DESCRIPTION ""
+#define F_DESCRIPTION "Compute measures on segmented parts using skeletons"
 #define F_CATEGORY    FilterPlugin::Other
 #define F_PYTHON_NAME "branches_measure"
-#define F_ARITY       FilterPlugin::FilterArity::FIXED
+#define F_ARITY       FilterPlugin::FilterArity::VARIABLE
 #define F_PRECONDS    MeshModel::MM_NONE
 #define F_POSTCONDS   MeshModel::MM_NONE
 

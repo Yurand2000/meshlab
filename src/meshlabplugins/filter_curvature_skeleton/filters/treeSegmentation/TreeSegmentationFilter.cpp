@@ -25,10 +25,10 @@
 #include "filter_curvature_skeleton.h"
 
 #define F_FILTERID    FilterCurvatureSkeleton::TREE_SEGMENTATION
-#define F_DISPLAYNAME "Tree Segmentation"
-#define F_DESCRIPTION ""
+#define F_DISPLAYNAME "Mesh Segmentation"
+#define F_DESCRIPTION "Given a mesh and its skeleton, this filter segments the mesh by assigning faces to skeleton branches, according to the Hack's stream ordering."
 #define F_CATEGORY    FilterPlugin::Other
-#define F_PYTHON_NAME "tree_segmentation"
+#define F_PYTHON_NAME "mesh_segmentation"
 #define F_ARITY       FilterPlugin::FilterArity::FIXED
 #define F_PRECONDS    MeshModel::MM_NONE
 #define F_POSTCONDS   MeshModel::MM_FACECOLOR

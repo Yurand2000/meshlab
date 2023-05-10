@@ -26,7 +26,7 @@
 
 #define F_FILTERID    FilterCurvatureSkeleton::PRUNE_SKELETON
 #define F_DISPLAYNAME "Prune Skeleton"
-#define F_DESCRIPTION ""
+#define F_DESCRIPTION "Prune a given skeleton by removing either shortest or manually selected branches."
 #define F_CATEGORY    FilterPlugin::Other
 #define F_PYTHON_NAME "prune_skeleton"
 #define F_ARITY       FilterPlugin::FilterArity::FIXED

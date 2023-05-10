@@ -23,12 +23,12 @@
 
 #include "BranchMeasureFilter.h"
 
-#define MEASURE_ONLY_SELECTED_DISPLAYNAME "Measure Only Selected"
+#define MEASURE_ONLY_SELECTED_DISPLAYNAME "Measure selected mesh only"
 #define MEASURE_ONLY_SELECTED_DESCRIPTION "Measure only the selected mesh instead of all the visible meshes."
-#define GENERATE_SKELETONS_DISPLAYNAME "Generate Skeletons"
-#define GENERATE_SKELETONS_DESCRIPTION "Save generated skeleton meshes."
-#define SAVE_ON_FILE_DISPLAYNAME "Save measures on file"
-#define SAVE_ON_FILE_DESCRIPTION "Save generated measures on file."
+#define GENERATE_SKELETONS_DISPLAYNAME "Generate skeletons"
+#define GENERATE_SKELETONS_DESCRIPTION "Save skeletons as meshes."
+#define SAVE_ON_FILE_DISPLAYNAME "Save measures to .csv file"
+#define SAVE_ON_FILE_DESCRIPTION ""
 
 namespace curvatureSkeleton
 {

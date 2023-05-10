@@ -29,7 +29,7 @@
 #define F_DESCRIPTION ""
 #define F_CATEGORY    FilterPlugin::Other
 #define F_PYTHON_NAME "restore_hack_order_data"
-#define F_ARITY       FilterPlugin::FilterArity::FIXED
+#define F_ARITY       FilterPlugin::FilterArity::VARIABLE
 #define F_PRECONDS    MeshModel::MM_NONE
 #define F_POSTCONDS   MeshModel::MM_VERTCOLOR
 

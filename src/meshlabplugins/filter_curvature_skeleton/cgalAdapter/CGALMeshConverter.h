@@ -50,7 +50,6 @@ public:
 	static Mesh toCGALMesh(MYMESH const& mesh)
 	{
 		Mesh new_mesh;
-		new_mesh.set_recycle_garbage(false);
 
 		//add vertices
 		for (auto& vert : mesh.vert)
@@ -78,7 +77,6 @@ public:
 			);
 		}
 
-		new_mesh.set_recycle_garbage(true);
 		return new_mesh;
 	}
 

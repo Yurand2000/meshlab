@@ -26,7 +26,7 @@
 
 #define F_FILTERID    FilterCurvatureSkeleton::POLYLINE_CUTTING
 #define F_DISPLAYNAME "Polyline Cutting"
-#define F_DESCRIPTION ""
+#define F_DESCRIPTION "Cut a segmented mesh using face labels"
 #define F_CATEGORY    FilterPlugin::Other
 #define F_PYTHON_NAME "polyline_cutting"
 #define F_ARITY       FilterPlugin::FilterArity::FIXED

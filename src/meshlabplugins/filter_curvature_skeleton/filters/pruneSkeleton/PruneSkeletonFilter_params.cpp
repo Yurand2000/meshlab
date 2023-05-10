@@ -25,17 +25,19 @@
 #include "common/Utils.h"
 
 // displayed strings
-#define MESH_CATEGORY "(0) Meshes"
-#define ORIGINAL_MESH_DISPLAYNAME "Original Mesh"
-#define ORIGINAL_MESH_DESCRIPTION "The original mesh which has generated the <b>Skeleton</b> mesh"
-#define SKELETON_MESH_DISPLAYNAME "Skeleton Mesh"
-#define SKELETON_MESH_DESCRIPTION "The skeleton mesh."
+#define INPUT_CATEGORY "(0) Input"
+#define ORIGINAL_MESH_DISPLAYNAME "Mesh"
+#define ORIGINAL_MESH_DESCRIPTION ""
+#define SKELETON_MESH_DISPLAYNAME "Skeleton"
+#define SKELETON_MESH_DESCRIPTION ""
 
-#define PARAMETER_CATEGORY "(1) Pruning"
-#define MIN_EDGE_LENGHT_DISPLAYNAME "Minimum branch lenght"
-#define MIN_EDGE_LENGHT_DESCRIPTION "Minimum branch lenght"
-#define REMOVE_SELECTED_LEAFS_DISPLAYNAME "Remove selected branches"
-#define REMOVE_SELECTED_LEAFS_DESCRIPTION "Remove selected branches"
+#define LENGTH_PRUNING_CATEGORY "(1) Pruning by length"
+#define MIN_EDGE_LENGHT_DISPLAYNAME "Branch length"
+#define MIN_EDGE_LENGHT_DESCRIPTION "Remove branches whose length is below threshold (absolute length and percentage of bbox diagonal)."
+
+#define SELECTION_PRUNING_CATEGORY "(2) Pruning by selection"
+#define REMOVE_SELECTED_LEAFS_DISPLAYNAME "Prune selected branches"
+#define REMOVE_SELECTED_LEAFS_DESCRIPTION ""
 
 namespace curvatureSkeleton
 {
@@ -59,14 +61,14 @@ RichParameterList PruneSkeletonFilter::initParameterList(FilterPlugin const& p, 
 		average_edge_lenght /= skeleton->cm.EN();
 	}
 
-	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, mesh_index, &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, MESH_CATEGORY));
-	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, skeleton_index, &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, MESH_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, mesh_index, &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, INPUT_CATEGORY));
+	parlst.addParam(RichMesh(PARAM_SKELETON_MESH, skeleton_index, &m, SKELETON_MESH_DISPLAYNAME, SKELETON_MESH_DESCRIPTION, false, INPUT_CATEGORY));
 
 	if (skeleton_diagonal >= 0)
-		parlst.addParam(RichPercentage(PARAM_MIN_EDGE_LENGHT, 3.f * average_edge_lenght, 0.f, skeleton_diagonal, MIN_EDGE_LENGHT_DISPLAYNAME, MIN_EDGE_LENGHT_DESCRIPTION, false, PARAMETER_CATEGORY));
+		parlst.addParam(RichPercentage(PARAM_MIN_EDGE_LENGHT, 3.f * average_edge_lenght, 0.f, skeleton_diagonal, MIN_EDGE_LENGHT_DISPLAYNAME, MIN_EDGE_LENGHT_DESCRIPTION, false, LENGTH_PRUNING_CATEGORY));
 	else
-		parlst.addParam(RichFloat(PARAM_MIN_EDGE_LENGHT, 0.0, MIN_EDGE_LENGHT_DISPLAYNAME, MIN_EDGE_LENGHT_DESCRIPTION, false, PARAMETER_CATEGORY));
-	parlst.addParam(RichBool(PARAM_REMOVE_SELECTED_LEAFS, is_any_vertex_selected, REMOVE_SELECTED_LEAFS_DISPLAYNAME, REMOVE_SELECTED_LEAFS_DESCRIPTION, false, PARAMETER_CATEGORY));
+		parlst.addParam(RichFloat(PARAM_MIN_EDGE_LENGHT, 0.0, MIN_EDGE_LENGHT_DISPLAYNAME, MIN_EDGE_LENGHT_DESCRIPTION, false, LENGTH_PRUNING_CATEGORY));
+	parlst.addParam(RichBool(PARAM_REMOVE_SELECTED_LEAFS, is_any_vertex_selected, REMOVE_SELECTED_LEAFS_DISPLAYNAME, REMOVE_SELECTED_LEAFS_DESCRIPTION, false, SELECTION_PRUNING_CATEGORY));
 
 	return parlst;
 }
