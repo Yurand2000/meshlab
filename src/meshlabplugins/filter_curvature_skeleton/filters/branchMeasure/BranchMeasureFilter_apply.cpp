@@ -73,7 +73,7 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 
 	QString output_data;
 	QTextStream output_stream(&output_data);
-	output_stream << "Mesh Name" << SEPARATOR << "Curved Lenght" << SEPARATOR << "Linear Lenght" << SEPARATOR << "Interface Lenght" << SEPARATOR
+	output_stream << "Mesh Name" << SEPARATOR << "Curved Lenght" << SEPARATOR << "Linear Lenght" << SEPARATOR
 		<< "Border Lenght" << SEPARATOR << "Surface Area" << SEPARATOR << "Volume" << Qt::endl;
 
 	//foreach mesh
@@ -94,7 +94,14 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		params.skeletonizer_params.quality_speed_tradeoff = 40;
 		params.save_mesoskeletons = false;
 
-		auto skeleton = AlgorithmSkeletonize(vcg::DummyCallBackPos, plugin).skeletonize(clone_mesh, params, false);
+		CMeshO skeleton;
+		try {
+			skeleton = AlgorithmSkeletonize(vcg::DummyCallBackPos, plugin).skeletonize(clone_mesh, params, false);
+		}
+		catch (MLException e) {
+			plugin.log( QString("Error when measuring mesh %1: %2").arg(mesh_label).arg(e.what()).toStdString() );
+			continue;
+		}
 
 		//extend skeleton
 		Scalarm cone_extension_angle = 25.f;
@@ -113,14 +120,12 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 
 		Scalarm longest_curved_path = 0.0;
 		Scalarm longest_linear_path = 0.0;
-		Scalarm longest_interface_lenght = 0.0;
 		Scalarm longest_border_lenght = 0.0;
 		for (auto& vert : c_skeleton.vert)
 		{
 			if (!vert.IsD() && vcg::edge::VEDegree<SkeletonEdge>(&vert) == 1) {
 				longest_curved_path = std::max(longest_curved_path, computeLongestCurvedPath(c_skeleton, &vert));
 				longest_linear_path = std::max(longest_linear_path, computeLongestLinearPath(c_skeleton, &vert));
-				longest_interface_lenght = std::max(longest_interface_lenght, computeInterfaceLinearLenght(mesh, &vert));
 				longest_border_lenght = std::max(longest_border_lenght, computeBorderLenght(mesh, &vert));
 			}
 		}
@@ -130,14 +135,6 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 
 		//Log Linear Lenght
 		plugin.log(QString("%2 - Linear Lenght: %1").arg(longest_linear_path, 0, 'f', 3).arg(mesh_label).toStdString());
-
-		//Log Lenght from Interface
-		if (longest_interface_lenght > 0) {
-			plugin.log( QString("%2 - Interface Lenght: %1").arg(longest_interface_lenght, 0, 'f', 3).arg(mesh_label).toStdString() );
-		}
-		else {
-			longest_interface_lenght = NAN;
-		}
 
 		//Log Lenght from Border
 		if (longest_border_lenght > 0) {
@@ -165,7 +162,7 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 
 		//save per mesh data on file
 		output_stream << mesh_label << SEPARATOR << longest_curved_path << SEPARATOR << longest_linear_path << SEPARATOR
-			<< longest_interface_lenght << SEPARATOR << longest_border_lenght << SEPARATOR << mesh_area << SEPARATOR << mesh_volume << Qt::endl;
+			<< longest_border_lenght << SEPARATOR << mesh_area << SEPARATOR << mesh_volume << Qt::endl;
 
 	}
 

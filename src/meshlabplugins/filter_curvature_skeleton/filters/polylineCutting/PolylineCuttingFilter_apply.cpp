@@ -67,6 +67,19 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 	auto separation_w = params.getDynamicFloat(PARAM_REFINE_SEPARATION_WEIGHT);
 	auto min_distance = params.getAbsPerc(PARAM_REFINE_SEPARATION_MIN_DISTANCE);
 
+	Scalarm refine_hole_lenght = 0;
+	for (auto& face : original.face)
+	{
+		if (face.IsD()) continue;
+		refine_hole_lenght +=
+			vcg::Distance(face.V(0)->cP(), face.V(1)->cP()) +
+			vcg::Distance(face.V(1)->cP(), face.V(2)->cP()) +
+			vcg::Distance(face.V(2)->cP(), face.V(0)->cP());
+	}
+
+	if (original.FN() > 0)
+		refine_hole_lenght /= (original.FN() * 3);
+
 	if (original.face.empty())
 		throw MLException("The given mesh has no faces.");
 
@@ -511,19 +524,6 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 						}
 
 						//close hole on the first piece
-						Scalarm refine_hole_lenght = 0;
-						for (auto& face : original.face)
-						{
-							if (face.IsD()) continue;
-							refine_hole_lenght +=
-								vcg::Distance(face.V(0)->cP(), face.V(1)->cP()) +
-								vcg::Distance(face.V(1)->cP(), face.V(2)->cP()) +
-								vcg::Distance(face.V(2)->cP(), face.V(0)->cP());
-						}
-
-						if (mesh.FN() > 0)
-							refine_hole_lenght /= (mesh.FN() * 3);
-
 						closeHoles(part0, refine_hole_lenght);
 
 						//duplicate the cap onto the other mesh and merge close vertices
