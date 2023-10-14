@@ -27,9 +27,11 @@
 
 #include <vector>
 #include <unordered_set>
+#include <limits>
 #include <common/plugins/interfaces/filter_plugin.h>
 #include <vcg/complex/complex.h>
 #include <vcg/complex/append.h>
+#include <vcg/complex/algorithms/intersection.h>
 
 #define ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME "skeleton_index"
 
@@ -195,9 +197,34 @@ void detail::extendBranch(SkeletonLeaf const& leaf, CMeshO const& mesh, CMeshO& 
 {
 	auto leaf_vertices = getMeshLeafVertices(leaf.branch_indices, mesh);
 	bool valid_new_point = false;
-	Point new_point;
-	if ( computeBranchExtension(skeleton.vert[leaf.leaf_index].cP(), leaf_vertices, leaf.normal, angle, new_point) )
-		skeleton.vert[leaf.leaf_index].P() = new_point;
+
+	Point start_point = skeleton.vert[leaf.leaf_index].P(); Normal normal = leaf.normal;
+	Point new_point; bool extendingSuccessful; Scalarm delta; size_t iter = 0;
+	const Scalarm min_delta = mesh.bbox.SquaredDiag() * Scalarm(0.01 * 0.01);
+	const size_t max_iter = 10;
+
+	//iteratively approach the mesh
+	do {
+		extendingSuccessful = computeBranchExtension(skeleton.vert[leaf.leaf_index].cP(), leaf_vertices, normal, angle, new_point);
+		if (extendingSuccessful) {
+			auto old_point = skeleton.vert[leaf.leaf_index].P();
+			delta = (new_point - old_point).SquaredNorm();
+			normal = (new_point - old_point).normalized();
+			skeleton.vert[leaf.leaf_index].P() = new_point;
+		}
+		iter++;
+	}
+	while (extendingSuccessful && delta > min_delta && iter < max_iter);
+
+	//try to raycast the new point onto the surface
+	if (extendingSuccessful) {
+		auto new_normal = (new_point - start_point).normalized();
+
+		Point raycast_point;
+		if ( vcg::IntersectionRayMesh(mesh, vcg::Ray3<Scalarm>(start_point, new_normal), raycast_point) ) {
+			skeleton.vert[leaf.leaf_index].P() = raycast_point;
+		}
+	}
 }
 
 std::vector<CVertexO const*> detail::getMeshLeafVertices(detail::SkeletonLeaf::BranchIndices branch_vertices, CMeshO const& mesh)
