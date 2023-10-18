@@ -38,7 +38,7 @@ AlgorithmSkeletonize::AlgorithmSkeletonize(
 		logger(logger)
 { }
 
-CMeshO AlgorithmSkeletonize::skeletonize(CMeshO& mesh, Parameters parameters, bool log_output, NewMeshVector* intermediate_meshes)
+CMeshO AlgorithmSkeletonize::skeletonize(CMeshO& mesh, Parameters parameters, bool log_output)
 {
 	checkMesh(mesh);
 
@@ -46,7 +46,7 @@ CMeshO AlgorithmSkeletonize::skeletonize(CMeshO& mesh, Parameters parameters, bo
 		Converter::toCGALMesh(mesh),
 		parameters.skeletonizer_params
 	};
-	int total_iterations = skeletonize(skeletonizer, parameters, intermediate_meshes);
+	int total_iterations = skeletonize(skeletonizer, parameters);
 	auto skeleton = generateSkeleton(mesh, skeletonizer);
 
 	if(log_output)
@@ -69,7 +69,7 @@ void AlgorithmSkeletonize::checkMesh(CMeshO& mesh) const
 	}
 }
 
-int AlgorithmSkeletonize::skeletonize(Skeletonizer& skeletonizer, Parameters parameters, NewMeshVector* intermediate_meshes)
+int AlgorithmSkeletonize::skeletonize(Skeletonizer& skeletonizer, Parameters parameters)
 {
 	int max_iters = parameters.max_iterations;
 	for (int i = 1; i <= max_iters; i++)
@@ -79,20 +79,10 @@ int AlgorithmSkeletonize::skeletonize(Skeletonizer& skeletonizer, Parameters par
 		callback_pos( curr_percent, curr_string.c_str() );
 
 		skeletonizer.computeStep();
-
-		if (intermediate_meshes != nullptr && parameters.save_mesoskeletons)
-			generateIntermediateMesh(skeletonizer, i, intermediate_meshes);
-
 		if (skeletonizer.hasConverged())
 			return i;
 	}
 	return max_iters;
-}
-
-void AlgorithmSkeletonize::generateIntermediateMesh(Skeletonizer& skeletonizer, int iteration_num, NewMeshVector* intermediate_meshes)
-{
-	auto mesoSkeleton = Converter::CGALMesoSkeletonToMesh( skeletonizer.getMesoSkeleton() );
-	intermediate_meshes->push_back(mesoSkeleton);
 }
 
 CMeshO AlgorithmSkeletonize::generateSkeleton(CMeshO& mesh, Skeletonizer& skeletonizer)

@@ -53,9 +53,8 @@ std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 
 		//generate skeleton
 		auto params = getParameters(rich_params);
-		auto intermediate_meshes = std::vector<CMeshO>();
 		auto skeleton = AlgorithmSkeletonize(*callback, plugin)
-			.skeletonize(selected_mesh, params, true, &intermediate_meshes);
+			.skeletonize(selected_mesh, params, true);
 
 		document.mm()->setMeshModified(true);
 
@@ -64,16 +63,6 @@ std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 		vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(skeleton_mesh->cm, skeleton);
 		skeleton_mesh->clearDataMask(MeshModel::MM_VERTQUALITY);
 		skeleton_mesh->updateBoxAndNormals();
-
-		//save intermediate meshes
-		for (int i = 0; i < intermediate_meshes.size(); i++)
-		{
-			auto& intermediate_mesh = intermediate_meshes[i];
-			auto mesh = document.addNewMesh(QString(), QString("MesoSkeleton #%2 - %1").arg(mesh_name).arg(i + 1), false);
-			vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(mesh->cm, intermediate_mesh);
-			mesh->clearDataMask(MeshModel::MM_VERTQUALITY);
-			mesh->updateBoxAndNormals();
-		}
 
 		return {};
 	}
@@ -120,7 +109,6 @@ static AlgorithmSkeletonize::Parameters getParameters(RichParameterList const& r
 	params.skeletonizer_params   = getSkeletonizerParameters(rich_params);
 
 	params.max_iterations        = rich_params.getInt(PARAM_MAX_ITERATIONS);
-	params.save_mesoskeletons    = rich_params.getBool(PARAM_GENERATE_INTERMEDIATE_MESHES);
 
 	return params;
 }

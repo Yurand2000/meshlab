@@ -43,9 +43,6 @@ public:
 	typedef CGAL::SM_Vertex_index           VertexIndex;
 
 	typedef CGAL::Mean_curvature_flow_skeletonization<Mesh>::Skeleton      Skeleton;
-	typedef CGAL::Mean_curvature_flow_skeletonization<Mesh>::Meso_skeleton MesoSkeleton;
-
-
 
 	static Mesh toCGALMesh(MYMESH const& mesh)
 	{
@@ -79,60 +76,6 @@ public:
 
 		return new_mesh;
 	}
-
-
-
-	static MYMESH CGALMesoSkeletonToMesh(MesoSkeleton const& meso_skeleton)
-	{
-		using Allocator = vcg::tri::Allocator<MYMESH>;
-		using VertexIndices = std::unordered_map<int, int>;
-
-		MYMESH        new_mesh = {};
-		VertexIndices indices  = {};
-
-		//add vertices
-		int index = 0;
-		for (auto it = meso_skeleton.vertices_begin(); it != meso_skeleton.vertices_end(); it++)
-		{
-			auto const& vertex = it->point();
-
-			vcg::Point3<Scalarm> new_vertex = { vertex.x(), vertex.y(), vertex.z() };
-			Allocator::AddVertex(new_mesh, new_vertex);
-
-			indices.emplace(it->id(), index);
-			index++;
-		}
-
-		//add edges
-		for (auto it = meso_skeleton.edges_begin(); it != meso_skeleton.edges_end(); it++)
-		{
-			auto index1 = indices.at( it->vertex()->id() );
-			auto index2 = indices.at( it->opposite()->vertex()->id() );
-
-			Allocator::AddEdge(new_mesh, index1, index2);
-		}
-
-		for (auto it = meso_skeleton.facets_begin(); it != meso_skeleton.facets_end(); it++)
-		{
-			if (it->is_triangle())
-			{
-				auto vertex_it = it->facet_begin();
-				auto index1    = indices.at(vertex_it->vertex()->id()); vertex_it++;
-				auto index2    = indices.at(vertex_it->vertex()->id()); vertex_it++;
-				auto index3    = indices.at(vertex_it->vertex()->id());
-
-				Allocator::AddFace(new_mesh, index1, index2, index3);
-			}
-			else
-			{
-				throw std::runtime_error("non triangle face needs to be splitted, not implemented!");
-			}
-		}
-
-		return new_mesh;
-	}
-
-
 
 	static MYMESH CGALSkeletonToMesh(Skeleton const& skeleton)
 	{

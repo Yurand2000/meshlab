@@ -45,22 +45,17 @@ public:
 		bool                     save_mesoskeletons;
 	};
 
-private:
-	typedef std::vector<CMeshO> NewMeshVector;
-
 public:
 	AlgorithmSkeletonize(
 		vcg::CallBackPos&		   callback_pos,
 		MeshLabPluginLogger const& logger);
 
-	CMeshO skeletonize(CMeshO& mesh, Parameters parameters, bool log_output = true, NewMeshVector* intermediate_meshes = nullptr);
+	CMeshO skeletonize(CMeshO& mesh, Parameters parameters, bool log_output = true);
 
 private:
 	void checkMesh(CMeshO& mesh) const;
-	int  skeletonize(Skeletonizer& skeletonizer, Parameters parameters, NewMeshVector* intermediate_meshes);
+	int  skeletonize(Skeletonizer& skeletonizer, Parameters parameters);
 	CMeshO generateSkeleton(CMeshO& mesh, Skeletonizer& skeletonizer);
-
-	void generateIntermediateMesh(Skeletonizer& skeletonizer, int current_iteration, NewMeshVector* intermediate_meshes);
 
 	void saveMeshToSkeletonIndex(CMeshO& mesh, MeshToSkeleton const& mesh_to_skeleton);
 	void saveMeshToSkeletonDistance(

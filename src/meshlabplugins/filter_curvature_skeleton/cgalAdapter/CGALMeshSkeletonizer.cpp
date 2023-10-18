@@ -80,11 +80,6 @@ bool CGALMeshSkeletonizer::hasConverged()
 	return area_ratio < delta_area_threshold;
 }
 
-CGALMeshSkeletonizer::MesoSkeleton CGALMeshSkeletonizer::getMesoSkeleton()
-{
-	return skeletonizer.meso_skeleton();
-}
-
 CGALMeshSkeletonizer::Skeleton CGALMeshSkeletonizer::getSkeleton()
 {
 	generateSkeleton();

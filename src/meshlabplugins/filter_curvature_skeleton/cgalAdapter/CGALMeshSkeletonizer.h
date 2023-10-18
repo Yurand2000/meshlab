@@ -44,7 +44,6 @@ public:
 
 	typedef CGAL::Mean_curvature_flow_skeletonization<Mesh> Skeletonizer;
 	typedef Skeletonizer::Skeleton                          Skeleton;
-	typedef Skeletonizer::Meso_skeleton                     MesoSkeleton;
 	typedef std::unordered_map<int, int> MeshToSkeletonVertices;
 
 public:
@@ -56,7 +55,6 @@ public:
 
 	void computeStep();
 	bool hasConverged();
-	MesoSkeleton getMesoSkeleton();
 	Skeleton getSkeleton();
 	MeshToSkeletonVertices getSkeletonVertexAssociations();
 
