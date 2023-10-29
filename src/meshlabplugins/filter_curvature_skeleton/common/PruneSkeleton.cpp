@@ -30,14 +30,15 @@ namespace curvatureSkeleton
 {
 using Branch = std::tuple<std::vector<SkeletonVertex*>, std::vector<SkeletonEdge*>, Scalarm>;
 static std::vector<Branch> computeBranches(SkeletonMesh& skeleton);
+
+static void removeBranch(SkeletonMesh& skeleton, Branch const& branch_to_prune, std::unordered_map<int, int>& indices_remap);
+static void removeBranchNoRemap(SkeletonMesh& skeleton, Branch const& branch_to_prune);
 static bool tryGetBranchToPrune(std::vector<Branch> const& branches, Scalarm min_branch_lenght, bool remove_selected, int& out_prune_index);
 static void findLeaf(SkeletonMesh& skeleton, SkeletonVertex* leaf_vertex, std::vector<SkeletonVertex*>& branch_vertices, std::vector<SkeletonEdge*>& branch_edges);
 
 void PruneSkeleton::pruneSkeleton(CMeshO& original, SkeletonMesh& skeleton, Scalarm min_branch_length, bool remove_selected) {
-	vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(skeleton);
 	while (true)
 	{
-		//update vertex-edge adjacency
 		vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(skeleton);
 
 		//add map to vertex index as special attribute (needed when remapping the vertices)
@@ -45,7 +46,6 @@ void PruneSkeleton::pruneSkeleton(CMeshO& original, SkeletonMesh& skeleton, Scal
 		for (auto& vert : skeleton.vert)
 			map[vert] = vert.Index();
 
-		//compute branches and their lenghts
 		auto branches = computeBranches(skeleton);
 
 		int branch_to_prune;
@@ -57,28 +57,9 @@ void PruneSkeleton::pruneSkeleton(CMeshO& original, SkeletonMesh& skeleton, Scal
 		//remove edges and vertices, remap indices
 		std::unordered_map<int, int> indices_remap;
 		for (auto& vert : skeleton.vert)
-			indices_remap.emplace(map[vert], map[vert]);
+			indices_remap.emplace(vert.Index(), vert.Index());
 
-		{
-			vcg::tri::UnMarkAll(skeleton);
-			std::vector<SkeletonEdge*> star;
-
-			auto& vertices = std::get<0>(branches[branch_to_prune]);
-			auto& edges = std::get<1>(branches[branch_to_prune]);
-
-			auto leaf_end_index = map[vertices.back()];
-			for (int i = 0; i < vertices.size() - 1; i++)
-			{
-				auto* vert = vertices[i];
-				indices_remap[map[vert]] = leaf_end_index;
-				vcg::tri::Allocator<SkeletonMesh>::DeleteVertex(skeleton, *vert);
-			}
-
-			for (auto* edge : edges)
-				vcg::tri::Allocator<SkeletonMesh>::DeleteEdge(skeleton, *edge);
-		}
-
-		//compact vector
+		removeBranch(skeleton, branches[branch_to_prune], indices_remap);
 		vcg::tri::Allocator<SkeletonMesh>::CompactEveryVector(skeleton);
 
 		//remap indices to new vertices indices
@@ -96,6 +77,52 @@ void PruneSkeleton::pruneSkeleton(CMeshO& original, SkeletonMesh& skeleton, Scal
 			mesh_to_skeleton[vert] = remap_to_compacted_vector;
 		}
 	}
+
+	vcg::tri::Allocator<SkeletonMesh>::DeletePerVertexAttribute(skeleton, ATTRIBUTE_ORIGINAL_INDEX);
+}
+
+void PruneSkeleton::pruneSkeletonNoRemap(SkeletonMesh& skeleton, Scalarm min_branch_length, bool remove_selected) {
+	while (true)
+	{
+		vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(skeleton);
+		auto branches = computeBranches(skeleton);
+
+		int branch_to_prune;
+		//select leafs by lenght (percentile) or by manual selection and find the shortest leaf to be pruned
+		if (!tryGetBranchToPrune(branches, min_branch_length, remove_selected, branch_to_prune)) {
+			break;
+		}
+
+		removeBranchNoRemap(skeleton, branches[branch_to_prune]);
+		vcg::tri::Allocator<SkeletonMesh>::CompactEveryVector(skeleton);
+	}
+}
+
+void removeBranch(SkeletonMesh& skeleton, Branch const& branch_to_prune, std::unordered_map<int, int>& indices_remap) {
+	auto& vertices = std::get<0>(branch_to_prune);
+	auto& edges = std::get<1>(branch_to_prune);
+
+	auto leaf_end_index = vertices.back()->Index();
+	for (int i = 0; i < vertices.size() - 1; i++)
+	{
+		auto* vert = vertices[i];
+		indices_remap[vert->Index()] = leaf_end_index;
+		vcg::tri::Allocator<SkeletonMesh>::DeleteVertex(skeleton, *vert);
+	}
+
+	for (auto* edge : edges)
+		vcg::tri::Allocator<SkeletonMesh>::DeleteEdge(skeleton, *edge);
+}
+
+void removeBranchNoRemap(SkeletonMesh& skeleton, Branch const& branch_to_prune) {
+	auto& vertices = std::get<0>(branch_to_prune);
+	auto& edges = std::get<1>(branch_to_prune);
+
+	for (auto* vert : vertices)
+		vcg::tri::Allocator<SkeletonMesh>::DeleteVertex(skeleton, *vert);
+
+	for (auto* edge : edges)
+		vcg::tri::Allocator<SkeletonMesh>::DeleteEdge(skeleton, *edge);
 }
 
 std::vector<Branch> computeBranches(SkeletonMesh& skeleton) {

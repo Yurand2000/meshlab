@@ -34,6 +34,7 @@ namespace curvatureSkeleton
 	{
 	public:
 		static void pruneSkeleton(CMeshO& mesh, SkeletonMesh& skeleton, Scalarm min_branch_length, bool remove_selected);
+		static void pruneSkeletonNoRemap(SkeletonMesh& skeleton, Scalarm min_branch_length, bool remove_selected);
 
 	private:
 		~PruneSkeleton() = delete;

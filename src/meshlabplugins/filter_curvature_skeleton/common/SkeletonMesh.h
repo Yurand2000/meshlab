@@ -72,13 +72,39 @@ namespace curvatureSkeleton
 
 		//SkeletonMesh(const SkeletonMesh& oth);
 		SkeletonMesh(SkeletonMesh&& other) : SkeletonMeshBase() {
-			std::swap(*this, other);
+			swap(*this, other);
 		}
 
 		SkeletonMesh& operator=(SkeletonMesh&& other) {
 			if (&other != this)
-				std::swap(*this, other);
+				swap(*this, other);
 			return *this;
+		}
+
+	private:
+		inline void swap(SkeletonMesh& m1, SkeletonMesh& m2)
+		{
+			std::swap(m1.vn, m2.vn);
+			std::swap(m1.vert, m2.vert);
+			std::swap(m1.en, m2.en);
+			std::swap(m1.edge, m2.edge);
+			std::swap(m1.fn, m2.fn);
+			std::swap(m1.face, m2.face);
+			std::swap(m1.hn, m2.hn);
+			std::swap(m1.hedge, m2.hedge);
+			std::swap(m1.tn, m2.tn);
+			std::swap(m1.tetra, m2.tetra);
+			std::swap(m1.bbox, m2.bbox);
+			std::swap(m1.textures, m2.textures);
+			std::swap(m1.normalmaps, m2.normalmaps);
+			std::swap(m1.attrn, m2.attrn);
+			std::swap(m1.vert_attr, m2.vert_attr);
+			std::swap(m1.edge_attr, m2.edge_attr);
+			std::swap(m1.face_attr, m2.face_attr);
+			std::swap(m1.mesh_attr, m2.mesh_attr);
+			std::swap(m1.tetra_attr, m2.tetra_attr);
+			std::swap(m1.shot, m2.shot);
+			std::swap(m1.imark, m2.imark);
 		}
 	};
 }
