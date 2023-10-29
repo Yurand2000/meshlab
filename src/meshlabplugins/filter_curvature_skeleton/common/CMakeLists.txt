@@ -7,6 +7,7 @@ set (SOURCES
 	"AlgorithmSkeletonize.cpp"
 	"BranchExtender.cpp"
 	"ComputeBranches.cpp"
+	"PruneSkeleton.cpp"
 )
 
 set (HEADERS
@@ -33,6 +34,8 @@ set (HEADERS
 
 	"MeshBorderPolyline.h"
 	"MeshBorderPolyline.imp.h"
+
+	"PruneSkeleton.h"
 )
 
 list(TRANSFORM SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")

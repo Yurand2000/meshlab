@@ -61,10 +61,26 @@ namespace curvatureSkeleton
 		>
 	{ };
 
-	typedef vcg::tri::TriMesh<
+	using SkeletonMeshBase = vcg::tri::TriMesh<
 		vcg::vertex::vector_ocf<SkeletonVertex>,
 		std::vector<SkeletonEdge>
-	> SkeletonMesh;
+	>;
+
+	class SkeletonMesh : public SkeletonMeshBase {
+	public:
+		SkeletonMesh() : SkeletonMeshBase() {}
+
+		//SkeletonMesh(const SkeletonMesh& oth);
+		SkeletonMesh(SkeletonMesh&& other) : SkeletonMeshBase() {
+			std::swap(*this, other);
+		}
+
+		SkeletonMesh& operator=(SkeletonMesh&& other) {
+			if (&other != this)
+				std::swap(*this, other);
+			return *this;
+		}
+	};
 }
 
 #endif //SKELETON_MESH
