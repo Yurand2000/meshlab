@@ -43,7 +43,7 @@ using PolylineMeshes = std::vector< std::pair<PolylineMesh, PolylineTags> >;
 
 static Polylines computePolylines(CMeshO& original, std::string const& facetag_id, vcg::CallBackPos* cb);
 static PolylineMeshes convertToPolylineMeshes(Polylines& polylines);
-static PolylineMeshes refinePolylines(Polylines const& polylines, PolylineMeshes&& polyline_meshes, CMeshO const& original, refiningParameters params, vcg::CallBackPos* cb);
+static void refinePolylines(Polylines const& polylines, PolylineMeshes& polyline_meshes, CMeshO const& original, refiningParameters params, vcg::CallBackPos* cb);
 static std::vector<PolylineMesh> cutPieces(FilterPlugin const& plugin, MeshDocument& document, CMeshO const& original, PolylineMeshes& polyline_meshes, std::string const& facetag_id, std::string const& holes_adj_facetag_id, bool close_holes, float refine_hole_lenght, vcg::CallBackPos* cb);
 static void createPiecesMeshes(MeshDocument& document, MeshModel const& original_mm, CMeshO const& original, std::vector<PolylineMesh>& pieces, std::string const& facetag_id, std::string const& holes_adj_facetag_id);
 
@@ -113,7 +113,7 @@ std::map<std::string, QVariant> PolylineCuttingFilter::applyFilter(
 		auto polyline_meshes = convertToPolylineMeshes(polylines);
 
 		if (refine_polylines) {
-			polyline_meshes = refinePolylines(polylines, std::move(polyline_meshes), original, refining_params, cb);
+			refinePolylines(polylines, polyline_meshes, original, refining_params, cb);
 		}
 
 		//generate polylines as meshes
@@ -361,9 +361,9 @@ PolylineMeshes convertToPolylineMeshes(Polylines& polylines) {
 	return polyline_meshes;
 }
 
-PolylineMeshes refinePolylines(
+void refinePolylines(
 	Polylines const& polylines,
-	PolylineMeshes&& polyline_meshes,
+	PolylineMeshes& polyline_meshes,
 	CMeshO const& original,
 	refiningParameters params,
 	vcg::CallBackPos* cb
@@ -415,8 +415,6 @@ PolylineMeshes refinePolylines(
 
 	for (int i = 0; i < single_polylines.size(); i++)
 		std::swap(polyline_meshes[i].first, single_polylines[i].first);
-
-	return polyline_meshes;
 }
 
 std::vector<PolylineMesh> cutPieces(
