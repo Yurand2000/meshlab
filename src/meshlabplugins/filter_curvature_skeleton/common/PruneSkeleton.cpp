@@ -118,8 +118,8 @@ void removeBranchNoRemap(SkeletonMesh& skeleton, Branch const& branch_to_prune) 
 	auto& vertices = std::get<0>(branch_to_prune);
 	auto& edges = std::get<1>(branch_to_prune);
 
-	for (auto* vert : vertices)
-		vcg::tri::Allocator<SkeletonMesh>::DeleteVertex(skeleton, *vert);
+	for (int i = 0; i < vertices.size() - 1; i++)
+		vcg::tri::Allocator<SkeletonMesh>::DeleteVertex(skeleton, *vertices[i]);
 
 	for (auto* edge : edges)
 		vcg::tri::Allocator<SkeletonMesh>::DeleteEdge(skeleton, *edge);
