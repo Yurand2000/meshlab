@@ -357,12 +357,14 @@ CMeshO duplicateAndExtendMeshBase(CMeshO& mesh)
 void cutSkeletonToOriginalMesh(CMeshO const& mesh, SkeletonMesh& skeleton, SkeletonVertex*& out_bottom_vertex)
 {
 	//find the interface of the mesh
-	auto parent_hole = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, ATTRIBUTE_PARENT_HOLE_FACES);
 	std::vector<CFaceO const*> hole_interface;
-	for (auto& face : mesh.face)
-	{
-		if (parent_hole[face] == 1)
-			hole_interface.push_back(&face);
+	auto parent_hole = vcg::tri::Allocator<CMeshO>::GetPerFaceAttribute<Scalarm>(mesh, ATTRIBUTE_PARENT_HOLE_FACES);
+	if (vcg::tri::Allocator<CMeshO>::IsValidHandle<Scalarm>(mesh, parent_hole)) {
+		for (auto& face : mesh.face)
+		{
+			if (parent_hole[face] == 1)
+				hole_interface.push_back(&face);
+		}
 	}
 
 	if (hole_interface.empty()) {
