@@ -365,14 +365,19 @@ CMeshO duplicateAndExtendMeshBase(CMeshO& mesh)
 		}
 	}
 
-	vcg::tri::UpdateSelection<CMeshO>::Clear(new_mesh);
-	ccs[biggest].second->SetS();
-	vcg::tri::UpdateSelection<CMeshO>::FaceConnectedFF(new_mesh);
-	vcg::tri::UpdateSelection<CMeshO>::VertexFromFaceLoose(new_mesh);
-	CMeshO clean_new_mesh;
-	vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(clean_new_mesh, new_mesh, true);
+	if (max_size == -1) {
+		return new_mesh;
+	}
+	else {
+		vcg::tri::UpdateSelection<CMeshO>::Clear(new_mesh);
+		ccs[biggest].second->SetS();
+		vcg::tri::UpdateSelection<CMeshO>::FaceConnectedFF(new_mesh);
+		vcg::tri::UpdateSelection<CMeshO>::VertexFromFaceLoose(new_mesh);
+		CMeshO clean_new_mesh;
+		vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(clean_new_mesh, new_mesh, true);
 
-	return clean_new_mesh;
+		return clean_new_mesh;
+	}
 }
 
 void cutSkeletonToOriginalMesh(CMeshO const& mesh, SkeletonMesh& skeleton, SkeletonVertex*& out_bottom_vertex)
