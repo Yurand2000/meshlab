@@ -351,7 +351,28 @@ CMeshO duplicateAndExtendMeshBase(CMeshO& mesh)
 		vcg::tri::UpdateSelection<CMeshO>::Clear(new_mesh);
 	}
 
-	return new_mesh;
+	//take only the biggest connected component
+	std::vector< std::pair<int, CMeshO::FacePointer> > ccs;
+	new_mesh.face.EnableFFAdjacency();
+	vcg::tri::UpdateTopology<CMeshO>::FaceFace(new_mesh);
+	vcg::tri::Clean<CMeshO>::ConnectedComponents(new_mesh, ccs);
+
+	size_t biggest = 0; int max_size = -1;
+	for (size_t i = 0; i < ccs.size(); i++) {
+		if (ccs[i].first > max_size) {
+			max_size = ccs[i].first;
+			biggest = i;
+		}
+	}
+
+	vcg::tri::UpdateSelection<CMeshO>::Clear(new_mesh);
+	ccs[biggest].second->SetS();
+	vcg::tri::UpdateSelection<CMeshO>::FaceConnectedFF(new_mesh);
+	vcg::tri::UpdateSelection<CMeshO>::VertexFromFaceLoose(new_mesh);
+	CMeshO clean_new_mesh;
+	vcg::tri::Append<CMeshO, CMeshO>::MeshCopyConst(clean_new_mesh, new_mesh, true);
+
+	return clean_new_mesh;
 }
 
 void cutSkeletonToOriginalMesh(CMeshO const& mesh, SkeletonMesh& skeleton, SkeletonVertex*& out_bottom_vertex)

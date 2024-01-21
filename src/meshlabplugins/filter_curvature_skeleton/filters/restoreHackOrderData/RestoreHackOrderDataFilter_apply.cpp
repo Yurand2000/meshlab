@@ -84,6 +84,10 @@ std::map<std::string, QVariant> RestoreHackOrderDataFilter::applyFilter(
 		auto tag = pair.first;
 		auto piece_id = pair.second.first;
 		auto* mesh_mm = pair.second.second;
+
+		if (mesh_mm == nullptr)
+			continue;
+
 		auto& mesh = mesh_mm->cm;
 
 		//find tag of adjacent parent
