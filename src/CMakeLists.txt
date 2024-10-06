@@ -21,8 +21,8 @@ find_package(OpenMP)
 find_package(Threads)
 
 message(STATUS "Searching for required components with bundled fallback")
-find_package(GLEW)
-find_package(Eigen3)
+find_package(GLEW QUIET)
+find_package(Eigen3 QUIET)
 
 set(MESHLAB_RESOURCES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../resources)
 
@@ -125,6 +125,7 @@ if(NOT DEFINED MESHLAB_PLUGINS) # it may be already defined in parent directory
 	set(MESHLAB_PLUGINS
 		# IO plugins
 		meshlabplugins/io_3ds
+		meshlabplugins/io_3mf
 		meshlabplugins/io_base
 		meshlabplugins/io_bre
 		meshlabplugins/io_collada

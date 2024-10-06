@@ -44,7 +44,7 @@ case $i in
         shift # past argument=value
         ;;
     --use_brew_qt)
-        QT_DIR=$(brew --prefix qt5)
+        QT_DIR=$(brew --prefix qt@5)
         shift # past argument=value
         ;;
     --ccache)
@@ -71,6 +71,7 @@ fi
 
 if [ ! -z "$QT_DIR" ]
 then
+    export Qt5_Dir=$QT_DIR
     export Qt5_DIR=$QT_DIR
 fi
 
@@ -90,9 +91,19 @@ fi
 
 BUILD_PATH=$(realpath $BUILD_PATH)
 INSTALL_PATH=$(realpath $INSTALL_PATH)
+OPENMP_PATH=$(brew --prefix libomp)
 
 cd $BUILD_PATH
 export NINJA_STATUS="[%p (%f/%t) ] "
-cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH $CCACHE $DOUBLE_PRECISION_OPTION $NIGHTLY_OPTION $SOURCE_PATH
+cmake \
+    -GNinja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DOpenMP_ROOT=$OPENMP_PATH \
+    -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH \
+    $CCACHE \
+    $DOUBLE_PRECISION_OPTION \
+    $NIGHTLY_OPTION \
+    $SOURCE_PATH
+
 ninja
 ninja install

@@ -368,14 +368,17 @@ QString ExtraMeshFilterPlugin::filterInfo(ActionIDType filterID) const
 			                                               "<b>4-8 Subdivision</b>"
 			                                               "<br> <i>Luiz Velho, Denis Zorin </i>"
 			                                               "<br>CAGD, volume 18, Issue 5, Pages 397-427. ");
-	case FP_CLUSTERING                         : return tr("Collapse vertices by creating a three dimensional grid enveloping the mesh and discretizes them based on the cells of this grid");
+	case FP_CLUSTERING                         : return tr("Simplify the mesh by clustering vertices; by using a uniform grid over the mesh, the algorithm merges all the vertices in a grid cell into a single vertex. By design this approach removes all small triangles, but also create a number of non-manifold situation.<br> See: <br>"
+			                                               "<br><i>Jarek Rossignac, and Paul Borrel</i>. "
+			                                               "<br><b>Multi-resolution 3D approximations for rendering complex scenes.</b>"
+			                                               "<br>Modeling in computer graphics: methods and applications. Springer, 1993");
 	case FP_QUADRIC_SIMPLIFICATION             : return tr("Simplify a mesh using a quadric based edge-collapse strategy. A variant of the well known Garland and Heckbert simplification algorithm with different weighting schemes to better cope with aspect ration and planar/degenerate quadrics areas."
 							       "<br> See: <br>"
 							       "<i>M. Garland and P. Heckbert.</i> <br>"
 			                                        "<b>Surface Simplification Using Quadric Error Metrics</b> (<a href='http://mgarland.org/papers/quadrics.pdf'>pdf</a>)<br>"
 			                                        "In Proceedings of SIGGRAPH 97.<br/><br/>");
 	case FP_QUADRIC_TEXCOORD_SIMPLIFICATION    : return tr("Simplify a textured mesh using a Quadric based Edge Collapse Strategy preserving UV parametrization. "
-							       "Inspired in the QSLIM surface simplification algorithm "
+							       "Inspired by the QSLIM surface simplification algorithm"
 							       "by Michael Garland, which turned into the industry standard method for mesh simplification."
 							       "<br> See: <br>"
 							       "<i>M. Garland and P. Heckbert.</i> <br>"
@@ -1901,8 +1904,12 @@ std::map<std::string, QVariant> ExtraMeshFilterPlugin::applyFilter(
 		if(par.getBool("splitSurfaceWithSection"))
 		{
 			MeshModel* underM= md.addNewMesh("",sectionName+"_under");
+			underM->updateDataMask(orig);
 			underM->updateDataMask(MeshModel::MM_FACEFACETOPO);
 			underM->updateDataMask(MeshModel::MM_VERTQUALITY);
+			for (const std::string& tex : orig->cm.textures) {
+				underM->addTexture(tex, orig->getTexture(tex));
+			}
 
 			tri::Append<CMeshO,CMeshO>::Mesh(underM->cm,orig->cm);
 			tri::UpdateQuality<CMeshO>::VertexFromPlane(underM->cm, slicingPlane);
@@ -1921,9 +1928,15 @@ std::map<std::string, QVariant> ExtraMeshFilterPlugin::applyFilter(
 				tri::UpdateSelection<CMeshO>::VertexFromQualityRange(underM->cm,0,std::numeric_limits<float>::max());
 				tri::UpdateSelection<CMeshO>::FaceFromVertexStrict(underM->cm);
 				tri::UpdateSelection<CMeshO>::FaceInvert(underM->cm);
+				tri::UpdateSelection<CMeshO>::VertexClear(underM->cm);
 
 				MeshModel* overM= md.addNewMesh("",sectionName+"_over");
+				overM->updateDataMask(underM);
+				for (const std::string& tex : underM->cm.textures) {
+					overM->addTexture(tex, underM->getTexture(tex));
+				}
 				tri::Append<CMeshO,CMeshO>::Mesh(overM->cm,underM->cm,true);
+				tri::UpdateSelection<CMeshO>::Clear(overM->cm);
 
 				tri::UpdateSelection<CMeshO>::VertexClear(underM->cm);
 				tri::UpdateSelection<CMeshO>::VertexFromFaceStrict(underM->cm);

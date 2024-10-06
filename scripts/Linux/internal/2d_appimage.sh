@@ -23,7 +23,7 @@ case $i in
 esac
 done
 
-$RESOURCES_PATH/linux/linuxdeploy --appdir=$INSTALL_PATH \
+$RESOURCES_PATH/linux/x86_64/linuxdeploy --appdir=$INSTALL_PATH \
   --output appimage
 
 #get version
@@ -32,5 +32,8 @@ STR_VERSION=$($INSTALL_PATH/AppRun --version)
 read -a strarr <<< "$STR_VERSION"
 ML_VERSION=${strarr[1]} #get the meshlab version from the string
 
+# get running architecture
+ARCH=$(uname -m)
+
 mkdir $PACKAGES_PATH
-mv MeshLab-*.AppImage $PACKAGES_PATH/MeshLab$ML_VERSION-linux.AppImage
+mv MeshLab-*.AppImage $PACKAGES_PATH/MeshLab$ML_VERSION-linux_$ARCH.AppImage
