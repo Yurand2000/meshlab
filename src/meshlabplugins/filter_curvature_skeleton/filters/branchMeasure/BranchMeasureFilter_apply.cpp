@@ -50,7 +50,7 @@ static Scalarm computeBorderLenght(CMeshO& mesh, SkeletonVertex const& tip);
 static Scalarm computeMeshArea(CMeshO& mesh);
 static Scalarm computeMeshVolume(CMeshO& mesh);
 
-static const Scalarm cone_extension_angle = 25.f;
+static const Scalarm cone_extension_angle = 45.f;
 static const int cone_extension_search_depth = 20;
 
 std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
