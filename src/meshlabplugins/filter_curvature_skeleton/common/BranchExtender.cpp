@@ -219,15 +219,13 @@ void detail::extendBranch(SkeletonLeaf leaf, CMeshO const& mesh, CMeshO& skeleto
 
 	//iteratively approach the mesh
 	do {
-		// extendingSuccessful = computeBranchExtensionMean(skeleton.vert[leaf.leaf_index].cP(), leaf_vertices, normal, angle, new_point);
-		// extendingSuccessful = computeBranchExtensionMeanSurface(skeleton.vert[leaf.leaf_index].cP(), mesh.face, normal, angle, new_point);
 		extendingSuccessful = computeBranchExtensionGeodesic(mesh, skeleton.vert[leaf.leaf_index].cP(), leaf_vertices, leaf.normal, angle, new_point);
 		if (extendingSuccessful) {
 			// compute the new point to add
 			auto old_leaf = skeleton.vert[leaf.leaf_index].cP();
 			delta = (new_point - old_leaf).Norm();
 			Point normal = (new_point - old_leaf).normalized();
-			new_point = old_leaf + (normal * 0.75 * delta / double(max_iter - iter));
+			new_point = old_leaf + (normal * 0.5 * delta / double(max_iter - iter));
 
 			// add the new vertex (and edge)
 			vcg::tri::Allocator<CMeshO>::AddVertex(skeleton, new_point);
