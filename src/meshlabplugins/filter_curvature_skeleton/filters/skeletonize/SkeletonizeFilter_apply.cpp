@@ -74,9 +74,10 @@ std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 
 		plugin.log( QString("%2 - Number of branches: %1").arg(num_branches).arg(mesh_name).toStdString() );
 
-		return {
-			{"num_branches", QVariant(num_branches)}
-		};
+		std::map<std::string, QVariant> results;
+		results.insert({ "num_branches", QVariant(qulonglong(num_branches)) });
+
+		return results;
 	}
 	catch (MLException e) {
 		throw e;

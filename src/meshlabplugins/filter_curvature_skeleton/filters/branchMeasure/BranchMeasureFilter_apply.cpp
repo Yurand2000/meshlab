@@ -124,12 +124,11 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		//Log Lenght from Border
 		if (longest_border_lenght > 0) {
 			plugin.log( QString("%2 - Border Lenght: %1").arg(longest_border_lenght, 0, 'f', 3).arg(mesh_label).toStdString() );
-			mesh_results.insert(QString("border_length"), QJsonValue(longest_border_lenght));
 		}
 		else {
 			longest_border_lenght = NAN;
-			mesh_results.insert(QString("border_length"), QJsonValue(NAN));
 		}
+		mesh_results.insert(QString("border_length"), QJsonValue(longest_border_lenght));
 
 		//Log Surface Area
 		auto mesh_area = computeMeshArea(mesh);
