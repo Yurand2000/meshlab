@@ -91,7 +91,7 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 	//foreach mesh
 	for (int i = 0; i < models.size(); i++)
 	{
-		QJsonObject mesh_results;
+		QVariantMap mesh_results;
 
 		auto* mesh_mm = models[i];
 		auto mesh_label = mesh_mm->label();
@@ -115,11 +115,11 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 
 		//Log Curved Lenght
 		plugin.log( QString("%2 - Curved Lenght: %1").arg(longest_curved_path, 0, 'f', 3).arg(mesh_label).toStdString() );
-		mesh_results.insert(QString("curved_length"), QJsonValue(longest_curved_path));
+		mesh_results.insert(QString("curved_length"), QVariant(longest_curved_path));
 
 		//Log Linear Lenght
 		plugin.log(QString("%2 - Linear Lenght: %1").arg(longest_linear_path, 0, 'f', 3).arg(mesh_label).toStdString());
-		mesh_results.insert(QString("liner_length"), QJsonValue(longest_linear_path));
+		mesh_results.insert(QString("liner_length"), QVariant(longest_linear_path));
 
 		//Log Lenght from Border
 		if (longest_border_lenght > 0) {
@@ -128,17 +128,17 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		else {
 			longest_border_lenght = NAN;
 		}
-		mesh_results.insert(QString("border_length"), QJsonValue(longest_border_lenght));
+		mesh_results.insert(QString("border_length"), QVariant(longest_border_lenght));
 
 		//Log Surface Area
 		auto mesh_area = computeMeshArea(mesh);
 		plugin.log( QString("%2 - Surface Area: %1").arg(mesh_area, 0, 'f', 3).arg(mesh_label).toStdString() );
-		mesh_results.insert(QString("surface_area"), QJsonValue(mesh_area));
+		mesh_results.insert(QString("surface_area"), QVariant(mesh_area));
 
 		//Log Volume
 		auto mesh_volume = computeMeshVolume(mesh);
 		plugin.log( QString("%2 - Volume: %1").arg(mesh_volume, 0, 'f', 3).arg(mesh_label).toStdString() );
-		mesh_results.insert(QString("volume"), QJsonValue(mesh_volume));
+		mesh_results.insert(QString("volume"), QVariant(mesh_volume));
 
 		//save skeleton
 		if (save_skeletons)
