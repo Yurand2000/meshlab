@@ -29,6 +29,7 @@
 #include "common/PruneSkeleton.h"
 
 #include <vcg/complex/algorithms/isotropic_remeshing.h>
+#include <qjsonobject.h>
 
 #define SEPARATOR ','
 #define ATTRIBUTE_PARENT_HOLE_FACES "parent_hole"
@@ -84,9 +85,14 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 	output_stream << "Mesh Name" << SEPARATOR << "Curved Lenght" << SEPARATOR << "Linear Lenght" << SEPARATOR
 		<< "Border Lenght" << SEPARATOR << "Surface Area" << SEPARATOR << "Volume" << Qt::endl;
 
+	// build results map
+	std::map<std::string, QVariant> results;
+
 	//foreach mesh
 	for (int i = 0; i < models.size(); i++)
 	{
+		QJsonObject mesh_results;
+
 		auto* mesh_mm = models[i];
 		auto mesh_label = mesh_mm->label();
 		auto& mesh = mesh_mm->cm;
@@ -109,25 +115,31 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 
 		//Log Curved Lenght
 		plugin.log( QString("%2 - Curved Lenght: %1").arg(longest_curved_path, 0, 'f', 3).arg(mesh_label).toStdString() );
+		mesh_results.insert(QString("curved_length"), QJsonValue(longest_curved_path));
 
 		//Log Linear Lenght
 		plugin.log(QString("%2 - Linear Lenght: %1").arg(longest_linear_path, 0, 'f', 3).arg(mesh_label).toStdString());
+		mesh_results.insert(QString("liner_length"), QJsonValue(longest_linear_path));
 
 		//Log Lenght from Border
 		if (longest_border_lenght > 0) {
 			plugin.log( QString("%2 - Border Lenght: %1").arg(longest_border_lenght, 0, 'f', 3).arg(mesh_label).toStdString() );
+			mesh_results.insert(QString("border_length"), QJsonValue(longest_border_lenght));
 		}
 		else {
 			longest_border_lenght = NAN;
+			mesh_results.insert(QString("border_length"), QJsonValue(NAN));
 		}
 
 		//Log Surface Area
 		auto mesh_area = computeMeshArea(mesh);
 		plugin.log( QString("%2 - Surface Area: %1").arg(mesh_area, 0, 'f', 3).arg(mesh_label).toStdString() );
+		mesh_results.insert(QString("surface_area"), QJsonValue(mesh_area));
 
 		//Log Volume
 		auto mesh_volume = computeMeshVolume(mesh);
 		plugin.log( QString("%2 - Volume: %1").arg(mesh_volume, 0, 'f', 3).arg(mesh_label).toStdString() );
+		mesh_results.insert(QString("volume"), QJsonValue(mesh_volume));
 
 		//save skeleton
 		if (save_skeletons)
@@ -141,6 +153,8 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		output_stream << mesh_label << SEPARATOR << longest_curved_path << SEPARATOR << longest_linear_path << SEPARATOR
 			<< longest_border_lenght << SEPARATOR << mesh_area << SEPARATOR << mesh_volume << Qt::endl;
 
+		//save per mesh data in results
+		results.insert({ mesh_label.toStdString(), QVariant(mesh_results) });
 	}
 
 	if (!save_on_file.isEmpty())
@@ -159,7 +173,7 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		}
 	}
 
-	return {};
+	return results;
 }
 
 bool tryComputeSkeleton(

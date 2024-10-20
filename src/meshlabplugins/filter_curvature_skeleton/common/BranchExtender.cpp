@@ -225,7 +225,7 @@ void detail::extendBranch(SkeletonLeaf leaf, CMeshO const& mesh, CMeshO& skeleto
 			auto old_leaf = skeleton.vert[leaf.leaf_index].cP();
 			delta = (new_point - old_leaf).Norm();
 			Point normal = (new_point - old_leaf).normalized();
-			new_point = old_leaf + (normal * 0.5 * delta / double(max_iter - iter));
+			new_point = old_leaf + (normal * 0.5 * delta / Scalarm(max_iter - iter));
 
 			// add the new vertex (and edge)
 			vcg::tri::Allocator<CMeshO>::AddVertex(skeleton, new_point);
@@ -322,11 +322,11 @@ bool detail::computeBranchExtensionGeodesic(
 	std::vector<Point> cone_rays(N, Point());
 
 		// generate a single ray, rotated at "angle" from the Y axis, in any direction
-	cone_rays[0] = vcg::RotationMatrix(Point(1, 0, 0), double(angle)) * Point(0, 1, 0);
+	cone_rays[0] = vcg::RotationMatrix(Point(1, 0, 0), Scalarm(angle)) * Point(0, 1, 0);
 
 		// copy the ray N-1 times, rotating by (2pi/angle) around the Y axis.
 	for (size_t i = 1; i < N; i++) {
-		cone_rays[i] = vcg::RotationMatrix(Point(0, 1, 0), (double(i)*(2*M_PI)/N)) * cone_rays[0];
+		cone_rays[i] = vcg::RotationMatrix(Point(0, 1, 0), Scalarm(Scalarm(i)*(2*M_PI)/N)) * cone_rays[0];
 	}
 
 		// rotate all the rays to the leaf normal (shortest arc is fine)
@@ -377,7 +377,7 @@ bool detail::computeBranchExtensionGeodesic(
 
 	for (Point& raycast_point : raycast_points) {
 		CVertexO* best_point = nullptr;
-		auto best_distance = std::numeric_limits<double>::max();
+		auto best_distance = std::numeric_limits<Scalarm>::max();
 
 		for (CVertexO& vertex : cone_only.vert)	{
 			auto distance = vcg::SquaredDistance(raycast_point, vertex.cP());

@@ -28,6 +28,8 @@
 
 #include "cgalAdapter/CGALMeshConverter.h"
 #include "common/AlgorithmSkeletonize.h"
+#include "common/SkeletonMesh.h"
+#include "common/PruneSkeleton.h"
 
 namespace curvatureSkeleton
 {
@@ -64,7 +66,17 @@ std::map<std::string, QVariant> SkeletonizeFilter::applyFilter(
 		skeleton_mesh->clearDataMask(MeshModel::MM_VERTQUALITY);
 		skeleton_mesh->updateBoxAndNormals();
 
-		return {};
+		//log number of branches
+			//convert to skeleton mesh
+		SkeletonMesh c_skeleton;
+		vcg::tri::Append<SkeletonMesh, CMeshO>::MeshCopyConst(c_skeleton, skeleton);
+		auto num_branches = PruneSkeleton::getNumBranches(c_skeleton);
+
+		plugin.log( QString("%2 - Number of branches: %1").arg(num_branches).arg(mesh_name).toStdString() );
+
+		return {
+			{"num_branches", QVariant(num_branches)}
+		};
 	}
 	catch (MLException e) {
 		throw e;

@@ -98,6 +98,13 @@ void PruneSkeleton::pruneSkeletonNoRemap(SkeletonMesh& skeleton, Scalarm min_bra
 	}
 }
 
+size_t PruneSkeleton::getNumBranches(SkeletonMesh& skeleton) {
+	vcg::tri::UpdateTopology<SkeletonMesh>::VertexEdge(skeleton);
+	auto branches = computeBranches(skeleton);
+
+	return branches.size();
+}
+
 void removeBranch(SkeletonMesh& skeleton, Branch const& branch_to_prune, std::unordered_map<int, int>& indices_remap) {
 	auto& vertices = std::get<0>(branch_to_prune);
 	auto& edges = std::get<1>(branch_to_prune);
