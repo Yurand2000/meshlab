@@ -91,8 +91,6 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 	//foreach mesh
 	for (int i = 0; i < models.size(); i++)
 	{
-		QVariantMap mesh_results;
-
 		auto* mesh_mm = models[i];
 		auto mesh_label = mesh_mm->label();
 		auto& mesh = mesh_mm->cm;
@@ -115,11 +113,11 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 
 		//Log Curved Lenght
 		plugin.log( QString("%2 - Curved Lenght: %1").arg(longest_curved_path, 0, 'f', 3).arg(mesh_label).toStdString() );
-		mesh_results.insert(QString("curved_length"), QVariant(longest_curved_path));
+		results.insert({ QString("%1 - curved_length").arg(mesh_label).toStdString(), QVariant(longest_curved_path)});
 
 		//Log Linear Lenght
 		plugin.log(QString("%2 - Linear Lenght: %1").arg(longest_linear_path, 0, 'f', 3).arg(mesh_label).toStdString());
-		mesh_results.insert(QString("liner_length"), QVariant(longest_linear_path));
+		results.insert({ QString("%1 - linear_length").arg(mesh_label).toStdString(), QVariant(longest_linear_path) });
 
 		//Log Lenght from Border
 		if (longest_border_lenght > 0) {
@@ -128,17 +126,17 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		else {
 			longest_border_lenght = NAN;
 		}
-		mesh_results.insert(QString("border_length"), QVariant(longest_border_lenght));
+		results.insert({ QString("%1 - border_length").arg(mesh_label).toStdString(), QVariant(longest_border_lenght) });
 
 		//Log Surface Area
 		auto mesh_area = computeMeshArea(mesh);
 		plugin.log( QString("%2 - Surface Area: %1").arg(mesh_area, 0, 'f', 3).arg(mesh_label).toStdString() );
-		mesh_results.insert(QString("surface_area"), QVariant(mesh_area));
+		results.insert({ QString("%1 - surface_area").arg(mesh_label).toStdString(), QVariant(mesh_area)});
 
 		//Log Volume
 		auto mesh_volume = computeMeshVolume(mesh);
 		plugin.log( QString("%2 - Volume: %1").arg(mesh_volume, 0, 'f', 3).arg(mesh_label).toStdString() );
-		mesh_results.insert(QString("volume"), QVariant(mesh_volume));
+		results.insert({ QString("%1 - volume").arg(mesh_label).toStdString(), QVariant(mesh_volume) });
 
 		//save skeleton
 		if (save_skeletons)
@@ -151,9 +149,6 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		//save per mesh data on file
 		output_stream << mesh_label << SEPARATOR << longest_curved_path << SEPARATOR << longest_linear_path << SEPARATOR
 			<< longest_border_lenght << SEPARATOR << mesh_area << SEPARATOR << mesh_volume << Qt::endl;
-
-		//save per mesh data in results
-		results.insert({ mesh_label.toStdString(), QVariant(mesh_results) });
 	}
 
 	if (!save_on_file.isEmpty())
