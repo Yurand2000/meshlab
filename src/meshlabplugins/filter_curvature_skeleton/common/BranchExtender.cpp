@@ -33,6 +33,8 @@
 #include <vcg/complex/append.h>
 #include <vcg/complex/algorithms/intersection.h>
 #include <vcg/complex/algorithms/geodesic.h>
+#include <vcg/simplex/face/topology.h>
+#include <vcg/simplex/face/distance.h>
 
 #define ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME "skeleton_index"
 
@@ -209,13 +211,22 @@ static void detail::getNthParentsRecursive(std::vector<SkeletonVertex const*>& b
 
 void detail::extendBranch(SkeletonLeaf leaf, CMeshO const& mesh, CMeshO& skeleton, float angle)
 {
+	const Scalarm min_delta = mesh.bbox.Diag() * Scalarm(0.01);
+	const size_t max_iter = 10;
+
+	//reserve data to be added in the skeleton
+	auto vi = vcg::tri::Allocator<CMeshO>::AddVertices(skeleton, max_iter);
+	for (; vi != skeleton.vert.end(); vi++)
+		vcg::tri::Allocator<CMeshO>::DeleteVertex(skeleton, *vi);
+	auto ei = vcg::tri::Allocator<CMeshO>::AddEdges(skeleton, max_iter);
+	for (; ei != skeleton.edge.end(); ei++)
+		vcg::tri::Allocator<CMeshO>::DeleteEdge(skeleton, *ei);
+
 	auto leaf_vertices = getMeshLeafVertices(leaf.branch_indices, mesh);
 	bool valid_new_point = false;
 	
 	Point start_point = skeleton.vert[leaf.leaf_index].P();
 	Point new_point; bool extendingSuccessful; Scalarm delta; size_t iter = 0;
-	const Scalarm min_delta = mesh.bbox.SquaredDiag() * Scalarm(0.01 * 0.01);
-	const size_t max_iter = 10;
 
 	//iteratively approach the mesh
 	do {
@@ -225,6 +236,7 @@ void detail::extendBranch(SkeletonLeaf leaf, CMeshO const& mesh, CMeshO& skeleto
 			auto old_leaf = skeleton.vert[leaf.leaf_index].cP();
 			delta = (new_point - old_leaf).Norm();
 			Point normal = (new_point - old_leaf).normalized();
+
 			new_point = old_leaf + (normal * 0.5 * delta / Scalarm(max_iter - iter));
 
 			// add the new vertex (and edge)
@@ -252,6 +264,7 @@ void detail::extendBranch(SkeletonLeaf leaf, CMeshO const& mesh, CMeshO& skeleto
 			skeleton.vert[leaf.leaf_index].P() = raycast_point;
 		}
 	}
+
 }
 
 std::vector<CVertexO const*> detail::getMeshLeafVertices(detail::SkeletonLeaf::BranchIndices branch_vertices, CMeshO const& mesh)
@@ -371,38 +384,50 @@ bool detail::computeBranchExtensionGeodesic(
 		return false;
 	}
 
-	// find the N closest points in the cone, use those as basis for the geodesic
+	// merge the raycasted points on mesh, use those as base for the geodesic
 	std::vector<CVertexO*> closest_points;
-	closest_points.reserve(raycast_points.size());
 
-	for (Point& raycast_point : raycast_points) {
-		CVertexO* best_point = nullptr;
-		auto best_distance = std::numeric_limits<Scalarm>::max();
+	// preallocated the N * 2 new faces and N new vertices needed
+	vcg::tri::Allocator<CMeshO>::FaceIterator fi = vcg::tri::Allocator<CMeshO>::AddFaces(cone_only, N * 2);
+	vcg::tri::Allocator<CMeshO>::VertexIterator vi = vcg::tri::Allocator<CMeshO>::AddVertices(cone_only, N);
 
-		for (CVertexO& vertex : cone_only.vert)	{
-			auto distance = vcg::SquaredDistance(raycast_point, vertex.cP());
-
-			if (distance < best_distance) {
-				best_distance = distance;
-				best_point = &vertex;
-			}
-		}
-
-		bool skip_push = false;
-		for (CVertexO* closest_point : closest_points) {
-			if (closest_point == best_point) {
-				skip_push = true;
-				break;
-			}
-		}
-
-		if (!skip_push)
-			closest_points.push_back(best_point);
+	// allocate data for faces (?)
+	for (vcg::tri::Allocator<CMeshO>::FaceIterator fi_copy = fi; fi_copy != cone_only.face.end(); fi_copy++) {
+		fi_copy->Alloc(3);
 	}
 
-	if (closest_points.empty()) {
-		throw MLException("Failed to select closest points");
-		return false;
+	closest_points.reserve(N);
+	for (Point& raycast_point : raycast_points) {
+		// find closest face
+		Scalarm best_distance = std::numeric_limits<Scalarm>::max();
+		Point closest_point;
+		CMeshO::FacePointer best_face = nullptr;
+		for (CFaceO& face : cone_only.face) {
+			// skip newly added faces
+			if (face.cN() == Point(0, 0, 0)) { continue; }
+
+			if (vcg::face::PointDistanceBase(face, raycast_point, best_distance, closest_point)) {
+				best_face = &face;
+			}
+		}
+
+		if (best_face == nullptr) {
+			throw MLException("Failed to select closest face");
+			return false;
+		}
+
+		// split the face in the mid point
+		CMeshO::FacePointer f1, f2; CMeshO::VertexPointer v1;
+		f1 = &*fi; fi++; f2 = &*fi; fi++;
+		v1 = &*vi; vi++;
+
+		vcg::face::TriSplit(best_face, f1, f2, v1);
+
+		// move the vertex to the raycast point
+		v1->P() = raycast_point;
+
+		// add the new vertex to the start vector for the geodesic flooding
+		closest_points.push_back(v1);
 	}
 
 	// compute VF adjacency
@@ -417,7 +442,7 @@ bool detail::computeBranchExtensionGeodesic(
 	auto furthest = Point(0, 0, 0);
 	Scalarm furthest_distance = 0;
 	for (CVertexO const& vert : cone_only.vert) {
-		if (vert.cQ() > furthest_distance) {
+		if (/*vcg::Angle(vert.cN(), leaf_normal) <= Scalarm(M_PI) &&*/ vert.cQ() > furthest_distance) {
 			furthest_distance = vert.cQ();
 			furthest = vert.cP();
 		}
