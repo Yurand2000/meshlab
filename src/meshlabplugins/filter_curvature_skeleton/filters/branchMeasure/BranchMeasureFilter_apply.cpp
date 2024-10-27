@@ -101,6 +101,27 @@ std::map<std::string, QVariant> BranchMeasureFilter::applyFilter(
 		CMeshO skeleton;
 		if ( !tryComputeSkeleton(plugin, mesh_label, clone_mesh, skeleton) ) continue;
 
+		//cleanup skeleton
+		{
+			// compute pruning size
+			Scalarm min_branch_length = Scalarm(0.0);
+
+			for (auto& edge : skeleton.edge)
+				min_branch_length += vcg::edge::Length(edge);
+
+			if (skeleton.EN() > 0)
+				min_branch_length /= skeleton.EN();
+
+			// convert to skeleton mesh
+			SkeletonMesh c_skeleton;
+			vcg::tri::Append<SkeletonMesh, CMeshO>::MeshCopyConst(c_skeleton, skeleton);
+
+			PruneSkeleton::pruneSkeletonNoRemap(c_skeleton, min_branch_length, false);
+
+			//save updated skeleton
+			vcg::tri::Append<CMeshO, SkeletonMesh>::MeshCopy(skeleton, c_skeleton);
+		}
+
 		//extend skeleton
 		BranchExtender::extendLeafs(clone_mesh, skeleton, vcg::math::ToRad(cone_extension_angle), cone_extension_search_depth);
 
