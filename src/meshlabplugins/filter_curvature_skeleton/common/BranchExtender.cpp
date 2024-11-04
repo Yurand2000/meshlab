@@ -69,24 +69,11 @@ namespace detail
 	static void getNthParentsRecursive(std::vector<SkeletonVertex const*>& branch, SkeletonVertex const* vertex, SkeletonVertex const* parent, int depth);
 	inline static Normal getVertexNormal(SkeletonVertex const& vertex, std::vector<SkeletonVertex const*> const& parents);
 	inline static SkeletonLeaf::BranchIndices getBranchIndices(std::vector<SkeletonVertex const*> const& parents);
+	inline static CVertexO& getVertexFromIndex(CMeshO& mesh, int index);
 
-	static std::vector<CVertexO const*> getMeshLeafVertices(SkeletonLeaf::BranchIndices vertices, CMeshO const& mesh);
-	static bool computeBranchExtensionMean(
-		Point const& leaf_vertex,
-		std::vector<CVertexO const*> const& leaf_vertices,
-		Normal const& leaf_normal,
-		float         angle,
-		Point& new_point);
 	static bool computeBranchExtensionGeodesic(
 		CMeshO const& mesh,
 		Point const& leaf_vertex,
-		std::vector<CVertexO const*> const& leaf_vertices,
-		Normal const& leaf_normal,
-		float         angle,
-		Point& new_point);
-	static bool computeBranchExtensionMeanSurface(
-		Point const& leaf_vertex,
-		std::vector<CFaceO> const& leaf_faces,
 		Normal const& leaf_normal,
 		float         angle,
 		Point& new_point);
@@ -213,27 +200,16 @@ void detail::extendBranch(SkeletonLeaf leaf, CMeshO const& mesh, CMeshO& skeleto
 {
 	const Scalarm min_delta = mesh.bbox.Diag() * Scalarm(0.01);
 	const size_t max_iter = 10;
-
-	//reserve data to be added in the skeleton
-	auto vi = vcg::tri::Allocator<CMeshO>::AddVertices(skeleton, max_iter);
-	for (; vi != skeleton.vert.end(); vi++)
-		vcg::tri::Allocator<CMeshO>::DeleteVertex(skeleton, *vi);
-	auto ei = vcg::tri::Allocator<CMeshO>::AddEdges(skeleton, max_iter);
-	for (; ei != skeleton.edge.end(); ei++)
-		vcg::tri::Allocator<CMeshO>::DeleteEdge(skeleton, *ei);
-
-	auto leaf_vertices = getMeshLeafVertices(leaf.branch_indices, mesh);
-	bool valid_new_point = false;
 	
-	Point start_point = skeleton.vert[leaf.leaf_index].P();
+	Point start_point = detail::getVertexFromIndex(skeleton, leaf.leaf_index).P();
 	Point new_point; bool extendingSuccessful; Scalarm delta; size_t iter = 0;
 
 	//iteratively approach the mesh
 	do {
-		extendingSuccessful = computeBranchExtensionGeodesic(mesh, skeleton.vert[leaf.leaf_index].cP(), leaf_vertices, leaf.normal, angle, new_point);
+		extendingSuccessful = computeBranchExtensionGeodesic(mesh, detail::getVertexFromIndex(skeleton, leaf.leaf_index).cP(), leaf.normal, angle, new_point);
 		if (extendingSuccessful) {
 			// compute the new point to add
-			auto old_leaf = skeleton.vert[leaf.leaf_index].cP();
+			auto old_leaf = detail::getVertexFromIndex(skeleton, leaf.leaf_index).cP();
 			delta = (new_point - old_leaf).Norm();
 			Point normal = (new_point - old_leaf).normalized();
 
@@ -241,7 +217,7 @@ void detail::extendBranch(SkeletonLeaf leaf, CMeshO const& mesh, CMeshO& skeleto
 
 			// add the new vertex (and edge)
 			vcg::tri::Allocator<CMeshO>::AddVertex(skeleton, new_point);
-			vcg::tri::Allocator<CMeshO>::AddEdge(skeleton, &skeleton.vert[leaf.leaf_index], &skeleton.vert.back());
+			vcg::tri::Allocator<CMeshO>::AddEdge(skeleton, &detail::getVertexFromIndex(skeleton, leaf.leaf_index), &skeleton.vert.back());
 
 			// update leaf data
 			leaf.branch_indices.pop_back();
@@ -249,7 +225,7 @@ void detail::extendBranch(SkeletonLeaf leaf, CMeshO const& mesh, CMeshO& skeleto
 			leaf.leaf_index = skeleton.vert.back().Index();
 
 			// compute the updated normal
-			leaf.normal = (new_point - skeleton.vert[leaf.branch_indices.back()].cP()).normalized();
+			leaf.normal = (new_point - detail::getVertexFromIndex(skeleton, leaf.branch_indices.back()).cP()).normalized();
 		}
 		iter++;
 	}
@@ -261,75 +237,29 @@ void detail::extendBranch(SkeletonLeaf leaf, CMeshO const& mesh, CMeshO& skeleto
 
 		Point raycast_point;
 		if ( vcg::IntersectionRayMesh(mesh, vcg::Ray3<Scalarm>(start_point, new_normal), raycast_point) ) {
-			skeleton.vert[leaf.leaf_index].P() = raycast_point;
+			detail::getVertexFromIndex(skeleton, leaf.leaf_index).P() = raycast_point;
 		}
 	}
 
 }
 
-std::vector<CVertexO const*> detail::getMeshLeafVertices(detail::SkeletonLeaf::BranchIndices branch_vertices, CMeshO const& mesh)
+inline static CVertexO& detail::getVertexFromIndex(CMeshO& mesh, int index)
 {
-	std::vector<CVertexO const*> vertices;
-	auto iterator = vcg::tri::Allocator<CMeshO>::FindPerVertexAttribute<Scalarm>(
-        mesh, ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME);
-
-	if (vcg::tri::Allocator<CMeshO>::IsValidHandle(mesh, iterator))
-	{
-		for (auto& vertex : mesh.vert)
-		{
-			if (std::count(branch_vertices.begin(), branch_vertices.end(), static_cast<int>(iterator[vertex])) > 0) {
-				vertices.push_back( &vertex );
-			}
-		}
-	}
-	else
-	{
-		throw MLException(
-			"The selected mesh has no attribute by name \""
-			ATTRIBUTE_MESH_TO_SKELETON_INDEX_NAME "\"."
-		);
+	for (CVertexO& vertex : mesh.vert) {
+		if (vertex.Index() == index)
+			return vertex;
 	}
 
-	return vertices;
-}
-
-bool detail::computeBranchExtensionMean(
-	Point const& leaf_vertex,
-	std::vector<CVertexO const*> const& leaf_vertices,
-	Normal const& leaf_normal,
-	float         angle,
-	Point&		  new_point)
-{
-	Point  total = { 0, 0, 0 };
-	size_t count = 0;
-	for (CVertexO const* vertex : leaf_vertices)
-	{
-		if ( isContainedInCone(leaf_vertex, vertex->cP(), angle, leaf_normal) )
-		{
-			count++;
-			total += vertex->cP();
-		}
-	}
-
-	if (count > 0)
-	{
-		new_point = total / count;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	throw MLException("Vertex not found");
 }
 
 bool detail::computeBranchExtensionGeodesic(
 	CMeshO const& mesh,
-	Point const& leaf_vertex,
-	std::vector<CVertexO const*> const& leaf_vertices,
+	Point const&  leaf_vertex,
 	Normal const& leaf_normal,
 	float         angle,
-	Point& new_point)
-{
+	Point&        new_point
+) {
 	// generate N rays from the center, on the cone, distributed evenly on a circle
 	const size_t N = 32;
 	std::vector<Point> cone_rays(N, Point());
@@ -442,7 +372,7 @@ bool detail::computeBranchExtensionGeodesic(
 	auto furthest = Point(0, 0, 0);
 	Scalarm furthest_distance = 0;
 	for (CVertexO const& vert : cone_only.vert) {
-		if (/*vcg::Angle(vert.cN(), leaf_normal) <= Scalarm(M_PI) &&*/ vert.cQ() > furthest_distance) {
+		if (vert.cQ() > furthest_distance) {
 			furthest_distance = vert.cQ();
 			furthest = vert.cP();
 		}
@@ -450,41 +380,6 @@ bool detail::computeBranchExtensionGeodesic(
 
 	new_point = furthest;
 	return true;
-}
-
-bool detail::computeBranchExtensionMeanSurface(
-	Point const& leaf_vertex,
-	std::vector<CFaceO> const& leaf_faces,
-	Normal const& leaf_normal,
-	float         angle,
-	Point& new_point)
-{
-	Point  total = { 0, 0, 0 };
-	Scalarm total_area = 0;
-	for (CFaceO const& face : leaf_faces)
-	{
-		if (
-			isContainedInCone(leaf_vertex, face.cP(0), angle, leaf_normal) &&
-			isContainedInCone(leaf_vertex, face.cP(1), angle, leaf_normal) &&
-			isContainedInCone(leaf_vertex, face.cP(2), angle, leaf_normal)
-		) {
-			auto center = (face.cP(0) + face.cP(1) + face.cP(2)) / 3.0;
-			auto area = vcg::DoubleArea(face) / 2.0;
-
-			total += center * area;
-			total_area += area;
-		}
-	}
-
-	if (total_area > 0)
-	{
-		new_point = total / total_area;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
 }
 
 bool detail::isContainedInCone(
