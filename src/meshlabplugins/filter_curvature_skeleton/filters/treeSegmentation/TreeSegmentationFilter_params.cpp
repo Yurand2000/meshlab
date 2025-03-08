@@ -33,12 +33,13 @@
 #define ORIGINAL_MESH_DESCRIPTION ""
 #define SKELETON_MESH_DISPLAYNAME "Skeleton"
 #define SKELETON_MESH_DESCRIPTION ""
-#define ROOT_SELECTED_DISPLAYNAME "Set selected vertex as root"
-#define ROOT_SELECTED_DESCRIPTION "Set the root of the skeleton as the selected point instead of the point with lowest Y coordinate."
+#define ROOT_SELECTED_DISPLAYNAME "Set non-zero quality vertex as root"
+#define ROOT_SELECTED_DESCRIPTION "Set the root of the skeleton as the non-zero quality point instead of the point with lowest Y coordinate."
 
 #define PARAMETER_CATEGORY "(1) Modify Hack ordering"
 #define SWAP_SELECTED_BRANCHES_DISPLAYNAME "Prioritize selected branches"
-#define SWAP_SELECTED_BRANCHES_DESCRIPTION "It lowers the Hack order of the selected branch(es), i.e. it promotes the branches to be the continuation of their direct fathers."
+#define SWAP_SELECTED_BRANCHES_DESCRIPTION "It lowers the Hack order of the selected branch(es), i.e. it promotes the branches to be the continuation of their direct fathers. " \
+										   "Branches to prioritize can be specified either on the mesh, by selecting faces, or on its skeleton, by selecting vertices."
 
 #define SAVE_CATEGORY "(2) Visualize and save"
 #define MAP_TO_COLOR_DISPLAYNAME "Display Hack ordering with colors"
@@ -59,8 +60,15 @@ RichParameterList TreeSegmentationFilter::initParameterList(FilterPlugin const& 
 	auto selected_root = false, selected_branches = false;
 	if (MeshDocumentUtils::tryGetSkeletonMeshIndex(m, skeleton_index) && MeshDocumentUtils::tryGetOriginalMeshIndex(m, mesh_index))
 	{
-		selected_root = m.getMesh(skeleton_index)->cm.svn == 1;
-		selected_branches = m.getMesh(mesh_index)->cm.sfn > 1;
+		auto mesh = m.getMesh(skeleton_index)->cm;
+		size_t quality_zero_count = 0;
+		for (auto& vert : mesh.vert) {
+			if (vert.cQ() == 0)
+				quality_zero_count += 1;
+		}
+
+		selected_root = quality_zero_count + 1 == mesh.VN();
+		selected_branches = m.getMesh(skeleton_index)->cm.svn > 0 || m.getMesh(mesh_index)->cm.sfn > 0;
 	}
 
 	parlst.addParam(RichMesh(PARAM_ORIGINAL_MESH, mesh_index, &m, ORIGINAL_MESH_DISPLAYNAME, ORIGINAL_MESH_DESCRIPTION, false, INPUT_CATEGORY));

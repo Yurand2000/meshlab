@@ -58,28 +58,31 @@ std::map<std::string, QVariant> TreeSegmentationFilter::applyFilter(
 
 	//find the root (selected or lowest point on Y axis)
 	int c_root_index = 0;
-	if (root_selected && skeleton.svn != 1)
-	{
-		throw MLException("Cannot define a root point: zero or more than one vertex is selected on the skeleton.");
-	}
-	else if (root_selected)
-	{
-		for (auto& vert : skeleton.vert) {
-			if (vert.IsS()) {
-				c_root_index = vert.Index();
-				break;
-			}
-		}
-	}
-	else
-	{
+	if (!root_selected) {
 		Scalarm lowest_y = std::numeric_limits<Scalarm>::max();
 		for (auto& vert : skeleton.vert)
 		{
-			if ( vert.cP().Y() < lowest_y )
+			if (vert.cP().Y() < lowest_y)
 			{
 				lowest_y = vert.cP().Y();
 				c_root_index = vert.Index();
+			}
+		}
+	} else {
+		size_t quality_zero_count = 0;
+		for (auto& vert : skeleton.vert) {
+			if (vert.cQ() == 0)
+				quality_zero_count += 1;
+		}
+
+		if (quality_zero_count + 1 != skeleton.VN()) {
+			throw MLException("Cannot define a root point: zero or more than one vertices have non-zero quality on the skeleton.");
+		}
+
+		for (auto& vert : skeleton.vert) {
+			if (vert.cQ() != 0) {
+				c_root_index = vert.Index();
+				break;
 			}
 		}
 	}
@@ -121,9 +124,17 @@ std::map<std::string, QVariant> TreeSegmentationFilter::applyFilter(
 		//list of tree braches to prioritize. Each point pair corresponds to a graph's edge and its sub-graph.
 		std::set<std::pair<vcg::Point3<Scalarm>, vcg::Point3<Scalarm>>> swap_branches;
 
-		//from the selections on the mesh extract the points on the skeleton.
+		//get selected vertices on the skeleton
 		std::unordered_set<SkeletonVertex*> selected_vertices;
 
+		for (auto& vert : skeleton.vert) {
+			if (!vert.IsD() && vert.IsS()) {
+				auto skeleton_index = vert.Index();
+				selected_vertices.emplace(&c_skeleton.vert[skeleton_index]);
+			}
+		}
+
+		//from the selections on the mesh extract the points on the skeleton.
 		auto mesh_to_skeleton = vcg::tri::Allocator<CMeshO>::GetPerVertexAttribute<Scalarm>(original, ATTRIBUTE_MESH_TO_SKELETON);
 		for (auto& face : original.face)
 		{
