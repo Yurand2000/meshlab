@@ -226,6 +226,17 @@ void convertToSkeletonMesh(
 	if (bottom_vertex == nullptr)
 		return;
 
+	//bottom vertex may not be a degree-1 vertex
+	const Scalarm min_delta = 0.001;
+	if (vcg::edge::VEDegree<SkeletonEdge>(bottom_vertex) != 1) {
+		for (auto& vert : c_skeleton.vert) {
+			if (!vert.IsD() && vcg::edge::VEDegree<SkeletonEdge>(&vert) == 1 && vcg::Distance(vert.cP(), bottom_vertex->cP()) <= min_delta) {
+				bottom_vertex = &vert;
+				break;
+			}
+		}
+	}
+
 	//find top vertex
 	SkeletonVertex* top_vertex = nullptr;
 	findTopVertex(c_skeleton, bottom_vertex, top_vertex, longest_curved_path);
@@ -239,6 +250,10 @@ void convertToSkeletonMesh(
 	longest_border_lenght = computeBorderLenght(non_extended_mesh, *top_vertex);
 
 	//prune all the other branches
+	//abort if the bottom vertex is not a degree-1 vertex
+	if (vcg::edge::VEDegree<SkeletonEdge>(bottom_vertex) != 1)
+		return;
+
 	vcg::tri::UpdateSelection<SkeletonMesh>::Clear(c_skeleton);
 	for (auto& vert : c_skeleton.vert) {
 		if (!vert.IsD() && vcg::edge::VEDegree<SkeletonEdge>(&vert) == 1 && &vert != bottom_vertex && &vert != top_vertex) {
